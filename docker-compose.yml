@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: estoq-startup-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: estoq_startup
+      POSTGRES_USER: estoq
+      POSTGRES_PASSWORD: estoq
+    ports:
+      - "5434:5432"
+    volumes:
+      - estoq-startup-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U estoq -d estoq_startup"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  estoq-startup-pgdata:

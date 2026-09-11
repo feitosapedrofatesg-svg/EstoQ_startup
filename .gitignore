@@ -1,0 +1,32 @@
+# Backend
+backend/target/
+*.class
+*.jar
+
+# Frontend (quando existir)
+frontend/node_modules/
+frontend/dist/
+
+# Dados locais e backups (nunca committar)
+dados/
+
+# Variáveis de ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Lock files do LibreOffice / editors
+~$*
+.~lock.*
+
+# IDE / SO
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+
+# Dump temporário de testes
+*.dump

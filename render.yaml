@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: estoq-backend
+    runtime: image
+    image:
+      url: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
+      branch: main
+    dockerfilePath: backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: PORT
+        value: 8080
+      - key: SESSION_SECURE
+        value: "true"
+      - key: SESSION_SAMESITE
+        value: lax
+      - key: DDL_AUTO
+        value: update
+      - key: SEED_ENABLED
+        value: "false"
+      - key: API_DOCS_ENABLED
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ESTOQ_BACKUP_DIR
+        value: /tmp/estoq-backups
+      - key: ESTOQ_BACKUP_HOST
+        sync: false
+      - key: ESTOQ_BACKUP_PORTA
+        sync: false
+    autoDeploy: true
+    healthCheckPath: /api/auth/csrf

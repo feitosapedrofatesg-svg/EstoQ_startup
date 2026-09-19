@@ -169,6 +169,8 @@ export interface ItemBalancoDTO {
   produtoId: number;
   produtoNome: string;
   unidadeMedida: string;
+  categoriaId: number | null;
+  categoriaNome: string | null;
   quantidadeSistema: number;
   quantidadeFisica: number | null;
   diferenca: number | null;
@@ -183,6 +185,8 @@ export interface BalancoDTO {
   status: StatusBalanco;
   usuarioId: number;
   usuarioNome: string;
+  categoriaIds: number[];
+  categoriaNomes: string[];
   itens: ItemBalancoDTO[];
 }
 

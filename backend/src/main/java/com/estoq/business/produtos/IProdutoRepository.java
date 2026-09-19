@@ -18,4 +18,6 @@ public interface IProdutoRepository extends IGenericRepository<ProdutoModel> {
     Page<ProdutoModel> findAllByAtivoTrue(Pageable pageable);
     @EntityGraph(attributePaths = {"categoria", "parametro"})
     List<ProdutoModel> findAllByAtivoTrue();
+    @EntityGraph(attributePaths = {"categoria", "parametro"})
+    List<ProdutoModel> findAllByAtivoTrueAndCategoria_IdIn(List<Long> categoriaIds);
 }

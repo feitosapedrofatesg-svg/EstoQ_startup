@@ -4,6 +4,8 @@ import com.estoq.business.ajustes.AjusteService;
 import com.estoq.business.alertas.AlertaService;
 import com.estoq.business.alertas.TipoAlerta;
 import com.estoq.business.auth.UsuarioAtual;
+import com.estoq.business.categorias.CategoriaModel;
+import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
 import com.estoq.business.itensBalanco.ItemBalancoModel;
 import com.estoq.business.produtos.EstoqueService;
@@ -28,6 +30,7 @@ public class BalancoService {
 
     private final IBalancoRepository repository;
     private final IProdutoRepository produtos;
+    private final ICategoriaRepository categorias;
     private final EstoqueService estoque;
     private final IConfiguracaoBalancoRepository configuracoes;
     private final BalancoAdapter adapter;
@@ -54,6 +57,13 @@ public class BalancoService {
         balanco.setTipo(dto.tipo() == null ? TipoBalanco.GERAL : dto.tipo());
         balanco.setStatus(StatusBalanco.PENDENTE);
         balanco.setUsuario(usuarioAtual.obter());
+        if (balanco.getTipo() == TipoBalanco.PARCIAL) {
+            if (dto.categorias() == null || dto.categorias().isEmpty()) {
+                throw new FieldValidationException("categorias", "Balanço parcial exige ao menos uma categoria.");
+            }
+            var selecionadas = categorias.findAllById(dto.categorias());
+            balanco.getCategorias().addAll(selecionadas);
+        }
         repository.saveAndFlush(balanco);
         configuracoes.findAllByAtivoTrueOrderByIdAsc().stream().findFirst().ifPresent(alertas::reavaliarBalancoPendente);
         return adapter.toDto(balanco);
@@ -68,7 +78,13 @@ public class BalancoService {
         if (balanco.getStatus() != StatusBalanco.PENDENTE) {
             throw new ConflictException("Somente um balanço PENDENTE pode ser iniciado.");
         }
-        for (var produto : produtos.findAllByAtivoTrue()) {
+        if (balanco.getTipo() == TipoBalanco.PARCIAL && balanco.getCategorias().isEmpty()) {
+            throw new ConflictException("Balanço parcial sem categorias selecionadas.");
+        }
+        var alvo = balanco.getTipo() == TipoBalanco.PARCIAL
+                ? produtos.findAllByAtivoTrueAndCategoria_IdIn(balanco.getCategorias().stream().map(CategoriaModel::getId).toList())
+                : produtos.findAllByAtivoTrue();
+        for (var produto : alvo) {
             var item = new ItemBalancoModel();
             item.setBalanco(balanco);
             item.setProduto(produto);

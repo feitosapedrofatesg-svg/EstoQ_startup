@@ -14,7 +14,7 @@ import { parseDecimal } from "../lib/format";
 
 /* ------------------------------------------------------------------ Button */
 
-type BtnVariant = "accent" | "ink" | "danger" | "outline" | "ghost" | "link";
+type BtnVariant = "accent" | "ink" | "danger" | "good" | "outline" | "ghost" | "link";
 
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: BtnVariant;

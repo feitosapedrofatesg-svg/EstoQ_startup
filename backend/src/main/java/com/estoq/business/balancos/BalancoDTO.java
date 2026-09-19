@@ -4,5 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record BalancoDTO(Long id, Long version, LocalDateTime dataHora, TipoBalanco tipo, StatusBalanco status,
-        Long usuarioId, String usuarioNome, List<ItemBalancoDTO> itens) {
+        Long usuarioId, String usuarioNome, List<Long> categoriaIds, List<String> categoriaNomes,
+        List<ItemBalancoDTO> itens) {
 }

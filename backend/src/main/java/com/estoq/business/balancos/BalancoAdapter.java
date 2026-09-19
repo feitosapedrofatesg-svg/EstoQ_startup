@@ -11,8 +11,11 @@ import java.util.List;
 public class BalancoAdapter {
 
     public ItemBalancoDTO toItemDto(ItemBalancoModel item) {
-        return new ItemBalancoDTO(item.getId(), item.getProduto().getId(), item.getProduto().getNome(),
-                item.getProduto().getUnidadeMedida().name(), item.getQuantidadeSistema(), item.getQuantidadeFisica(),
+        var p = item.getProduto();
+        var c = p.getCategoria();
+        return new ItemBalancoDTO(item.getId(), p.getId(), p.getNome(),
+                p.getUnidadeMedida().name(), c == null ? null : c.getId(), c == null ? null : c.getNome(),
+                item.getQuantidadeSistema(), item.getQuantidadeFisica(),
                 item.getQuantidadeFisica() == null ? BigDecimal.ZERO : item.getQuantidadeFisica().subtract(item.getQuantidadeSistema()),
                 item.isAjusteAplicado());
     }
@@ -20,7 +23,10 @@ public class BalancoAdapter {
     public BalancoDTO toDto(BalancoModel b) {
         var itens = b.getItens().isEmpty() ? List.<ItemBalancoDTO>of()
                 : b.getItens().stream().map(this::toItemDto).toList();
+        var categoriaIds = b.getCategorias().stream().map(c -> c.getId()).toList();
+        var categoriaNomes = b.getCategorias().stream().map(c -> c.getNome()).toList();
         return new BalancoDTO(b.getId(), b.getVersion(), b.getDataHora(), b.getTipo(), b.getStatus(),
-                b.getUsuario() == null ? null : b.getUsuario().getId(), b.getUsuario() == null ? null : b.getUsuario().getNome(), itens);
+                b.getUsuario() == null ? null : b.getUsuario().getId(), b.getUsuario() == null ? null : b.getUsuario().getNome(),
+                categoriaIds, categoriaNomes, itens);
     }
 }

@@ -1,5 +1,6 @@
 package com.estoq.business.balancos;
 
+import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.itensBalanco.ItemBalancoModel;
 import com.estoq.business.usuarios.UsuarioModel;
 import com.estoq.core.domains.BaseModel;
@@ -12,6 +13,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
@@ -53,6 +56,14 @@ public class BalancoModel extends BaseModel {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private UsuarioModel usuario;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "balanco_categorias", joinColumns = @JoinColumn(name = "balanco_id"),
+            inverseJoinColumns = @JoinColumn(name = "categoria_id"))
+    @OrderBy("id asc")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<CategoriaModel> categorias = new ArrayList<>();
 
     @OneToMany(mappedBy = "balanco", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id asc")

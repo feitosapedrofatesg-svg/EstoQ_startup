@@ -1,10 +1,10 @@
 package com.estoq.business.balancos;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 
 public record ContagemRequestDTO(
-        @NotNull @Positive BigDecimal quantidadeFisica) {
+        @NotNull @DecimalMin("0") BigDecimal quantidadeFisica) {
 }

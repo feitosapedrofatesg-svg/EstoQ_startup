@@ -574,6 +574,16 @@ a:hover {
   color: #fff;
 }
 
+.btn--good {
+  background: var(--good);
+  color: #fff;
+}
+
+.btn--good:hover {
+  background: #17603c;
+  color: #fff;
+}
+
 .btn--outline {
   border-color: var(--line-strong);
   background: var(--surface);
@@ -2033,6 +2043,53 @@ a:hover {
   background: var(--surface);
 }
 
+.balanco--collapsed {
+  padding-block: 10px;
+}
+
+.balanco__head-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.balanco__toggle {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  cursor: pointer;
+  flex: none;
+}
+
+.balanco__toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.balanco__chevron {
+  display: inline-block;
+  transition: transform 180ms ease;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.balanco__chevron--open {
+  transform: rotate(90deg);
+}
+
+.balanco__summary {
+  color: var(--muted);
+  font-size: var(--t-1);
+  font-weight: 400;
+  font-family: var(--font-ui);
+}
+
 .balanco__head {
   display: flex;
   align-items: flex-start;
@@ -2056,6 +2113,41 @@ a:hover {
   color: var(--muted);
   font-size: var(--t-1);
   margin-top: 3px;
+}
+
+.balanco__cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bal-tipo-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.bal-tipo-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  cursor: pointer;
+  font-size: var(--t-1);
+  user-select: none;
+}
+
+.bal-tipo-cat:hover {
+  border-color: var(--accent);
+}
+
+.bal-tipo-cat input {
+  accent-color: var(--accent);
 }
 
 .balanco__actions {
@@ -2255,6 +2347,147 @@ a:hover {
     left: 12px;
     width: auto;
   }
+}
+
+/* -------------------------------------------------- mini calendar */
+
+.mini-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mini-cal__week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.mini-cal__week button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--t-1);
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms, color 120ms;
+}
+
+.mini-cal__week button:hover {
+  border-color: var(--accent);
+}
+
+.mini-cal__week button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.mini-cal__hint {
+  font-size: var(--t-1);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------- month calendar */
+
+.month-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: fit-content;
+}
+
+.month-cal__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 4px;
+}
+
+.month-cal__title {
+  font-weight: 600;
+  font-size: var(--t-2);
+  color: var(--text);
+  user-select: none;
+}
+
+.month-cal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 40px);
+}
+
+.month-cal__weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font-size: var(--t-1);
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.month-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 40px);
+  gap: 2px;
+}
+
+.month-cal__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--t-1);
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms, color 120ms;
+}
+
+.month-cal__day:hover:not(:disabled) {
+  background: var(--paper);
+}
+
+.month-cal__day--selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.month-cal__day--selected:hover {
+  background: var(--accent-strong) !important;
+}
+
+.month-cal__day--other {
+  color: var(--line-strong);
+  cursor: default;
+}
+
+.month-cal__day--disabled {
+  color: var(--line-strong);
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.month-cal__day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* -------------------------------------------------- redução de movimento */

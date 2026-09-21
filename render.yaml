@@ -1,10 +1,9 @@
 services:
   - type: web
     name: estoq-backend
-    runtime: image
-    image:
-      url: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
-      branch: main
+    runtime: docker
+    repo: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
+    branch: main
     dockerfilePath: backend/Dockerfile
     envVars:
       - key: DATABASE_URL

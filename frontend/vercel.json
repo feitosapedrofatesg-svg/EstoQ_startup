@@ -3,12 +3,12 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "${RENDER_BACKEND_URL}/api/:path*"
+      "destination": "https://estoq-backend-jv04.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
     {

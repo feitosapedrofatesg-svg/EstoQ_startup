@@ -58,7 +58,7 @@ function Guarded({
 }
 
 function AppRoutes() {
-  const { user, ready, canMove, canReport, isAdmin } = useAuth();
+  const { user, ready, canMove, canReport, isAdmin, isCozinha } = useAuth();
 
   if (!ready) return <Splash />;
   if (!user) return <Login />;
@@ -66,7 +66,10 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route
+          path="/dashboard"
+          element={isCozinha ? <Navigate to="/estoque" replace /> : <Dashboard />}
+        />
         <Route path="/estoque" element={<Estoque />} />
         <Route
           path="/movimentacoes"

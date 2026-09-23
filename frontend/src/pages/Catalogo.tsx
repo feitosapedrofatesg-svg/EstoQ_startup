@@ -374,8 +374,8 @@ function ProdutoForm({
             await api.post("/api/parametros-estoque", paramBody);
           } catch (e) {
             // produto já pode ter parâmetro recém-criado; tenta atualizar
-            const list = await api.get<ParametroEstoqueDTO[]>("/api/parametros-estoque?size=100");
-            const p2 = list.find((x) => x.produtoId === (prod?.id ?? savedProd.id));
+            const list = await api.get<Page<ParametroEstoqueDTO>>("/api/parametros-estoque?size=100");
+            const p2 = list.content.find((x) => x.produtoId === (prod?.id ?? savedProd.id));
             if (p2) await api.put(`/api/parametros-estoque/${p2.id}`, { ...paramBody, version: p2.version });
             else throw e;
           }

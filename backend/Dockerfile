@@ -6,7 +6,9 @@ COPY backend/src src
 RUN mvn clean package -DskipTests -B -q
 
 FROM eclipse-temurin:21-jre-alpine
-RUN adduser -D -h /app estoq
+# pg_dump é necessário para o módulo de backup (POST /api/backups)
+RUN apk add --no-cache postgresql-client \
+    && adduser -D -h /app estoq
 USER estoq
 WORKDIR /app
 COPY --from=build --chown=estoq /build/target/estoq-startup.jar app.jar

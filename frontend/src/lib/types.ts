@@ -190,7 +190,9 @@ export interface BalancoDTO {
   itens: ItemBalancoDTO[];
 }
 
-export interface ConfiguracaoBalancoDTO extends BaseDTO {
+export interface ConfiguracaoBalancoDTO {
+  id: number;
+  version: number;
   periodicidade: PeriodicidadeBalanco;
   diaExecucao: number | null;
   proximaExecucao: string | null;
@@ -300,6 +302,8 @@ export interface BackupDTO {
   criadoEm: string;
 }
 
-export interface ParametroCmvDTO extends BaseDTO {
+export interface ParametroCmvDTO {
+  id: number;
+  version: number;
   percentualIdeal: number;
 }

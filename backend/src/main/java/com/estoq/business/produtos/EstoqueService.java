@@ -44,10 +44,12 @@ public class EstoqueService {
             var pos = saldos.get(p.getId());
             var par = p.getParametro();
             BigDecimal saldo = pos == null ? BigDecimal.ZERO : pos.getSaldo();
-            BigDecimal minimo = par == null ? BigDecimal.ZERO : par.getEstoqueMinimo();
+            BigDecimal minimo = par == null ? null : par.getEstoqueMinimo();
+            BigDecimal medio = par == null ? null : par.getEstoqueMedio();
+            BigDecimal maximo = par == null ? null : par.getEstoqueMaximo();
+            boolean abaixo = par != null && minimo != null && saldo.compareTo(minimo) < 0;
             return new EstoqueDTO(p.getId(), p.getNome(), p.getCategoria().getNome(), p.getUnidadeMedida(), saldo,
-                    money(pos == null ? null : pos.getValor()), minimo, par == null ? BigDecimal.ZERO : par.getEstoqueMedio(),
-                    par == null ? BigDecimal.ZERO : par.getEstoqueMaximo(), saldo.compareTo(minimo) < 0, idsAbertos.contains(p.getId()));
+                    money(pos == null ? null : pos.getValor()), minimo, medio, maximo, abaixo, idsAbertos.contains(p.getId()));
         }).filter(d -> !somenteAbertos || d.possuiItensAbertos()).filter(d -> !somenteBaixo || d.abaixoDoMinimo())
                 .sorted(Comparator.comparing(EstoqueDTO::produtoNome, String.CASE_INSENSITIVE_ORDER)).toList();
     }

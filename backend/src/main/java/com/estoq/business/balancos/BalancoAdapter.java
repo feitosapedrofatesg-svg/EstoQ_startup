@@ -16,7 +16,7 @@ public class BalancoAdapter {
         return new ItemBalancoDTO(item.getId(), p.getId(), p.getNome(),
                 p.getUnidadeMedida().name(), c == null ? null : c.getId(), c == null ? null : c.getNome(),
                 item.getQuantidadeSistema(), item.getQuantidadeFisica(),
-                item.getQuantidadeFisica() == null ? BigDecimal.ZERO : item.getQuantidadeFisica().subtract(item.getQuantidadeSistema()),
+                item.getQuantidadeFisica() == null ? null : item.getQuantidadeFisica().subtract(item.getQuantidadeSistema()),
                 item.isAjusteAplicado());
     }
 

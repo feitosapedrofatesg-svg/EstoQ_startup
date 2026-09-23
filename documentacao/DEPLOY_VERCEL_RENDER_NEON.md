@@ -59,7 +59,8 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
 2. Como o `pom.xml` está em `backend/`, escolha **Dockerfile** nos
    configurações (já existe `backend/Dockerfile`), ou use o `render.yaml` via
    **New → Blueprint** (importa o `render.yaml` da raiz).
-3. Seu serviço será criado em `https://estoq-backend.onrender.com`.
+3. Seu serviço será criado em `https://estoq-backend-jv04.onrender.com`
+   (o nome final depende do slug gerado pelo Render).
 4. Defina as **env vars** do serviço (copie de `.env.example`):
 
    | Variável | Valor inicial | Observação |
@@ -81,7 +82,7 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
    > inicial, depois mude para `false`.
 
 5. Aguarde o deploy. Para validar rápido, chame de um navegador:
-   `GET https://estoq-backend.onrender.com/api/auth/csrf` → deve responder JSON
+   `GET https://estoq-backend-jv04.onrender.com/api/auth/csrf` → deve responder JSON
    `{ "token": "...", "headerName": "X-CSRF-TOKEN" }`.
 
 **Sobre "espia" do free tier:** o serviço dorme após ~15 min sem tráfego; o
@@ -98,23 +99,22 @@ projeto acadêmico — para always-on use Railway (~US$5/mês).
    - **Build Command:** `npm run build`
    - **Output Directory:** `dist`
    - **Root Directory:** `frontend`
-3. **Environment Variable** (no projeto Vercel):
-   - `RENDER_BACKEND_URL` = `https://estoq-backend.onrender.com`
-4. Deploy. O site sai em `https://estoq-startup.vercel.app`.
+4. Deploy. O site sai em `https://estoq-ph-feit0sa.vercel.app`.
 
-O `vercel.json` em `frontend/` já contém:
-- rewrite `/api/*` → `${RENDER_BACKEND_URL}/api/*` (precisa da env var acima)
+O `vercel.json` em `frontend/` já contém (a URL do backend é **fixa** no arquivo,
+pois rewrites da Vercel não aceitam `${VARIÁVEL}`):
+- rewrite `/api/*` → `https://estoq-backend-jv04.onrender.com/api/*`
 - fallback de todas as rotas → `index.html` (navegação client-side do React Router)
 - headers de segurança básicos.
 
-> **Importante:** ao mudar a env var `RENDER_BACKEND_URL` no dashboard da
-> Vercel, reimplante (o `vercel.json` só é lido no build).
+> **Importante:** se a URL do backend mudar, edite o `vercel.json` e reimplante
+> (o `vercel.json` só é lido no build).
 
 ---
 
 ## 4. Testando em produção
 
-1. Abra `https://estoq-startup.vercel.app` → deve mostrar a tela de login.
+1. Abra `https://estoq-ph-feit0sa.vercel.app` → deve mostrar a tela de login.
 2. Primeiro login com usuário criado pelo seed (ver §5).
 3. Verifique navegação, abrir/fechar modais e relatórios PDF (o PDF é gerado
    no backend e baixado via blob — funciona com o proxy).

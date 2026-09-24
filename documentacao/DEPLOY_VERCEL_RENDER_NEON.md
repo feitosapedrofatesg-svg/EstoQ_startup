@@ -76,6 +76,7 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
    | `CORS_ORIGINS` | vazio | não precisa com proxy |
    | `API_DOCS_ENABLED` | `false` | |
    | `ESTOQ_BACKUP_DIR` | `/tmp/estoq-backups` | efêmero (limitação, ver §6) |
+   | `ESTOQ_BACKUP_HOST/PORTA/DB/USER/PASS` | *(opcional)* | se vazios, o backup deriva host/porta/banco/usuário/senha da própria `DATABASE_URL` — não precisa configurar |
 
    > Após o primeiro boot OK, troque `DDL_AUTO` para `validate` e reimplante.
    > Deixe `SEED_ENABLED=true` no primeiro boot para criar o usuário admin
@@ -138,11 +139,13 @@ VALUES ('Admin', 'admin@estoq.com', '<hash_bcrypt>', 'ADMIN', true, now(), 0);
 
 ## 6. Limitações conhecidas do plano "barato" (importante)
 
-1. **Backup `pg_dump` não funciona em PaaS.** O módulo `backup/` chama o
-   binário `pg_dump` + filesystem local → no Render free não existe/é efêmero.
-   → **Use o backup nativo do Neon** (painel → Backups; o free tier tem
-   backup de dados básicos). Deixe a página **Backup** do estoQ desabilitada
-   no menu (ou ignore-a em prod).
+1. **Filesystem efêmero (backups).** O módulo `backup/` roda `pg_dump` contra a
+   própria `DATABASE_URL` (sem configuração extra) e salva o `.dump` no disco
+   local, que no Render free é **efêmero** — some a cada reinício/deploy.
+   → Por isso, desde 2026-09 o botão **"Gerar backup agora" baixa o dump
+   imediatamente** (o POST devolve o arquivo); o arquivo no servidor é só um
+   extra temporário. Mantenha também o **backup nativo do Neon** (painel →
+   Backups) como camada extra de segurança.
 2. **Sessão em memória:** com 1 instância (caso atual) funciona. Escalar para
    2+ instâncias exige Spring Session (JDBC/Redis) + sessão sticky — fora do
    escopo atual.

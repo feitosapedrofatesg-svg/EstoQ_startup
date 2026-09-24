@@ -34,7 +34,10 @@ public class SecurityExceptionHandlers {
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> login(AuthenticationException ex) {
-        return ResponseEntity.status(401).body(ErrorResponse.error("E-mail ou senha inválidos, ou usuário inativo."));
+        // DIAGNÓSTICO TEMPORÁRIO (2026-09-24): expor a exceção real de autenticação.
+        return ResponseEntity.status(401).body(ErrorResponse.error(
+                "E-mail ou senha inválidos, ou usuário inativo. [DIAG] "
+                        + ex.getClass().getSimpleName() + ": " + ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

@@ -60,6 +60,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> inesperado(Exception ex) {
         log.error("Falha inesperada ao processar requisição", ex);
-        return ResponseEntity.internalServerError().body(ErrorResponse.error("Ocorreu um erro inesperado ao processar a operação."));
+        // DIAGNÓSTICO TEMPORÁRIO (21h 2026-09-24): expor a exceção real em produção.
+        return ResponseEntity.internalServerError().body(ErrorResponse.error(
+                "Ocorreu um erro inesperado ao processar a operação. [DIAG] "
+                        + ex.getClass().getSimpleName() + ": " + ex.getMessage()));
     }
 }

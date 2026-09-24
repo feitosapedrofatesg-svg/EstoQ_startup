@@ -3,7 +3,7 @@ package com.estoq.business.balancos;
 import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.itensBalanco.ItemBalancoModel;
 import com.estoq.business.usuarios.UsuarioModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -38,7 +38,7 @@ import java.util.List;
 @Table(name = "balancos", indexes = {
         @Index(name = "idx_balanco_status", columnList = "status"),
         @Index(name = "idx_balanco_data", columnList = "data_hora")})
-public class BalancoModel extends BaseModel {
+public class BalancoModel extends TenantEntity {
 
     @Column(nullable = false)
     private LocalDateTime dataHora;

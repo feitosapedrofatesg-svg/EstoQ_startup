@@ -318,6 +318,24 @@ a:hover {
   color: #9fb0bd;
 }
 
+.role-tag--plataforma {
+  color: var(--accent-strong, #7ea94f);
+}
+
+.login__signup {
+  margin-top: 18px;
+  text-align: center;
+  font-size: var(--t-2);
+  color: var(--muted);
+}
+
+.login__signup-link {
+  color: var(--accent-strong, #3f7d4e);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .sidebar__logout {
   flex-shrink: 0;
   display: grid;

@@ -5,7 +5,7 @@ import com.estoq.business.lotes.LoteModel;
 import com.estoq.business.produtos.ProdutoModel;
 import com.estoq.business.produtosAbertos.ProdutoAbertoModel;
 import com.estoq.business.usuarios.UsuarioModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
@@ -41,7 +41,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_mov_produto", columnList = "produto_id")})
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "tipo", length = 20)
-public abstract class MovimentacaoEstoqueModel extends BaseModel {
+public abstract class MovimentacaoEstoqueModel extends TenantEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", insertable = false, updatable = false)

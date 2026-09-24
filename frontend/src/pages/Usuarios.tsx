@@ -25,12 +25,14 @@ const PERFIL_LABEL: Record<Perfil, string> = {
   ADMIN: "Administrador",
   COZINHA: "Cozinha",
   NUTRICIONISTA: "Nutricionista",
+  PLATAFORMA: "Plataforma",
 };
 
 const PERFIL_TONE: Record<Perfil, "neutral" | "accent" | "info" | "good"> = {
   ADMIN: "neutral",
   COZINHA: "accent",
   NUTRICIONISTA: "info",
+  PLATAFORMA: "good",
 };
 
 export function Usuarios() {

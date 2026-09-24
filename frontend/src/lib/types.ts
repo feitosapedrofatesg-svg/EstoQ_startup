@@ -1,4 +1,4 @@
-export type Perfil = "ADMIN" | "COZINHA" | "NUTRICIONISTA";
+export type Perfil = "ADMIN" | "COZINHA" | "NUTRICIONISTA" | "PLATAFORMA";
 export type UnidadeMedida = "KG" | "G" | "L" | "ML" | "UN";
 export type MotivoDesperdicio =
   | "VENCIMENTO"
@@ -44,6 +44,23 @@ export interface AuthenticatedUserDTO {
   nome: string;
   email: string;
   perfil: Perfil;
+}
+
+/** Cadastro aberto de um novo restaurante na plataforma. */
+export interface RegistroRequest {
+  nomeLoja: string;
+  nomeResponsavel: string;
+  email: string;
+  senha: string;
+}
+
+/** Restaurante listado no painel da plataforma. */
+export interface RestauranteDTO {
+  id: number;
+  nome: string;
+  ativo: boolean;
+  dataHoraCriacao: string;
+  totalUsuarios: number;
 }
 
 export interface UsuarioResponseDTO {

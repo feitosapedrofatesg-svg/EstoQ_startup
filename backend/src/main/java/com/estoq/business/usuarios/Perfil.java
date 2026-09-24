@@ -1,3 +1,3 @@
 package com.estoq.business.usuarios;
 
-public enum Perfil { ADMIN, COZINHA, NUTRICIONISTA }
+public enum Perfil { ADMIN, COZINHA, NUTRICIONISTA, PLATAFORMA }

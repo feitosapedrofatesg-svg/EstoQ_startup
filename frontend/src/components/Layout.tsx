@@ -20,6 +20,14 @@ interface NavGroup {
 }
 
 function buildNav(perfil: Perfil): NavGroup[] {
+  if (perfil === "PLATAFORMA") {
+    return [
+      {
+        heading: "Plataforma",
+        items: [{ to: "/plataforma", label: "Restaurantes", icon: "store", end: true }],
+      },
+    ];
+  }
   const groups: NavGroup[] = [
     {
       heading: "Operação",
@@ -74,8 +82,9 @@ function RoleLabel({ perfil }: { perfil: Perfil }) {
     ADMIN: "Administrador",
     COZINHA: "Cozinha",
     NUTRICIONISTA: "Nutricionista",
+    PLATAFORMA: "Plataforma",
   };
-  return <span className="role-tag">{map[perfil]}</span>;
+  return <span className="role-tag role-tag--plataforma">{map[perfil]}</span>;
 }
 
 function AlertBell() {

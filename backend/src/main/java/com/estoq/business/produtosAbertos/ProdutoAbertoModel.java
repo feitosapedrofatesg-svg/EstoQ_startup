@@ -2,7 +2,7 @@ package com.estoq.business.produtosAbertos;
 
 import com.estoq.business.lotes.LoteModel;
 import com.estoq.business.usuarios.UsuarioModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 import com.estoq.core.exceptions.ConflictException;
 
 import jakarta.persistence.Column;
@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 @Table(name = "produtos_abertos", indexes = {
         @Index(name = "idx_aberto_finalizado", columnList = "finalizado"),
         @Index(name = "idx_aberto_lote", columnList = "lote_id")})
-public class ProdutoAbertoModel extends BaseModel {
+public class ProdutoAbertoModel extends TenantEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lote_id", nullable = false)

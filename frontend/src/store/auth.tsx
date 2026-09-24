@@ -20,6 +20,7 @@ interface AuthCtx {
   isAdmin: boolean;
   isCozinha: boolean;
   isNutri: boolean;
+  isPlataforma: boolean;
   canMove: boolean;
   canReport: boolean;
 }
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: perfil === "ADMIN",
       isCozinha: perfil === "COZINHA",
       isNutri: perfil === "NUTRICIONISTA",
+      isPlataforma: perfil === "PLATAFORMA",
       canMove: perfil === "ADMIN" || perfil === "COZINHA",
       canReport: perfil === "ADMIN" || perfil === "NUTRICIONISTA",
     };

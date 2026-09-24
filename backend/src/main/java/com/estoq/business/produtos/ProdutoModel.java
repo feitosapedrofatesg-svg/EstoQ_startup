@@ -2,7 +2,7 @@ package com.estoq.business.produtos;
 
 import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.parametrosEstoque.ParametroEstoqueModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,7 +27,7 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "produtos", indexes = @Index(name = "idx_produto_categoria", columnList = "categoria_id"))
-public class ProdutoModel extends BaseModel {
+public class ProdutoModel extends TenantEntity {
 
     @Column(nullable = false, length = 120)
     private String nome;

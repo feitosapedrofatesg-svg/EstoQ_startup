@@ -35,6 +35,9 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioResponseDTO criar(UsuarioCreateDTO dto) {
+        if (dto.perfil() == Perfil.PLATAFORMA) {
+            throw new BusinessException("O perfil PLATAFORMA não pode ser criado pela loja.", HttpStatus.BAD_REQUEST);
+        }
         UsuarioModel u = new UsuarioModel();
         u.setNome(dto.nome().trim());
         u.setEmail(dto.email().trim().toLowerCase(Locale.ROOT));
@@ -52,6 +55,9 @@ public class UsuarioService {
         }
         if (!dto.ativo() || dto.perfil() != Perfil.ADMIN) {
             protegerUltimoAdmin(u);
+        }
+        if (dto.perfil() == Perfil.PLATAFORMA) {
+            throw new BusinessException("O perfil PLATAFORMA não pode ser atribuído pela loja.", HttpStatus.BAD_REQUEST);
         }
         u.setNome(dto.nome().trim());
         u.setEmail(dto.email().trim().toLowerCase(Locale.ROOT));

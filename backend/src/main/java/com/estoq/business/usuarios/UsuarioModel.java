@@ -1,6 +1,6 @@
 package com.estoq.business.usuarios;
 
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "usuarios")
-public class UsuarioModel extends BaseModel {
+public class UsuarioModel extends TenantEntity {
 
     @Column(nullable = false, length = 120)
     private String nome;

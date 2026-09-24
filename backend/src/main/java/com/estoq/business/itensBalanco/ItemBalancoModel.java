@@ -2,7 +2,7 @@ package com.estoq.business.itensBalanco;
 
 import com.estoq.business.balancos.BalancoModel;
 import com.estoq.business.produtos.ProdutoModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 @Table(name = "itens_balanco", indexes = {
         @Index(name = "idx_item_balanco_produto", columnList = "produto_id"),
         @Index(name = "idx_item_balanco_balanco", columnList = "balanco_id")})
-public class ItemBalancoModel extends BaseModel {
+public class ItemBalancoModel extends TenantEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "balanco_id", nullable = false)

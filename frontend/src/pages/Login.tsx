@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../store/auth";
 import { Field, Input, Button } from "../components/UI";
 import { ApiError } from "../lib/api";
@@ -6,7 +7,9 @@ import { Icon } from "../components/Icon";
 
 export function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const prefilled = (location.state as { email?: string } | null)?.email ?? "";
+  const [email, setEmail] = useState(prefilled);
   const [senha, setSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,6 +100,13 @@ export function Login() {
           <Button type="submit" block size="lg" loading={loading} className="login__submit">
             Entrar
           </Button>
+
+          <p className="login__signup">
+            Sua cozinha ainda não usa o estoQ?{" "}
+            <Link to="/registro" className="login__signup-link">
+              Crie a conta agora
+            </Link>
+          </p>
         </form>
         <p className="login__foot">
           Problemas para entrar? Fale com o administrador da cozinha.

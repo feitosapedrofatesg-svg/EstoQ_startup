@@ -1,6 +1,6 @@
 package com.estoq.business.configuracoesBalanco;
 
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,7 +21,7 @@ import java.time.LocalDate;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "configuracoes_balanco")
-public class ConfiguracaoBalancoModel extends BaseModel {
+public class ConfiguracaoBalancoModel extends TenantEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

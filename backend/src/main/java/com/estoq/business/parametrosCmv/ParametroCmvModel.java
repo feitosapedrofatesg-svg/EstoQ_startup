@@ -1,6 +1,6 @@
 package com.estoq.business.parametrosCmv;
 
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "parametros_cmv")
-public class ParametroCmvModel extends BaseModel {
+public class ParametroCmvModel extends TenantEntity {
 
     @Column(precision = 5, scale = 2, nullable = false)
     private BigDecimal percentualIdeal;

@@ -71,20 +71,43 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
    | `PORT` | `8080` | Render já injeta; deixe default |
    | `SESSION_SECURE` | `true` | cookie Secure |
    | `SESSION_SAMESITE` | `lax` | funciona com proxy da Vercel |
-   | `DDL_AUTO` | `update` | **1º deploy só**: cria as tabelas |
-   | `SEED_ENABLED` | `true` pela 1ª vez, depois `false` | ver "Seed no prod" |
+   | `DDL_AUTO` | `validate` | o schema é gerenciado pelo Flyway, não pelo Hibernate |
+   | `FLYWAY_ENABLED` | `true` | migrações versionadas do schema (ver §2b) |
+   | `SEED_ENABLED` | `true` pela 1ª vez, depois `false` | ver §5 |
    | `CORS_ORIGINS` | vazio | não precisa com proxy |
    | `API_DOCS_ENABLED` | `false` | |
    | `ESTOQ_BACKUP_DIR` | `/tmp/estoq-backups` | efêmero (limitação, ver §6) |
    | `ESTOQ_BACKUP_HOST/PORTA/DB/USER/PASS` | *(opcional)* | se vazios, o backup deriva host/porta/banco/usuário/senha da própria `DATABASE_URL` — não precisa configurar |
 
-   > Após o primeiro boot OK, troque `DDL_AUTO` para `validate` e reimplante.
-   > Deixe `SEED_ENABLED=true` no primeiro boot para criar o usuário admin
-   > inicial, depois mude para `false`.
+   > O Flyway roda **antes** do boot concluir e versiona o schema (`flyway_schema_history`).
+   > Não use mais `DDL_AUTO=update` — isso já era só para o 1º deploy e agora é responsabilidade
+   > das migrações.
 
 5. Aguarde o deploy. Para validar rápido, chame de um navegador:
    `GET https://estoq-backend-jv04.onrender.com/api/auth/csrf` → deve responder JSON
    `{ "token": "...", "headerName": "X-CSRF-TOKEN" }`.
+
+## 2b. Migrações do schema (Flyway)
+
+As migrações ficam em `backend/src/main/resources/db/migration/` e rodam em ordem na
+primeira subida do serviço (e uma única vez a partir dali):
+
+| Migração | O que faz |
+|---|---|
+| `V1__criar_restaurantes.sql` | Cria a tabela `restaurantes` (os tenants) |
+| `V2__coluna_tenant.sql` | Adiciona `restaurante_id` + FK em **17 tabelas** de negócio e transforma as unicidades de `lotes.codigo` e `parametros_estoque.produto_id` em `unique(restaurante_id, coluna)` |
+| `V3__backfill_restaurante_padrao.sql` | Dados existentes → restaurante **"EstoQ Padrão"** (id 1) e promove o **ADMIN ativo mais antigo** a **PLATAFORMA** (`restaurante_id = NULL`) |
+
+**No banco atual de produ\u00E7ão** (que tem só o `admin@estoq.com`), o próximo deploy:
+1. baselineia o histórico (o banco já existe) e aplica `V1→V3`;
+2. **promove o `admin@estoq.com` a PLATAFORMA** — ele passa a governar as lojas pelo painel
+   `https://…/plataforma`, e a loja dele vira "EstoQ Padrão";
+3. qualquer cozinha nova passa a se **auto-cadastrar** pela tela pública de registro.
+
+> O `baseline-on-migrate=true` (baseline em `0`) é o que permite aplicar o schema em
+> bancos que já existiam antes do Flyway. Num banco **novo** (ex.: deploys futuros),
+> `V3` não encontra ADMIN para promover e segue sem usuário PLATAFORMA — o que é
+> correto para um app de auto-cadastro aberto.
 
 **Sobre "espia" do free tier:** o serviço dorme após ~15 min sem tráfego; o
 primeiro acesso depois disso demora ~30–60 s (cold start). Aceitável para
@@ -115,9 +138,19 @@ pois rewrites da Vercel não aceitam `${VARIÁVEL}`):
 
 ## 4. Testando em produção
 
-1. Abra `https://estoq-ph-feit0sa.vercel.app` → deve mostrar a tela de login.
-2. Primeiro login com usuário criado pelo seed (ver §5).
-3. Verifique navegação, abrir/fechar modais e relatórios PDF (o PDF é gerado
+1. Abra `https://estoq-oficial.vercel.app` → deve mostrar a tela de login, com link
+   **"Crie a conta agora"** (auto-cadastro público).
+2. **Multi-tenant (validação principal):**
+   - Cadastre duas cozinhas (ex.: "Cantina A" e "Cantina B") pela tela de registro.
+   - Entre em cada uma e confirme que **não** enxerga os dados da outra (produtos,
+     categorias, usuários) — cada loja acessa uma base isolada (`restaurante_id`).
+   - As duas lojas nascem com o painel completo (CMV 30%, balanço mensal) e backup.
+3. Entre com o usuário **PLATAFORMA** (no banco atual, o `admin@estoq.com` — veja §2b):
+   - `https://estoq-oficial.vercel.app` → login → cai direto no painel **Restaurantes**.
+   - **Suspenda a "Cantina B"** e confirme que o login dela passa a dar **401**.
+   - **Redefina a senha do admin** de B pela plataforma e entre com a nova senha.
+   - Confirme que uma loja comum **não** vê `/api/plataforma/**` (403).
+4. Verifique navegação, abrir/fechar modais e relatórios PDF (o PDF é gerado
    no backend e baixado via blob — funciona com o proxy).
 
 ---
@@ -125,14 +158,19 @@ pois rewrites da Vercel não aceitam `${VARIÁVEL}`):
 ## 5. Seed de usuários em produção
 
 O seed (`SeedDataConfig`) só roda no perfil `dev`. No primeiro boot em prod,
-defina `SEED_ENABLED=true` para criar os 3 usuários (com as senhas padrão do
-README). **Altere as senhas imediatamente** na tela Usuários e depois desligue
-`SEED_ENABLED=false`.
+defina `SEED_ENABLED=true` para criar o restaurante **"EstoQ Padrão"** + os 3
+usuários (ADMIN/COZINHA/NUTRICIONISTA, senhas padrão do README). **Altere as
+senhas imediatamente** na tela Usuários e depois desligue `SEED_ENABLED=false`.
+
+> Não existe seed de usuário **PLATAFORMA**: ele vem da migração `V3` (promoção do
+> ADMIN ativo mais antigo) num banco que já tinha dados — ou não existe, se o banco
+> nasceu depois do multi-tenant. Isso é de propósito: plataforma é autoridade que
+> nasce da evolução, não de seed.
 
 Se preferir sem seed: crie o admin direto no banco com senha BCrypt, ex.:
 ```sql
-INSERT INTO estoq_v2.tb_usuario (nome, email, senha, perfil, ativo, data_hora_criacao, versao)
-VALUES ('Admin', 'admin@estoq.com', '<hash_bcrypt>', 'ADMIN', true, now(), 0);
+INSERT INTO estoq_v2.tb_usuario (nome, email, senha, perfil, ativo, restaurante_id, data_hora_criacao, versao)
+VALUES ('Admin', 'admin@estoq.com', '<hash_bcrypt>', 'ADMIN', true, 1, now(), 0);
 ```
 
 ---
@@ -166,9 +204,12 @@ VALUES ('Admin', 'admin@estoq.com', '<hash_bcrypt>', 'ADMIN', true, now(), 0);
 
 ## 8. Melhorias futuras de produção (fora do escopo "barato")
 
-- Flyway/Liquibase para migrações de schema (trocar `ddl-auto` de vez).
 - Backup real: dump agendado do Neon para S3/R2, ou Postgres no Supabase com
   PITR.
 - Domínio próprio + `SameSite` relaxado, ou Spring Session para multi-instância.
 - CI/CD: GitHub Actions com `mvn test` antes de merge (o `.github/` já existe
   para modernização do Java — estender para build+test no push).
+
+> ✅ Implementado em 2026-09: **Flyway** com migrações versionadas (V1–V3),
+> auto-cadastro de cozinhas e painel PLATAFORMA (suspender/reativar/redefinir
+> senha do admin).

@@ -3,7 +3,7 @@ package com.estoq.business.alertas;
 import com.estoq.business.lotes.LoteModel;
 import com.estoq.business.produtos.ProdutoModel;
 import com.estoq.business.usuarios.Perfil;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "alertas", indexes = {
         @Index(name = "idx_alerta_aberto", columnList = "tipo,visualizado,perfil_destino")})
-public class AlertaModel extends BaseModel {
+public class AlertaModel extends TenantEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

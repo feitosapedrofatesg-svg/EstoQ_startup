@@ -4,6 +4,8 @@ import { ToastProvider } from "./store/toast";
 import { Layout } from "./components/Layout";
 import { Icon } from "./components/Icon";
 import { Login } from "./pages/Login";
+import { Registro } from "./pages/Registro";
+import { Plataforma } from "./pages/Plataforma";
 import { Dashboard } from "./pages/Dashboard";
 import { Estoque } from "./pages/Estoque";
 import { Movimentacoes } from "./pages/Movimentacoes";
@@ -58,10 +60,32 @@ function Guarded({
 }
 
 function AppRoutes() {
-  const { user, ready, canMove, canReport, isAdmin, isCozinha } = useAuth();
+  const { user, ready, canMove, canReport, isAdmin, isCozinha, isPlataforma } = useAuth();
 
   if (!ready) return <Splash />;
-  if (!user) return <Login />;
+
+  // Sem sessão: só as telas públicas de entrada e cadastro.
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<Registro />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // PLATAFORMA governa as cozinhas; não tem dados de uma loja específica.
+  if (isPlataforma) {
+    return (
+      <Layout>
+        <Routes>
+          <Route path="/plataforma" element={<Plataforma />} />
+          <Route path="*" element={<Navigate to="/plataforma" replace />} />
+        </Routes>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -117,6 +141,14 @@ function AppRoutes() {
           element={
             <Guarded allow={isAdmin}>
               <Backup />
+            </Guarded>
+          }
+        />
+        <Route
+          path="/plataforma"
+          element={
+            <Guarded allow={false}>
+              <Plataforma />
             </Guarded>
           }
         />

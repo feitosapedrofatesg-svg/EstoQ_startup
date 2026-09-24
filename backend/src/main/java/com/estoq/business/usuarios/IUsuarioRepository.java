@@ -10,4 +10,6 @@ public interface IUsuarioRepository extends IGenericRepository<UsuarioModel> {
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
     long countByPerfilAndAtivoTrue(Perfil perfil);
+    long countByRestauranteId(Long restauranteId);
+    Optional<UsuarioModel> findFirstByRestauranteIdAndPerfilAndAtivoTrueOrderByIdAsc(Long restauranteId, Perfil perfil);
 }

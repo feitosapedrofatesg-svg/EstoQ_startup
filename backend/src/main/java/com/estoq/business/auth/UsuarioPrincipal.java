@@ -10,10 +10,10 @@ import java.util.Collection;
 import java.util.List;
 
 /** Somente dados de autenticação na sessão, nunca uma entidade JPA. */
-public record UsuarioPrincipal(Long id, String email, String senha, String perfil) implements UserDetails {
+public record UsuarioPrincipal(Long id, String email, String senha, String perfil, Long restauranteId) implements UserDetails {
 
     public static UsuarioPrincipal of(UsuarioModel u) {
-        return new UsuarioPrincipal(u.getId(), u.getEmail(), u.getSenha(), u.getPerfil().name());
+        return new UsuarioPrincipal(u.getId(), u.getEmail(), u.getSenha(), u.getPerfil().name(), u.getRestauranteId());
     }
 
     @Override

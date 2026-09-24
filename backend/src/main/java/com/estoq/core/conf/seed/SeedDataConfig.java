@@ -5,6 +5,8 @@ import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
 import com.estoq.business.configuracoesBalanco.PeriodicidadeBalanco;
 import com.estoq.business.parametrosCmv.IParametroCmvRepository;
 import com.estoq.business.parametrosCmv.ParametroCmvModel;
+import com.estoq.business.restaurantes.IRestauranteRepository;
+import com.estoq.business.restaurantes.RestauranteModel;
 import com.estoq.business.usuarios.IUsuarioRepository;
 import com.estoq.business.usuarios.Perfil;
 import com.estoq.business.usuarios.UsuarioModel;
@@ -29,6 +31,7 @@ import java.time.LocalDateTime;
 public class SeedDataConfig {
 
     private final IUsuarioRepository usuarios;
+    private final IRestauranteRepository restaurantes;
     private final IParametroCmvRepository parametroCmv;
     private final IConfiguracaoBalancoRepository configuracoes;
     private final PasswordEncoder encoder;
@@ -39,13 +42,15 @@ public class SeedDataConfig {
             if (!habilitado) {
                 return;
             }
-            criarUsuario("admin@estoq.com", "Admin@12345", Perfil.ADMIN);
-            criarUsuario("cozinha@estoq.com", "Cozinha@12345", Perfil.COZINHA);
-            criarUsuario("nutricionista@estoq.com", "Nutricao@12345", Perfil.NUTRICIONISTA);
+            Long tenant = restaurantePadrao().getId();
+            criarUsuario(tenant, "admin@estoq.com", "Admin@12345", Perfil.ADMIN);
+            criarUsuario(tenant, "cozinha@estoq.com", "Cozinha@12345", Perfil.COZINHA);
+            criarUsuario(tenant, "nutricionista@estoq.com", "Nutricao@12345", Perfil.NUTRICIONISTA);
             if (parametroCmv.findFirstByAtivoTrueOrderByIdDesc().isEmpty()) {
                 var cmv = new ParametroCmvModel();
                 cmv.setPercentualIdeal(new BigDecimal("30.00"));
                 cmv.setDataAtualizacao(LocalDateTime.now());
+                cmv.setRestauranteId(tenant);
                 parametroCmv.saveAndFlush(cmv);
             }
             if (configuracoes.findAllByAtivoTrueOrderByIdAsc().isEmpty()) {
@@ -53,12 +58,23 @@ public class SeedDataConfig {
                 config.setPeriodicidade(PeriodicidadeBalanco.MENSAL);
                 config.setDiaExecucao(1);
                 config.setProximaExecucao(LocalDate.now().withDayOfMonth(1).plusMonths(1));
+                config.setRestauranteId(tenant);
                 configuracoes.saveAndFlush(config);
             }
         };
     }
 
-    private void criarUsuario(String email, String senha, Perfil perfil) {
+    /** Garante o tenant raiz de desenvolvimento e devolve seu id. */
+    private RestauranteModel restaurantePadrao() {
+        return restaurantes.findAllByAtivoTrue().stream().findFirst()
+                .orElseGet(() -> {
+                    var restaurante = new RestauranteModel();
+                    restaurante.setNome("EstoQ Padrão");
+                    return restaurantes.saveAndFlush(restaurante);
+                });
+    }
+
+    private void criarUsuario(Long tenant, String email, String senha, Perfil perfil) {
         if (usuarios.existsByEmailIgnoreCase(email)) {
             return;
         }
@@ -67,6 +83,7 @@ public class SeedDataConfig {
         usuario.setEmail(email);
         usuario.setSenha(encoder.encode(senha));
         usuario.setPerfil(perfil);
+        usuario.setRestauranteId(tenant);
         usuarios.saveAndFlush(usuario);
     }
 }

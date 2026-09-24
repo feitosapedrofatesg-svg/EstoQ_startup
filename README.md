@@ -145,10 +145,13 @@ pg_restore --dbname estoq_restore --schema estoq_v2 --no-owner --no-privileges \
 | `SESSION_SAMESITE` | lax | Cookie SameSite |
 | `LOGIN_MAX_TENTATIVAS` | 5 | Limite de falhas antes de 429 |
 | `LOGIN_JANELA_MINUTOS` | 15 | Janela deslizante para contagem |
-| `ESTOQ_BACKUP_DIR` | ../dados/backups | Pasta de destino dos dumps |
-| `ESTOQ_BACKUP_HOST` | localhost | Host PostgreSQL para backup |
-| `ESTOQ_BACKUP_PORTA` | 5434 | Porta PostgreSQL para backup |
+| `ESTOQ_BACKUP_DIR` (opcional) | ../dados/backups | Pasta de destino dos dumps |
+| `ESTOQ_BACKUP_HOST` (opcional) | herda `DATABASE_URL` | Host PostgreSQL para backup |
+| `ESTOQ_BACKUP_PORTA` (opcional) | herda `DATABASE_URL` | Porta PostgreSQL para backup |
 | `SEED_ENABLED` | false | Habilitar seed (dev: true) |
+
+As variáveis `ESTOQ_BACKUP_*` são opcionais: quando ausentes, o backup usa os valores de
+`DATABASE_URL` (e `localhost`/`estoq`/`estoq_startup` como último recurso).
 
 Nunca committar o arquivo `.env`. Use `.env.example` como referência.
 
@@ -156,7 +159,7 @@ Nunca committar o arquivo `.env`. Use `.env.example` como referência.
 
 ```bash
 cd backend
-mvn test          # 33 testes verdes
+mvn test          # 38 testes verdes
 mvn -o test       # offline (dependências já no .m2)
 ```
 
@@ -169,6 +172,8 @@ mvn -o test       # offline (dependências já no .m2)
 | ConcorrenciaIntegrationTest | Duas threads no mesmo lote (Singleton + @Version) |
 | LoginAttemptIntegrationTest | Limite de tentativas (429) |
 | BackupPdfIntegrationTest | PDF válido, backup listável, path traversal |
+| RegistroIntegrationTest | Auto-cadastro: cria loja + admin + dados padrão, e-mail duplicado 409 |
+| TenantIsolamentoIntegrationTest | Isolamento entre lojas, auto-fill do tenant, suspensão, redefinição de admin, painel PLATAFORMA |
 
 ## Decisões de projeto
 
@@ -181,6 +186,9 @@ que define a arquitetura, regras de negócio e escopo. As principais decisões:
 - Balanço com ajuste automático em FIFO (déficit ou superávit)
 - CMV calculado por movimentações, não por fórmula estática
 - Sem módulo de vendas — receita base é manual e opcional
+- Multi-tenant: cada restaurante é uma loja isolada (`@TenantId` + `restaurante_id`),
+  com auto-cadastro aberto e perfil PLATAFORMA para governar as lojas (suspender,
+  reativar, redefinir senha do admin)
 
 Detalhes completos em `documentacao/RESUMO_SESSAO_BACKEND.md`.
 

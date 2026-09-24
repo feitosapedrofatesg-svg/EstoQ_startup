@@ -1,6 +1,6 @@
 package com.estoq.business.auditoria;
 
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "auditoria")
-public class AuditoriaModel extends BaseModel {
+public class AuditoriaModel extends TenantEntity {
 
     @Column(name = "tipo", length = 40, nullable = false)
     private String tipo;

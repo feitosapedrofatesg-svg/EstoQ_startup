@@ -186,6 +186,13 @@ const PATHS: Record<string, ReactElement> = {
     </>
   ),
   "chevron-right": <path d="m9 6 6 6-6 6" />,
+  store: (
+    <>
+      <path d="M3.5 9 5 3.5h14L20.5 9" />
+      <path d="M3.5 9a2.7 2.7 0 0 0 5 1.5 2.7 2.7 0 0 0 5-1.5 2.7 2.7 0 0 0 5 1.5A2.7 2.7 0 0 0 20.5 9M5 11v9h14v-9" />
+      <path d="M9 20v-5h6v5" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof PATHS;

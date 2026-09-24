@@ -1,6 +1,7 @@
 package com.estoq.config.security;
 
 import com.estoq.business.usuarios.IUsuarioRepository;
+import com.estoq.business.restaurantes.IRestauranteRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -66,15 +67,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain security(HttpSecurity http, SecurityExceptionHandlers errors,
             SecurityContextRepository context, CsrfTokenRepository csrf, CorsConfigurationSource cors,
-            IUsuarioRepository users) throws Exception {
+            IUsuarioRepository users, IRestauranteRepository restaurantes) throws Exception {
         return http.cors(c -> c.configurationSource(cors))
                 .csrf(c -> c.csrfTokenRepository(csrf).csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .securityContext(c -> c.securityContextRepository(context))
                 .requestCache(c -> c.disable())
-                .addFilterAfter(new UsuarioAtivoFilter(users), SecurityContextHolderFilter.class)
+                .addFilterAfter(new UsuarioAtivoFilter(users, restaurantes), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/api/auth/csrf", "/api/auth/login", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/auth/csrf", "/api/auth/login", "/api/registro", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/plataforma/**").hasRole("PLATAFORMA")
                         .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/api/produtos/**", "/api/lotes/**",
                                 "/api/estoque", "/api/produtos-abertos/**", "/api/balancos/**", "/api/movimentacoes/**", "/api/alertas/**").hasAnyRole("ADMIN", "COZINHA")
                         .requestMatchers(HttpMethod.POST, "/api/consumos", "/api/desperdicios", "/api/produtos-abertos/abrir",

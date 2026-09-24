@@ -1,7 +1,7 @@
 package com.estoq.business.lotes;
 
 import com.estoq.business.produtos.ProdutoModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
 
@@ -12,6 +12,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,10 +31,11 @@ import java.time.temporal.ChronoUnit;
 @Entity
 @Table(name = "lotes", indexes = {
         @Index(name = "idx_lote_produto", columnList = "produto_id"),
-        @Index(name = "idx_lote_validade", columnList = "data_validade")})
-public class LoteModel extends BaseModel {
+        @Index(name = "idx_lote_validade", columnList = "data_validade")},
+        uniqueConstraints = @UniqueConstraint(name = "uk_lotes_tenant_codigo", columnNames = {"restaurante_id", "codigo"}))
+public class LoteModel extends TenantEntity {
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, length = 50)
     private String codigo;
 
     @ManyToOne(fetch = FetchType.LAZY)

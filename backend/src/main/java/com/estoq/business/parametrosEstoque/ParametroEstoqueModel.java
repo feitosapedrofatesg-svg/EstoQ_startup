@@ -1,7 +1,7 @@
 package com.estoq.business.parametrosEstoque;
 
 import com.estoq.business.produtos.ProdutoModel;
-import com.estoq.core.domains.BaseModel;
+import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,11 +25,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "parametros_estoque")
-public class ParametroEstoqueModel extends BaseModel {
+@Table(name = "parametros_estoque",
+        uniqueConstraints = @UniqueConstraint(name = "uk_parametros_estoque_tenant_produto",
+                columnNames = {"restaurante_id", "produto_id"}))
+public class ParametroEstoqueModel extends TenantEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "produto_id", nullable = false, unique = true)
+    @JoinColumn(name = "produto_id", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private ProdutoModel produto;

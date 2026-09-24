@@ -13,7 +13,7 @@ public class BackupConfig {
     /** jdbc:postgresql://[usuario[:senha]@]host[:porta]/database[?params] */
     private static final Pattern JDBC = Pattern.compile(
             "^jdbc:postgresql://(?:([^:/@]+):([^@]*)@)?([^:/?#]+)(?::(\\d+))?/([^?#]+)(?:\\?(.*))?");
-    private static final Pattern CURRENT_SCHEMA = Pattern.compile("(?i)(?:^|&)currentSchema=([^&]+)");
+    private static final Pattern PARAM_SCHEMA = Pattern.compile("(?i)(?:^|&)(?:currentSchema|search_path)=([^&]+)");
 
     private final String diretorio;
     private final String host;
@@ -41,7 +41,7 @@ public class BackupConfig {
         this.host = primeiro(host, jdbc != null ? jdbc.host : null, "localhost");
         this.porta = porta > 0 ? porta : (jdbc != null && jdbc.porta > 0 ? jdbc.porta : 5432);
         this.database = primeiro(database, jdbc != null ? jdbc.database : null, "estoq_startup");
-        this.schema = primeiro(schema, jdbc != null ? jdbc.schema : null, "estoq_v2");
+        this.schema = primeiro(schema, jdbc != null ? jdbc.schema : null);
         this.usuario = primeiro(usuario, jdbc != null ? jdbc.usuario : null, datasourceUser, "estoq");
         this.senha = primeiro(senha, jdbc != null ? jdbc.senha : null, datasourcePassword, "estoq");
         this.manter = Math.max(1, manter);
@@ -91,9 +91,9 @@ public class BackupConfig {
         int porta = m.group(4) != null && !m.group(4).isBlank() ? Integer.parseInt(m.group(4)) : 0;
         String schema = null;
         if (m.group(6) != null) {
-            Matcher cs = CURRENT_SCHEMA.matcher(m.group(6));
-            if (cs.find()) {
-                schema = cs.group(1);
+            Matcher sc = PARAM_SCHEMA.matcher(m.group(6));
+            if (sc.find()) {
+                schema = sc.group(1).replace("%20", " ").replace("+", " ");
             }
         }
         return new Jdbc(

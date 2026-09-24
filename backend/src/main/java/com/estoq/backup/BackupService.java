@@ -36,14 +36,17 @@ public class BackupService {
         } catch (IOException e) {
             throw new BusinessException("Não foi possível criar o diretório de backups.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        var comando = List.of("pg_dump",
+        var comando = new java.util.ArrayList<String>(List.of("pg_dump",
                 "--host", config.host(),
                 "--port", Integer.toString(config.porta()),
                 "--username", config.usuario(),
-                "--schema", config.schema(),
                 "--format", "custom",
-                "--file", arquivo.toString(),
-                config.database());
+                "--file", arquivo.toString()));
+        if (!config.schema().isBlank()) {
+            comando.add("--schema");
+            comando.add(config.schema());
+        }
+        comando.add(config.database());
         var processo = new ProcessBuilder(comando);
         processo.environment().put("PGPASSWORD", config.senha());
         try {

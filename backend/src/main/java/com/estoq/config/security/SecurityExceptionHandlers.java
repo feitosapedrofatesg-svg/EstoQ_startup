@@ -25,6 +25,32 @@ import java.io.IOException;
 public class SecurityExceptionHandlers {
 
     private final ObjectMapper mapper;
+    private final org.springframework.core.env.Environment env;
+    private final org.springframework.context.ApplicationContext app;
+
+    /** DIAGNÓSTICO TEMPORÁRIO (2026-09-24): estado da migração para depurar o deploy. */
+    public String diagFlyway() {
+        var sb = new StringBuilder();
+        try {
+            sb.append("flywayBean=").append(app.containsBean("flyway"));
+            sb.append(";flywayEnabled=").append(env.getProperty("spring.flyway.enabled"));
+            sb.append(";flywayLocations=").append(env.getProperty("spring.flyway.locations"));
+            sb.append(";ddlAuto=").append(env.getProperty("spring.jpa.hibernate.ddl-auto"));
+            sb.append(";url=").append(env.getProperty("spring.datasource.url"));
+            if (app.containsBean("flyway")) {
+                var fy = (org.flywaydb.core.Flyway) app.getBean("flyway");
+                sb.append(";flywaySchema=").append(fy.getConfiguration().getDefaultSchema());
+                var aplicadas = fy.info().applied();
+                sb.append(";aplicadas=").append(aplicadas.length);
+                for (var m : aplicadas) {
+                    sb.append(";").append(m.getVersion() == null ? "baseline" : m.getVersion()).append(":").append(m.getDescription());
+                }
+            }
+        } catch (Exception e) {
+            sb.append(";diagErro=").append(e.getClass().getSimpleName()).append(":").append(e.getMessage());
+        }
+        return sb.toString();
+    }
 
     public void responder(HttpServletResponse response, int status, String mensagem) throws IOException {
         response.setStatus(status);
@@ -37,7 +63,8 @@ public class SecurityExceptionHandlers {
         // DIAGNÓSTICO TEMPORÁRIO (2026-09-24): expor a exceção real de autenticação.
         return ResponseEntity.status(401).body(ErrorResponse.error(
                 "E-mail ou senha inválidos, ou usuário inativo. [DIAG] "
-                        + ex.getClass().getSimpleName() + ": " + ex.getMessage()));
+                        + ex.getClass().getSimpleName() + ": " + ex.getMessage()
+                        + " || " + diagFlyway()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

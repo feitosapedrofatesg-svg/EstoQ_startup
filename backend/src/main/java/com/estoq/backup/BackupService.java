@@ -93,6 +93,16 @@ public class BackupService {
         return arquivo;
     }
 
+    /** Lê os bytes de um backup recém-gerado para download imediato na resposta do POST. */
+    public byte[] ler(String nome) {
+        var arquivo = baixar(nome);
+        try {
+            return Files.readAllBytes(arquivo);
+        } catch (IOException e) {
+            throw new BusinessException("Não foi possível ler o backup gerado.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     public void limparAntigos() {
         listar().stream()
                 .skip(config.manter())

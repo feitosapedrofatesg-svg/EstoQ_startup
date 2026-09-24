@@ -120,6 +120,31 @@ export const api = {
     if (!res.ok) throw await parseError(res);
     return res.blob();
   },
+
+  /** POST que devolve um arquivo (bytes) como resposta — usado p/ baixar o backup na hora. */
+  async blobPost(path: string): Promise<{ blob: Blob; filename: string }> {
+    const headers: Record<string, string> = { Accept: "application/octet-stream" };
+    headers[csrfHeader] = await fetchCsrf();
+    let res: Response;
+    try {
+      res = await fetch(path, { method: "POST", headers, credentials: "include" });
+    } catch {
+      throw new ApiError(0, "Não foi possível falar com o servidor. Verifique sua conexão.");
+    }
+    if (res.status === 403) {
+      headers[csrfHeader] = await fetchCsrf(true);
+      res = await fetch(path, { method: "POST", headers, credentials: "include" });
+    }
+    if (!res.ok) {
+      if (res.status === 401) window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
+      throw await parseError(res);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("content-disposition") ?? "";
+    const match = /filename="?([^";]+)"?/.exec(cd);
+    const fallback = `estoq-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}.dump`;
+    return { blob, filename: match?.[1] ?? fallback };
+  },
 };
 
 export function downloadBlob(blob: Blob, filename: string): void {

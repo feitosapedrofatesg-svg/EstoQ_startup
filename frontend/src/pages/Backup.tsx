@@ -21,8 +21,9 @@ export function Backup() {
   const gerar = async () => {
     setBusy("novo");
     try {
-      await api.post<BackupDTO>("/api/backups");
-      toast.success("Backup gerado com sucesso");
+      const { blob, filename } = await api.blobPost("/api/backups");
+      downloadBlob(blob, filename);
+      toast.success("Backup gerado e baixado");
       void refresh();
     } catch (e) {
       toast.error("Não foi possível gerar o backup", (e as Error).message);
@@ -57,8 +58,10 @@ export function Backup() {
 
       <AlertBanner tone="info">
         <p>
-          Os dumps ficam na pasta <code>dados/backups</code> do servidor. Para restaurar, use o
-          procedimento com <code>pg_restore</code> descrito no README do projeto.
+          O backup é <strong>baixado automaticamente para sua máquina</strong> ao clicar em "Gerar".
+          No Render free os arquivos no servidor são temporários (somem a cada reinício) — sempre
+          baixe o dump na hora. Para restaurar, use o procedimento com{" "}
+          <code>pg_restore</code> descrito no README do projeto.
         </p>
       </AlertBanner>
 

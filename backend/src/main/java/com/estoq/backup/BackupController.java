@@ -27,8 +27,13 @@ public class BackupController {
     }
 
     @PostMapping
-    public BackupDTO gerar() {
-        return backups.gerar();
+    public ResponseEntity<byte[]> gerar() {
+        var dto = backups.gerar();
+        var bytes = backups.ler(dto.nome());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dto.nome() + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(bytes);
     }
 
     @GetMapping("/{nome}")

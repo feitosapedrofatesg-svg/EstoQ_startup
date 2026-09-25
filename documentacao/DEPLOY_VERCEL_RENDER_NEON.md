@@ -72,7 +72,7 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
 
    | Variável | Valor inicial | Observação |
    |---|---|---|
-   | `DATABASE_URL` | JDBC do Neon (com `currentSchema=estoq_v2`) | obrigatória |
+   | `DATABASE_URL` | JDBC do Neon (**sem** `currentSchema` — tabelas em `public`, ver nota acima) | obrigatória |
    | `DATABASE_USER` | usuário da string do Neon | obrigatória |
    | `DATABASE_PASSWORD` | senha do Neon | obrigatória |
    | `PORT` | `8080` | Render já injeta; deixe default |

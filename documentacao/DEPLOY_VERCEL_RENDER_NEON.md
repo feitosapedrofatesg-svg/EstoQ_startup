@@ -161,6 +161,11 @@ pois rewrites da Vercel não aceitam `${VARIÁVEL}`):
 
 ## 4. Testando em produção
 
+> Para a validação automatizada do multi-tenant (login PLATAFORMA, auto-cadastro de
+> duas cozinhas, isolamento, suspensão, redefinição de admin, backup e 403 na loja
+> comum), rode `SENHA_ADMIN='...' bash scripts/e2e_validacao.sh` — as lojas de teste
+> são deixadas suspensas no final.
+
 1. Abra `https://estoq-oficial.vercel.app` → deve mostrar a tela de login, com link
    **"Crie a conta agora"** (auto-cadastro público).
 2. **Multi-tenant (validação principal):**

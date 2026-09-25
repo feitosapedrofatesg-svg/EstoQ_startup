@@ -50,6 +50,13 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
 
 > **Alternativa equivalente:** Vercel Postgres (é o mesmo Neon por baixo, 256 MB).
 
+> **Nota — prod atual (2026-09-24):** a `DATABASE_URL` do serviço Render aponta para o
+> banco `neondb` **sem** `currentSchema` — as tabelas de negócio vivem no schema
+> **`public`**. O app conecta normalmente sem `currentSchema`; as migrações Flyway
+> (V1–V3) aplicam no **schema default da conexão** (`public` nesse caso). O
+> `currentSchema=estoq_v2` é recomendação para setups novos que queiram schema
+> dedicado — as migrações funcionam em qualquer um dos dois.
+
 ---
 
 ## 2. Backend — Render (15 min)
@@ -82,6 +89,14 @@ o domínio da Vercel — cookie e CSRF funcionam exatamente como no `npm run dev
    > O Flyway roda **antes** do boot concluir e versiona o schema (`flyway_schema_history`).
    > Não use mais `DDL_AUTO=update` — isso já era só para o 1º deploy e agora é responsabilidade
    > das migrações.
+   >
+   > **Importante (Boot 4):** no Spring Boot 4 a auto-configuração do Flyway saiu de
+   > `spring-boot-autoconfigure` para o módulo `spring-boot-flyway`. Ter só
+   > `flyway-core` no pom NÃO faz as migrações rodarem. É preciso o starter
+   > `org.springframework.boot:spring-boot-starter-flyway` (o bean `flyway` passa a existir
+   > e o `entityManagerFactory` passa a depender dele). Foi exatamente isso que quebrou o
+   > deploy de 2026-09-24: sem o starter, as colunas `restaurante_id` nunca eram criadas e
+   > login/registro falhavam com `column "restaurante_id" does not exist`.
 
 5. Aguarde o deploy. Para validar rápido, chame de um navegador:
    `GET https://estoq-backend-jv04.onrender.com/api/auth/csrf` → deve responder JSON

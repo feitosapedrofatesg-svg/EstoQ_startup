@@ -23,6 +23,25 @@ update produtos set restaurante_id = (select min(id) from restaurantes) where re
 update produtos_abertos set restaurante_id = (select min(id) from restaurantes) where restaurante_id is null;
 update usuarios set restaurante_id = (select min(id) from restaurantes) where restaurante_id is null;
 
+-- O CHECK antigo do perfil (criado por ddl-auto em versões anteriores) não inclui o
+-- novo valor PLATAFORMA; remove-se qualquer CHECK que mencione a coluna perfil antes
+-- do promote — o Hibernate recria o CHECK com a lista atual do enum no boot seguinte.
+do $$
+declare r record;
+begin
+    for r in
+        select conname, oid
+        from pg_constraint
+        where conrelid = 'usuarios'::regclass
+          and contype = 'c'
+          and connamespace = (select oid from pg_namespace where nspname = current_schema())
+    loop
+        if pg_get_constraintdef(r.oid) like '%perfil%' then
+            execute format('alter table usuarios drop constraint %I', r.conname);
+        end if;
+    end loop;
+end $$;
+
 update usuarios
 set perfil = 'PLATAFORMA', restaurante_id = null
 where id = (select min(id) from usuarios where perfil = 'ADMIN' and ativo = true);
@@ -37,6 +56,7 @@ begin
         from pg_constraint
         where contype = 'u'
           and conrelid::regclass::text in ('lotes', 'parametros_estoque')
+          and connamespace = (select oid from pg_namespace where nspname = current_schema())
     loop
         execute format('alter table %I drop constraint %I', r.tabela, r.conname);
     end loop;

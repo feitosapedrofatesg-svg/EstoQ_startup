@@ -124,6 +124,14 @@ primeira subida do serviço (e uma única vez a partir dali):
 > `V3` não encontra ADMIN para promover e segue sem usuário PLATAFORMA — o que é
 > correto para um app de auto-cadastro aberto.
 
+> **Resiliência (incidente 2026-09-24):** as migrações são propositalmente idempotentes
+> contra estados "sujos" que `DDL_AUTO=update` pode deixar para trás num deploy
+> intermediário. A `V2` usa `add column if not exists` (o Hibernate já havia criado
+> `restaurante_id` em 9 das 17 tabelas) e cria as FKs só quando não existem (PostgreSQL
+> não tem `add constraint if not exists`). A `V3` derruba qualquer CHECK antigo da
+> coluna `perfil` antes do promote — o de versões anteriores não incluía `PLATAFORMA`.
+> Não altere `V1` (já aplicada em produção: checksum do Flyway).
+
 **Sobre "espia" do free tier:** o serviço dorme após ~15 min sem tráfego; o
 primeiro acesso depois disso demora ~30–60 s (cold start). Aceitável para
 projeto acadêmico — para always-on use Railway (~US$5/mês).

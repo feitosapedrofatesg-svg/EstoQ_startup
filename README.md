@@ -159,7 +159,7 @@ Nunca committar o arquivo `.env`. Use `.env.example` como referência.
 
 ```bash
 cd backend
-mvn test          # 38 testes verdes
+mvn test          # 40 testes verdes
 mvn -o test       # offline (dependências já no .m2)
 ```
 

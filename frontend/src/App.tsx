@@ -60,7 +60,17 @@ function Guarded({
 }
 
 function AppRoutes() {
-  const { user, ready, canMove, canReport, isAdmin, isCozinha, isPlataforma } = useAuth();
+  const {
+    user,
+    ready,
+    canMove,
+    canReport,
+    canSeeEstoque,
+    canSeeCatalogo,
+    isAdmin,
+    isCozinha,
+    isPlataforma,
+  } = useAuth();
 
   if (!ready) return <Splash />;
 
@@ -94,7 +104,14 @@ function AppRoutes() {
           path="/dashboard"
           element={isCozinha ? <Navigate to="/estoque" replace /> : <Dashboard />}
         />
-        <Route path="/estoque" element={<Estoque />} />
+        <Route
+          path="/estoque"
+          element={
+            <Guarded allow={canSeeEstoque}>
+              <Estoque />
+            </Guarded>
+          }
+        />
         <Route
           path="/movimentacoes"
           element={
@@ -127,7 +144,14 @@ function AppRoutes() {
             </Guarded>
           }
         />
-        <Route path="/catalogo" element={<Catalogo />} />
+        <Route
+          path="/catalogo"
+          element={
+            <Guarded allow={canSeeCatalogo}>
+              <Catalogo />
+            </Guarded>
+          }
+        />
         <Route
           path="/usuarios"
           element={
@@ -141,14 +165,6 @@ function AppRoutes() {
           element={
             <Guarded allow={isAdmin}>
               <Backup />
-            </Guarded>
-          }
-        />
-        <Route
-          path="/plataforma"
-          element={
-            <Guarded allow={false}>
-              <Plataforma />
             </Guarded>
           }
         />

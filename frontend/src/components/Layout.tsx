@@ -28,18 +28,23 @@ function buildNav(perfil: Perfil): NavGroup[] {
       },
     ];
   }
-  const groups: NavGroup[] = [
-    {
-      heading: "Operação",
-      items: [
-        { to: "/dashboard", label: "Visão geral", icon: "dashboard", end: true },
-        { to: "/estoque", label: "Estoque", icon: "boxes" },
-        { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
-        { to: "/produtos-abertos", label: "Embalagens abertas", icon: "box-open" },
-        { to: "/balanco", label: "Balanço físico", icon: "scale" },
-      ],
-    },
+  // O NUTRICIONISTA não tem permissão de leitura sobre estoque, lotes e
+  // balanços (SecurityConfig), então o grupo "Operação" aparece só para ele
+  // com a visão geral. As demais telas do grupo são de ADMIN e COZINHA.
+  const operacao: NavItem[] = [
+    { to: "/dashboard", label: "Visão geral", icon: "dashboard", end: true },
   ];
+  if (perfil === "ADMIN" || perfil === "COZINHA") {
+    operacao.push(
+      { to: "/estoque", label: "Estoque", icon: "boxes" },
+      { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
+      { to: "/produtos-abertos", label: "Embalagens abertas", icon: "box-open" },
+      { to: "/balanco", label: "Balanço físico", icon: "scale" }
+    );
+  }
+
+  const groups: NavGroup[] = [{ heading: "Operação", items: operacao }];
+
   if (perfil === "ADMIN" || perfil === "NUTRICIONISTA") {
     groups.push({
       heading: "Análise",

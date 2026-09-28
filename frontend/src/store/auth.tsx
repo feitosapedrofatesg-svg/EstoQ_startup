@@ -23,6 +23,11 @@ interface AuthCtx {
   isPlataforma: boolean;
   canMove: boolean;
   canReport: boolean;
+  // Leitura de estoque e catálogo: liberada a ADMIN e COZINHA, negada ao
+  // NUTRICIONISTA, que só tem visão geral e relatórios. Espelha as regras
+  // de GET em SecurityConfig.
+  canSeeEstoque: boolean;
+  canSeeCatalogo: boolean;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -95,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isPlataforma: perfil === "PLATAFORMA",
       canMove: perfil === "ADMIN" || perfil === "COZINHA",
       canReport: perfil === "ADMIN" || perfil === "NUTRICIONISTA",
+      canSeeEstoque: perfil === "ADMIN" || perfil === "COZINHA",
+      canSeeCatalogo: perfil === "ADMIN" || perfil === "COZINHA",
     };
   }, [user, ready, login, logout, refetchMe]);
 

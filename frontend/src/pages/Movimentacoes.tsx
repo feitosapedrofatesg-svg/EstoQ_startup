@@ -170,8 +170,9 @@ export function Movimentacoes() {
           </div>
         }
       >
-        {loading && !data && <p className="muted">Carregando…</p>}
-        {data && data.length === 0 ? (
+        {loading && !data ? (
+          <p className="muted">Carregando…</p>
+        ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhuma movimentação no período"
             text="Use o botão Registrar movimento para começar a lançar entradas, consumo e desperdício."

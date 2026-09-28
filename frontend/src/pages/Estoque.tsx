@@ -89,8 +89,9 @@ export function Estoque() {
         }
       >
         {error && <div className="alertbanner alertbanner--bad">{error}</div>}
-        {loading && !data && <p className="muted">Carregando estoque…</p>}
-        {data && data.length === 0 ? (
+        {loading && !data ? (
+          <p className="muted">Carregando estoque…</p>
+        ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhum produto no estoque ainda"
             text="Cadastre produtos no Catálogo e registre a primeira entrada."

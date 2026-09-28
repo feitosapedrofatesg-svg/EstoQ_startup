@@ -147,8 +147,9 @@ export function Balanco() {
       )}
 
       <Card title="Balanços">
-        {loading && !data && <p className="muted">Carregando…</p>}
-        {data && data.length === 0 ? (
+        {loading && !data ? (
+          <p className="muted">Carregando…</p>
+        ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhum balanço realizado"
             text="Crie um balanço para conferir o estoque físico contra o sistema."

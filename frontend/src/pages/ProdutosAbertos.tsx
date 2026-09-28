@@ -57,8 +57,9 @@ export function ProdutosAbertos() {
 
       <Card title="Em aberto agora">
         {error && <div className="alertbanner alertbanner--bad">{error}</div>}
-        {loading && !data && <p className="muted">Carregando…</p>}
-        {data && data.length === 0 ? (
+        {loading && !data ? (
+          <p className="muted">Carregando…</p>
+        ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhuma embalagem aberta"
             text="Ao abrir um pacote, bolsa ou vasilhame, registre aqui para controlar o aproveitamento."

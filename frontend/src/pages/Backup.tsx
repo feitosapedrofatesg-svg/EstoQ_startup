@@ -67,8 +67,9 @@ export function Backup() {
 
       <Card title="Backups salvos">
         {error && <div className="alertbanner alertbanner--bad">{error}</div>}
-        {loading && !data && <p className="muted">Carregando…</p>}
-        {data && data.length === 0 ? (
+        {loading && !data ? (
+          <p className="muted">Carregando…</p>
+        ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhum backup ainda"
             text="Gere o primeiro backup para proteger os dados da cozinha."

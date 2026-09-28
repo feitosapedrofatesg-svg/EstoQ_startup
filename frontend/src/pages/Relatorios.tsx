@@ -185,7 +185,7 @@ function CmvPeriodo() {
 }
 
 function CmvMensal() {
-  const { data } = useFetch<CmvMensalDTO[]>("/api/relatorios/cmv/mensal");
+  const { data, loading } = useFetch<CmvMensalDTO[]>("/api/relatorios/cmv/mensal");
   const bars = useMemo(
     () =>
       (data ?? []).map((d) => ({
@@ -198,7 +198,9 @@ function CmvMensal() {
 
   return (
     <Section title="CMV mês a mês">
-      {data && data.length === 0 ? (
+      {loading ? (
+        <p className="muted">Carregando…</p>
+      ) : data && data.length === 0 ? (
         <EmptyState title="Sem histórico mensal" text="O histórico aparece conforme os meses são fechados." />
       ) : (
         <>
@@ -355,12 +357,14 @@ function ConsumoMedio() {
 }
 
 function Reposicao() {
-  const { data } = useFetch<ReposicaoSugeridaDTO[]>("/api/relatorios/reposicao-sugerida?dias=7");
+  const { data, loading } = useFetch<ReposicaoSugeridaDTO[]>("/api/relatorios/reposicao-sugerida?dias=7");
   const total = useMemo(() => (data ?? []).length, [data]);
 
   return (
     <Section title={`Reposição sugerida${total ? ` (${total})` : ""}`}>
-      {data && data.length === 0 ? (
+      {loading ? (
+        <p className="muted">Carregando…</p>
+      ) : data && data.length === 0 ? (
         <EmptyState
           title="Nada a repor"
           text="Todos os produtos estão nos níveis ideais para os próximos dias."

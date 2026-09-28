@@ -49,10 +49,10 @@ export function Catalogo() {
   const [busy, setBusy] = useState("");
   const toast = useToast();
 
-  const { data: catsPage, refresh: refreshCats } = useFetch<Page<CategoriaDTO>>(
+  const { data: catsPage, refresh: refreshCats, loading: loadingCats } = useFetch<Page<CategoriaDTO>>(
     "/api/categorias?size=100"
   );
-  const { data: prodsPage, refresh: refreshProds } = useFetch<Page<ProdutoDTO>>(
+  const { data: prodsPage, refresh: refreshProds, loading: loadingProds } = useFetch<Page<ProdutoDTO>>(
     "/api/produtos?size=100&sort=id,desc"
   );
   const { data: paramsPage, refresh: refreshParams } = useFetch<Page<ParametroEstoqueDTO>>(
@@ -61,6 +61,7 @@ export function Catalogo() {
   const cats = catsPage?.content ?? [];
   const prods = prodsPage?.content ?? [];
   const params = paramsPage?.content ?? [];
+  const loading = tab === "produtos" ? loadingProds : loadingCats;
 
   const catById = useMemo(() => {
     const m = new Map<number, CategoriaDTO>();
@@ -146,7 +147,9 @@ export function Catalogo() {
           </div>
         }
       >
-        {tab === "produtos" ? (
+        {loading ? (
+          <p className="muted">Carregando…</p>
+        ) : tab === "produtos" ? (
           prodRows.length === 0 ? (
             <EmptyState
               title="Nenhum produto"

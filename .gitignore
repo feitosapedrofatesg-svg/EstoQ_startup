@@ -30,3 +30,7 @@ dados/
 
 # Dump temporário de testes
 *.dump
+
+# Python
+__pycache__/
+*.pyc

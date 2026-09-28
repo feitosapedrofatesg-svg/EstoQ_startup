@@ -453,7 +453,7 @@ BEGIN
     SELECT string_agg(format('%I.%I', split_part(t, '.', 2), split_part(t, '.', 3)), ', ')
       INTO faltando
       FROM unnest(ARRAY[
-{chr(10).join("            " + ", ".join(f"'{SCHEMA}.{tb}.{c}'" for c in COLUNAS_ESPERADAS[tb]) for tb in COLUNAS_ESPERADAS)}
+{",\n            ".join("            " + ", ".join(f"'{SCHEMA}.{tb}.{c}'" for c in COLUNAS_ESPERADAS[tb]) for tb in COLUNAS_ESPERADAS)}
       ]) AS x(t)
      WHERE NOT EXISTS (
         SELECT 1 FROM information_schema.columns c
@@ -494,7 +494,20 @@ def main():
                     help="gera as variantes com ROLLBACK (revisar sem gravar)")
     ap.add_argument("--data", default=datetime.date.today().isoformat(),
                     help="data das entradas (padrao: hoje)")
+    ap.add_argument("--schema", default="estoq_v2",
+                    help="schema alvo (local de teste: estoq_v2; producao Neon: public)")
     args = ap.parse_args()
+
+    # O schema muda entre ambientes (DDL_AUTO=create aponta currentSchema=estoq_v2
+    # no local; o backend em producao usa o default `public`).
+    global SCHEMA, RID, UID
+    SCHEMA = args.schema
+    # RID/UID eram globais calculadas na importacao com o schema antigo, o que
+    # deixava o --schema sem efeito de verdade. Recalcula aqui, antes de gerar.
+    RID = (f"(SELECT u.restaurante_id FROM {SCHEMA}.usuarios u"
+           f" WHERE lower(u.email) = {txt(EMAIL_ALVO.lower())})")
+    UID = (f"(SELECT u.id FROM {SCHEMA}.usuarios u"
+           f" WHERE lower(u.email) = {txt(EMAIL_ALVO.lower())})")
 
     if not os.path.exists(CSV_CATALOGO):
         sys.exit(f"CSV nao encontrado: {CSV_CATALOGO}")

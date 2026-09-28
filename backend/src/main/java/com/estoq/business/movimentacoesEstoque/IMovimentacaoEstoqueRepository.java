@@ -1,5 +1,8 @@
 package com.estoq.business.movimentacoesEstoque;
 
+import com.estoq.business.consumos.ConsumoModel;
+import com.estoq.business.desperdicios.DesperdicioModel;
+import com.estoq.business.entradas.EntradaModel;
 import com.estoq.core.repositories.IGenericRepository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -11,7 +14,16 @@ import java.util.List;
 public interface IMovimentacaoEstoqueRepository extends IGenericRepository<MovimentacaoEstoqueModel> {
 
     @EntityGraph(attributePaths = {"produto", "lote", "usuario", "produtoAberto"})
-    List<MovimentacaoEstoqueModel> findByDataHoraLessThanOrderByDataHoraAscIdAsc(LocalDateTime corte);
+    @Query("select e from EntradaModel e where e.dataHora < :corte order by e.dataHora, e.id")
+    List<EntradaModel> entradasAntesDe(LocalDateTime corte);
+
+    @EntityGraph(attributePaths = {"produto", "lote", "usuario", "produtoAberto"})
+    @Query("select c from ConsumoModel c where c.dataHora < :corte order by c.dataHora, c.id")
+    List<ConsumoModel> consumosAntesDe(LocalDateTime corte);
+
+    @EntityGraph(attributePaths = {"produto", "lote", "usuario", "produtoAberto"})
+    @Query("select d from DesperdicioModel d where d.dataHora < :corte order by d.dataHora, d.id")
+    List<DesperdicioModel> desperdiciosAntesDe(LocalDateTime corte);
 
     @EntityGraph(attributePaths = {"produto", "lote", "usuario", "produtoAberto"})
     @Query("select m from MovimentacaoEstoqueModel m "

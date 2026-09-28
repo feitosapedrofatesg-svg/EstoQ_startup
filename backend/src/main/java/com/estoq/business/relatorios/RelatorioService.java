@@ -7,6 +7,7 @@ import com.estoq.business.lotes.ILoteRepository;
 import com.estoq.business.lotes.LoteDTO;
 import com.estoq.business.lotes.LoteService;
 import com.estoq.business.movimentacoesEstoque.IMovimentacaoEstoqueRepository;
+import com.estoq.business.movimentacoesEstoque.MovimentacaoEstoqueModel;
 import com.estoq.business.parametrosCmv.ParametroCmvService;
 import com.estoq.business.produtos.EstoqueDTO;
 import com.estoq.business.produtos.EstoqueService;
@@ -69,9 +70,8 @@ public class RelatorioService {
     }
 
     public List<DesperdicioDTO> desperdicio(LocalDateTime inicio, LocalDateTime fim) {
-        return movimentos.findByDataHoraLessThanOrderByDataHoraAscIdAsc(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0)
-                .filter(DesperdicioModel.class::isInstance).map(DesperdicioModel.class::cast)
+        return movimentos.desperdiciosAntesDe(fim).stream()
+                .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
                 .map(d -> new DesperdicioDTO(d.getDataHora(), d.getMotivo(), d.getDescricaoMotivo(),
                         d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), d.getQuantidade(), d.getValorPrejuizo()))
                 .toList();
@@ -79,9 +79,8 @@ public class RelatorioService {
 
     public List<DesperdicioAgregadoDTO> desperdicioAgregado(LocalDateTime inicio, LocalDateTime fim) {
         var agregado = new HashMap<String, DesperdicioAgregadoDTO>();
-        movimentos.findByDataHoraLessThanOrderByDataHoraAscIdAsc(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0 && m instanceof DesperdicioModel)
-                .map(DesperdicioModel.class::cast)
+        movimentos.desperdiciosAntesDe(fim).stream()
+                .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
                 .forEach(d -> {
                     var chave = d.getProduto().getId() + ":" + d.getMotivo().name();
                     var atual = agregado.get(chave);
@@ -101,8 +100,8 @@ public class RelatorioService {
     public List<ConsumoMedioDTO> consumoMedio(LocalDateTime inicio, LocalDateTime fim) {
         var dias = Math.max(1, ChronoUnit.DAYS.between(inicio, fim));
         var porProduto = new TreeMap<Long, BigDecimal>();
-        movimentos.findByDataHoraLessThanOrderByDataHoraAscIdAsc(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0 && m instanceof ConsumoModel)
+        movimentos.consumosAntesDe(fim).stream()
+                .filter(m -> m.getDataHora().compareTo(inicio) >= 0)
                 .forEach(m -> porProduto.merge(m.getProduto().getId(), m.getQuantidade(), BigDecimal::add));
         var nomes = estoque.listar(false, false).stream()
                 .collect(Collectors.toMap(EstoqueDTO::produtoId, Function.identity()));
@@ -117,8 +116,8 @@ public class RelatorioService {
 
     public List<ConsumoDiaSemanaDTO> consumoPorDiaSemana(LocalDateTime inicio, LocalDateTime fim) {
         var totalPorDia = new HashMap<DayOfWeek, BigDecimal>();
-        movimentos.findByDataHoraLessThanOrderByDataHoraAscIdAsc(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0 && m instanceof ConsumoModel)
+        movimentos.consumosAntesDe(fim).stream()
+                .filter(m -> m.getDataHora().compareTo(inicio) >= 0)
                 .forEach(m -> totalPorDia.merge(m.getDataHora().getDayOfWeek(), m.getQuantidade(), BigDecimal::add));
         var diasPorDia = new HashMap<DayOfWeek, Long>();
         for (var dia = inicio.toLocalDate(); dia.isBefore(fim.toLocalDate()); dia = dia.plusDays(1)) {
@@ -136,8 +135,17 @@ public class RelatorioService {
         return resultado;
     }
 
+    /** JOINED polimórfico custa 1 SELECT por linha nas subclasses; cada subtipo carrega em consulta homogênea. */
+    private List<MovimentacaoEstoqueModel> todasMovimentacoesAntesDe(LocalDateTime fim) {
+        var lista = new ArrayList<MovimentacaoEstoqueModel>();
+        lista.addAll(movimentos.entradasAntesDe(fim));
+        lista.addAll(movimentos.consumosAntesDe(fim));
+        lista.addAll(movimentos.desperdiciosAntesDe(fim));
+        return lista;
+    }
+
     public CmvResumoDTO calcularCmv(LocalDateTime inicio, LocalDateTime fim, BigDecimal receitaBase) {
-        var historico = movimentos.findByDataHoraLessThanOrderByDataHoraAscIdAsc(fim).stream()
+        var historico = todasMovimentacoesAntesDe(fim).stream()
                 .filter(m -> m.getDataHora().compareTo(inicio) >= 0).toList();
         var deltaPorLote = new HashMap<Long, BigDecimal>();
         var compras = zero();
@@ -199,7 +207,7 @@ public class RelatorioService {
         var desperdicioMes = new BigDecimal[n];
         Arrays.fill(comprasMes, zero());
         Arrays.fill(desperdicioMes, zero());
-        for (var m : movimentos.findByDataHoraLessThanOrderByDataHoraAscIdAsc(fim)) {
+        for (var m : todasMovimentacoesAntesDe(fim)) {
             if (m.getDataHora().compareTo(inicio) < 0) {
                 continue;
             }

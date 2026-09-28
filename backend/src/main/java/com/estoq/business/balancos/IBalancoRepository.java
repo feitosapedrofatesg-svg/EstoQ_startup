@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface IBalancoRepository extends IGenericRepository<BalancoModel> {
 
-    @EntityGraph(attributePaths = {"itens.produto", "usuario"})
+    @EntityGraph(attributePaths = {"itens.produto", "itens.produto.categoria", "usuario"})
     Optional<BalancoModel> findByIdAndAtivoTrue(Long id);
     List<BalancoModel> findAllByAtivoTrueOrderByDataHoraDesc();
     long countByAtivoTrueAndStatusNot(StatusBalanco status);

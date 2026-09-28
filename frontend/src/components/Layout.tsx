@@ -6,6 +6,7 @@ import type { AlertaDTO, Perfil } from "../lib/types";
 import { Icon, type IconName } from "./Icon";
 import { fmtDateTime } from "../lib/format";
 import { useToast } from "../store/toast";
+import { prefetchar } from "../lib/hooks";
 
 interface NavItem {
   to: string;
@@ -197,6 +198,17 @@ function AlertBell() {
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout, isAdmin, isCozinha } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
+
+  // Pré-carrega no cache SWR as telas principais do perfil, pra troca de
+  // página não re-buscar tudo do zero.
+  useEffect(() => {
+    if (!user) return;
+    void prefetchar("/api/dashboard/resumo");
+    if (isAdmin || isCozinha) {
+      void prefetchar("/api/estoque");
+      void prefetchar("/api/balancos");
+    }
+  }, [user, isAdmin, isCozinha]);
 
   if (!user) return null;
   const perfil = user.perfil;

@@ -11,6 +11,7 @@ public interface IBalancoRepository extends IGenericRepository<BalancoModel> {
 
     @EntityGraph(attributePaths = {"itens.produto", "itens.produto.categoria", "usuario"})
     Optional<BalancoModel> findByIdAndAtivoTrue(Long id);
+    @EntityGraph(attributePaths = {"itens", "itens.produto", "itens.produto.categoria", "usuario"})
     List<BalancoModel> findAllByAtivoTrueOrderByDataHoraDesc();
     long countByAtivoTrueAndStatusNot(StatusBalanco status);
 }

@@ -85,9 +85,34 @@ export function diasAtrasISO(dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Aceita as duas grafias que aparecem em digitação livre no pt-BR.
+// A ambiguidade do "." é resolvida pelo número de dígitos à direita dele:
+//   "1.500"    -> 1500   (3 dígitos à direita => separador de milhar)
+//   "1.5"      -> 1.5    (1 dígito à direita  => decimal)
+//   "10.50"    -> 10.5   (2 dígitos à direita => decimal)
+//   "1.234,56" -> 1234.56 (vírgula presente   => decimal, ponto é milhar)
 export function parseDecimal(s: string): number | null {
-  if (!s.trim()) return null;
-  const normalized = s.replace(/\./g, "").replace(",", ".");
+  const t = s.trim();
+  if (!t) return null;
+
+  const hasComma = t.includes(",");
+  const hasDot = t.includes(".");
+  let normalized: string;
+
+  if (hasComma && hasDot) {
+    // Vírgula manda: ponto é separador de milhar.
+    normalized = t.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    normalized = t.replace(",", ".");
+  } else if (hasDot) {
+    const decimals = t.length - t.lastIndexOf(".") - 1;
+    const isThousands =
+      decimals === 3 || (t.match(/\./g) ?? []).length > 1;
+    normalized = isThousands ? t.replace(/\./g, "") : t;
+  } else {
+    normalized = t;
+  }
+
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
 }

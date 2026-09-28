@@ -14,7 +14,7 @@ import {
   StatusBadge,
   EmptyState,
 } from "../components/UI";
-import { fmtDateTime, fmtNum } from "../lib/format";
+import { fmtDateTime, fmtNum, parseDecimal } from "../lib/format";
 import type {
   BalancoDTO,
   CategoriaDTO,
@@ -437,24 +437,6 @@ function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: () => v
   );
 }
 
-function parseContagem(s: string): number | null {
-  if (!s.trim()) return null;
-  const t = s.trim();
-  const hasComma = t.includes(",");
-  const hasDot = t.includes(".");
-  let n: number;
-  if (hasComma && hasDot) {
-    n = Number(t.replace(/\./g, "").replace(",", "."));
-  } else if (hasComma) {
-    n = Number(t.replace(",", "."));
-  } else if (hasDot) {
-    n = Number(t.replace(",", "."));
-  } else {
-    n = Number(t);
-  }
-  return Number.isFinite(n) ? n : null;
-}
-
 function ItensContagem({
   balanco,
   onItem,
@@ -484,7 +466,7 @@ function ItensContagem({
   const isConfirmed = (item: typeof balanco.itens[0]) => {
     const saved = item.quantidadeFisica;
     if (saved === null) return false;
-    const typed = parseContagem(vals[item.id]);
+    const typed = parseDecimal(vals[item.id]);
     return typed !== null && Number(saved) === typed;
   };
 
@@ -498,7 +480,7 @@ function ItensContagem({
         headers={["Produto", "Sistema", "Contagem física", "Resultado", ""]}
       >
         {balanco.itens.map((i) => {
-          const n = parseContagem(vals[i.id]);
+          const n = parseDecimal(vals[i.id]);
           const valid = n !== null && n >= 0;
           const diff = valid && i.quantidadeSistema !== null ? n - i.quantidadeSistema : null;
           return (

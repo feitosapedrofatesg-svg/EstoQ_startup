@@ -75,14 +75,23 @@ export function fmtDataHoje(): string {
   });
 }
 
+// Data no fuso LOCAL do navegador, não em UTC. toISOString() converte para
+// UTC e, no Brasil (UTC-3), entre 21h e meia-noite devolve o dia seguinte —
+// o que deslocava os filtros padrão de Movimentações e Relatórios.
+function dataLocalISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
 export function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dataLocalISO(new Date());
 }
 
 export function diasAtrasISO(dias: number): string {
   const d = new Date();
   d.setDate(d.getDate() - dias);
-  return d.toISOString().slice(0, 10);
+  return dataLocalISO(d);
 }
 
 // Aceita as duas grafias que aparecem em digitação livre no pt-BR.
@@ -115,11 +124,4 @@ export function parseDecimal(s: string): number | null {
 
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
-}
-
-export function hojeUTC(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
 }

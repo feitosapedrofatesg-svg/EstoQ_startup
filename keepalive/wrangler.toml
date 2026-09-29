@@ -1,0 +1,7 @@
+name = "estoq-keepalive"
+main = "src/index.js"
+compatibility_date = "2026-09-28"
+
+# PING a cada 10 minutos: o Render free dorme após 15 min sem tráfego.
+[triggers]
+crons = ["*/10 * * * *"]

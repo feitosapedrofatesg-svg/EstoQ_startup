@@ -19,6 +19,9 @@ dados/
 ~$*
 .~lock.*
 
+# Cloudflare (wrangler local)
+keepalive/.wrangler/
+
 # IDE / SO
 .idea/
 *.iml

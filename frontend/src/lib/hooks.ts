@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { api } from "./api";
 
 interface FetchState<T> {
@@ -6,7 +13,7 @@ interface FetchState<T> {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  setData: (d: T | null) => void;
+  setData: Dispatch<SetStateAction<T | null>>;
 }
 
 /** Cache SWR por caminho: páginas revisitadas abrem com os dados na hora. */
@@ -75,6 +82,14 @@ export async function prefetchar(path: string): Promise<void> {
     cache.set(path, { data, ts: Date.now() });
   } catch {
     // sem rede ou sem permissão: deixa sem cache, a página busca normalmente
+  }
+}
+
+/** Atualiza o cache SWR após uma gravação (ex.: mesclar um balanço respondido). */
+export function updateCache<T>(path: string, updater: (prev: T) => T): void {
+  const entry = cache.get(path);
+  if (entry) {
+    cache.set(path, { data: updater(entry.data as T), ts: Date.now() });
   }
 }
 

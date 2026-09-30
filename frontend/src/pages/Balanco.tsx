@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
-import { useFetch } from "../lib/hooks";
+import { useFetch, updateCache } from "../lib/hooks";
 import { api } from "../lib/api";
 import {
   PageHeader,
@@ -102,7 +102,7 @@ function printBalanco(b: BalancoDTO) {
 export function Balanco() {
   const { isAdmin, canMove } = useAuth();
   const toast = useToast();
-  const { data, loading, error, refresh } = useFetch<BalancoDTO[]>("/api/balancos");
+  const { data, loading, error, refresh, setData } = useFetch<BalancoDTO[]>("/api/balancos");
   const { data: configs, refresh: refreshConfig } = useFetch<ConfiguracaoBalancoDTO[]>(
     isAdmin ? "/api/configuracoes-balanco" : null
   );
@@ -111,13 +111,17 @@ export function Balanco() {
   const [busyLabel, setBusyLabel] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
 
-  const doAction = async (id: number, label: string, fn: () => Promise<unknown>) => {
+  const doAction = async (id: number, label: string, fn: () => Promise<BalancoDTO>) => {
     setBusy(id);
     setBusyLabel(label);
     try {
-      await fn();
+      const atualizado = await fn();
       toast.success(label);
-      void refresh();
+      // O backend devolve o balanço completo já atualizado: mescla na lista
+      // (sem re-buscar /api/balancos inteiro a cada clique) e mantém o cache SWR coerente.
+      const merge = (prev: BalancoDTO[]) => prev.map((b) => (b.id === atualizado.id ? atualizado : b));
+      setData((prev) => (prev ? merge(prev) : prev));
+      updateCache<BalancoDTO[]>("/api/balancos", merge);
     } catch (e) {
       toast.error(label, (e as Error).message);
     } finally {
@@ -227,7 +231,7 @@ export function Balanco() {
                           loading={busy === b.id && busyLabel === "Balanço iniciado"}
                           onClick={() =>
                             void doAction(b.id, "Balanço iniciado", () =>
-                              api.post(`/api/balancos/${b.id}/iniciar`)
+                              api.post<BalancoDTO>(`/api/balancos/${b.id}/iniciar`)
                             )
                           }
                         >
@@ -241,7 +245,7 @@ export function Balanco() {
                           loading={busy === b.id && busyLabel === "Balanço confirmado"}
                           onClick={() =>
                             void doAction(b.id, "Balanço confirmado", () =>
-                              api.post(`/api/balancos/${b.id}/confirmar`)
+                              api.post<BalancoDTO>(`/api/balancos/${b.id}/confirmar`)
                             )
                           }
                         >
@@ -255,7 +259,7 @@ export function Balanco() {
                           loading={busy === b.id && busyLabel === "Ajustes aplicados"}
                           onClick={() =>
                             void doAction(b.id, "Ajustes aplicados", () =>
-                              api.post(`/api/balancos/${b.id}/gerar-ajustes`)
+                              api.post<BalancoDTO>(`/api/balancos/${b.id}/gerar-ajustes`)
                             )
                           }
                         >
@@ -278,7 +282,7 @@ export function Balanco() {
                           balanco={b}
                           onItem={(id, q) =>
                             void doAction(b.id, "Contagem salva", () =>
-                              api.put(`/api/balancos/${b.id}/itens/${id}/contagem`, {
+                              api.put<BalancoDTO>(`/api/balancos/${b.id}/itens/${id}/contagem`, {
                                 quantidadeFisica: q,
                               })
                             )

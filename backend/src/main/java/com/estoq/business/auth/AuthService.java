@@ -1,5 +1,9 @@
 package com.estoq.business.auth;
 
+import com.estoq.business.restaurantes.IRestauranteRepository;
+import com.estoq.business.restaurantes.RestauranteModel;
+import com.estoq.business.usuarios.UsuarioModel;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -23,6 +27,7 @@ public class AuthService {
     private final CsrfTokenRepository csrfRepository;
     private final UsuarioAtual usuarioAtual;
     private final LoginAttemptService tentativas;
+    private final IRestauranteRepository restaurantes;
 
     public AuthenticatedUserDTO autenticar(LoginRequestDTO dto, HttpServletRequest request, HttpServletResponse response) {
         var ip = request.getRemoteAddr();
@@ -36,7 +41,7 @@ public class AuthService {
         SecurityContextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
         csrfRepository.saveToken(null, request, response);
-        return AuthenticatedUserDTO.of(usuarioAtual.obter());
+        return montar();
     }
 
     private Authentication autenticar(LoginRequestDTO dto, String ip) {
@@ -51,6 +56,15 @@ public class AuthService {
     }
 
     public AuthenticatedUserDTO me() {
-        return AuthenticatedUserDTO.of(usuarioAtual.obter());
+        return montar();
+    }
+
+    /** Resolve o usuário da sessão e o nome da loja em que ele está operando. */
+    private AuthenticatedUserDTO montar() {
+        UsuarioModel u = usuarioAtual.obter();
+        Long restauranteId = u.getRestauranteId();
+        String nomeLoja = restauranteId == null || restauranteId <= 0 ? null
+                : restaurantes.findById(restauranteId).map(RestauranteModel::getNome).orElse(null);
+        return AuthenticatedUserDTO.of(u, nomeLoja);
     }
 }

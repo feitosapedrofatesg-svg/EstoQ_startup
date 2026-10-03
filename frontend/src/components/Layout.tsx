@@ -281,6 +281,12 @@ export function Layout({ children }: { children: ReactNode }) {
             <Icon name="menu" size={22} />
           </button>
           <div className="topbar__spacer" />
+          {user.restauranteNome && (
+            <p className="topbar__store" title={`Loja: ${user.restauranteNome}`}>
+              <Icon name="store" size={16} />
+              <span>{user.restauranteNome}</span>
+            </p>
+          )}
           {showBell && <AlertBell />}
         </header>
         <main className="main__content">

@@ -393,6 +393,34 @@ a:hover {
   flex: 1;
 }
 
+/* Loja em que a tela está operando — presente em todas as telas. */
+.topbar__store {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 45%;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--t-1);
+  font-weight: 650;
+}
+
+.topbar__store svg {
+  flex: none;
+  color: var(--accent-strong);
+}
+
+.topbar__store span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .main__content {
   flex: 1;
 }

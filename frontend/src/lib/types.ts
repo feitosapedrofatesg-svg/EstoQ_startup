@@ -44,6 +44,8 @@ export interface AuthenticatedUserDTO {
   nome: string;
   email: string;
   perfil: Perfil;
+  /** Loja em que a tela está operando. Nulo para o perfil PLATAFORMA. */
+  restauranteNome: string | null;
 }
 
 /** Cadastro aberto de um novo restaurante na plataforma. */

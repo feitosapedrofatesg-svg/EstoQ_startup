@@ -725,6 +725,11 @@ a:hover {
   margin-bottom: 0;
 }
 
+/* Nas actions do card os filtros alinham pelo meio: sem linha de datas ao lado. */
+.card__actions .filters {
+  align-items: center;
+}
+
 /* -------------------------------------------------- stat cards */
 
 .stat-grid {
@@ -935,6 +940,13 @@ a:hover {
   .form-grid-3 {
     grid-template-columns: 1fr;
   }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 .checkbox {

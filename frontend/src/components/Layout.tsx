@@ -29,19 +29,20 @@ function buildNav(perfil: Perfil): NavGroup[] {
       },
     ];
   }
-  // O NUTRICIONISTA não tem permissão de leitura sobre estoque, lotes e
-  // balanços (SecurityConfig), então o grupo "Operação" aparece só para ele
-  // com a visão geral. As demais telas do grupo são de ADMIN e COZINHA.
-  const operacao: NavItem[] = [
-    { to: "/dashboard", label: "Visão geral", icon: "dashboard", end: true },
-  ];
+  // A visão geral é só de ADMIN e NUTRICIONISTA: o NUTRICIONISTA não tem
+  // permissão de leitura sobre estoque, lotes e balanços (SecurityConfig), e o
+  // COZINHA cai direto no estoque porque não usa o dashboard.
+  const operacao: NavItem[] = [];
   if (perfil === "ADMIN" || perfil === "COZINHA") {
     operacao.push(
       { to: "/estoque", label: "Estoque", icon: "boxes" },
+      { to: "/consumo", label: "Consumo", icon: "check-circle" },
+      { to: "/desperdicio", label: "Desperdício", icon: "trash" },
       { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
-      { to: "/produtos-abertos", label: "Embalagens abertas", icon: "box-open" },
       { to: "/balanco", label: "Balanço físico", icon: "scale" }
     );
+  } else {
+    operacao.push({ to: "/dashboard", label: "Visão geral", icon: "dashboard", end: true });
   }
 
   const groups: NavGroup[] = [{ heading: "Operação", items: operacao }];
@@ -200,13 +201,15 @@ export function Layout({ children }: { children: ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
 
   // Pré-carrega no cache SWR as telas principais do perfil, pra troca de
-  // página não re-buscar tudo do zero.
+  // página não re-buscar tudo do zero. O dashboard é só de ADMIN e
+  // NUTRICIONISTA, então a cozinha não gasta requisição com ele.
   useEffect(() => {
     if (!user) return;
-    void prefetchar("/api/dashboard/resumo");
+    if (!isCozinha) void prefetchar("/api/dashboard/resumo");
     if (isAdmin || isCozinha) {
       void prefetchar("/api/estoque");
       void prefetchar("/api/balancos");
+      void prefetchar("/api/produtos-abertos?finalizado=false");
     }
   }, [user, isAdmin, isCozinha]);
 

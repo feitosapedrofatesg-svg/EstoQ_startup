@@ -1,149 +1,29 @@
 import { useMemo, useState } from "react";
-import { useAuth } from "../store/auth";
 import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
 import {
-  PageHeader,
-  Card,
   Button,
   Modal,
   NumberField,
   SearchSelect,
   Field,
   Input,
-  DataTable,
-  EmptyState,
   AlertBanner,
-} from "../components/UI";
-import { fmtNum, fmtDateTime, fmtDate } from "../lib/format";
+} from "./UI";
+import { fmtNum } from "../lib/format";
 import type { EstoqueDTO, LoteDTO, ProdutoAbertoDTO } from "../lib/types";
-import { useToast } from "../store/toast";
 
-export function ProdutosAbertos() {
-  const { canMove } = useAuth();
-  const toast = useToast();
-  const { data, loading, error, refresh } = useFetch<ProdutoAbertoDTO[]>(
-    "/api/produtos-abertos?finalizado=false"
-  );
-  const { data: estoque } = useFetch<EstoqueDTO[]>("/api/estoque");
-  const [showOpen, setShowOpen] = useState(false);
-  const [action, setAction] = useState<{ tipo: "consumir" | "desperdicar"; item: ProdutoAbertoDTO } | null>(
-    null
-  );
+export type AcaoAberto = "consumir" | "desperdicar";
 
-  const produtoOpts = useMemo(
-    () =>
-      (estoque ?? []).map((p) => ({
-        value: String(p.produtoId),
-        label: p.produtoNome,
-        sub: `${p.categoriaNome} · ${p.unidadeMedida}`,
-      })),
-    [estoque]
-  );
-
-  return (
-    <>
-      <PageHeader
-        title="Embalagens abertas"
-        subtitle="Itens já abertos na cozinha, com quanto falta usar de cada um."
-        actions={
-          canMove && (
-            <Button icon="box-open" onClick={() => setShowOpen(true)}>
-              Abrir embalagem
-            </Button>
-          )
-        }
-      />
-
-      <Card title="Em aberto agora">
-        {error && <div className="alertbanner alertbanner--bad">{error}</div>}
-        {loading && !data ? (
-          <p className="muted">Carregando…</p>
-        ) : data && data.length === 0 ? (
-          <EmptyState
-            title="Nenhuma embalagem aberta"
-            text="Ao abrir um pacote, bolsa ou vasilhame, registre aqui para controlar o aproveitamento."
-            icon="box-open"
-            action={
-              canMove ? (
-                <Button variant="outline" onClick={() => setShowOpen(true)}>
-                  Abrir a primeira
-                </Button>
-              ) : (
-                <p className="muted">O perfil Cozinha faz a abertura de embalagens.</p>
-              )
-            }
-          />
-        ) : (
-          <DataTable
-            caption="Embalagens abertas na cozinha"
-            headers={["Produto", "Lote / validade", "Aberta", "Já usado", "Resta", "Ações"]}
-          >
-            {data?.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <strong>{p.produtoNome}</strong>
-                </td>
-                <td>
-                  <span className="cell-sub">
-                    Lote {p.loteCodigo} · vence {fmtDate(p.dataValidade)}
-                  </span>
-                </td>
-                <td className="muted-cell">{fmtDateTime(p.dataAbertura)}</td>
-                <td>
-                  {fmtNum(p.quantidadeUtilizada)} {p.unidadeMedida.toLowerCase()}
-                </td>
-                <td>
-                  <strong>
-                    {fmtNum(p.quantidadeRestante)} {p.unidadeMedida.toLowerCase()}
-                  </strong>
-                </td>
-                <td>
-                  <div className="td-actions">
-                    <Button size="sm" variant="outline" onClick={() => setAction({ tipo: "consumir", item: p })}>
-                      Consumir
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={() => setAction({ tipo: "desperdicar", item: p })}>
-                      Desperdiçar
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </DataTable>
-        )}
-      </Card>
-
-      {showOpen && (
-        <AbrirEmbalagem produtoOpts={produtoOpts} onClose={() => setShowOpen(false)} onDone={() => {
-          setShowOpen(false);
-          void refresh();
-          toast.success("Embalagem aberta e lançada");
-        }} />
-      )}
-
-      {action && (
-        <AcaoProdutoAberto
-          tipo={action.tipo}
-          item={action.item}
-          onClose={() => setAction(null)}
-          onDone={() => {
-            setAction(null);
-            void refresh();
-            toast.success(action.tipo === "consumir" ? "Consumo da embalagem registrado" : "Desperdício da embalagem registrado");
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-function AbrirEmbalagem({
-  produtoOpts,
+/**
+ * Abertura de embalagem: o mesmo lançamento usado nas telas de Consumo e de
+ * Desperdício. Abrir um pacote já presume consumo, então a tela de Embalagens
+ * abertas virou apenas este botão na tela de Consumo.
+ */
+export function AbrirEmbalagemModal({
   onClose,
   onDone,
 }: {
-  produtoOpts: { value: string; label: string; sub?: string }[];
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -154,6 +34,17 @@ function AbrirEmbalagem({
   const [observacao, setObservacao] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const { data: estoque } = useFetch<EstoqueDTO[]>("/api/estoque");
+  const produtoOpts = useMemo(
+    () =>
+      (estoque ?? []).map((p) => ({
+        value: String(p.produtoId),
+        label: p.produtoNome,
+        sub: `${p.categoriaNome} · ${p.unidadeMedida}`,
+      })),
+    [estoque]
+  );
 
   const { data: lotes } = useFetch<LoteDTO[]>(produtoId ? `/api/lotes?produtoId=${produtoId}` : null);
   const lotesDisponiveis = useMemo(() => (lotes ?? []).filter((l) => l.disponivel && !l.vencido), [lotes]);
@@ -243,13 +134,17 @@ function AbrirEmbalagem({
   );
 }
 
-function AcaoProdutoAberto({
+/**
+ * Baixa numa embalagem já aberta: consume o que foi usado ou descarta a sobra.
+ * Cada tela chama com a sua própria ação, sem repetir os dois botões.
+ */
+export function AcaoProdutoAbertoModal({
   tipo,
   item,
   onClose,
   onDone,
 }: {
-  tipo: "consumir" | "desperdicar";
+  tipo: AcaoAberto;
   item: ProdutoAbertoDTO;
   onClose: () => void;
   onDone: () => void;

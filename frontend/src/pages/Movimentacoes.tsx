@@ -11,7 +11,6 @@ import {
   Field,
   Input,
   Select,
-  Textarea,
   NumberField,
   SearchSelect,
   Segmented,
@@ -19,15 +18,12 @@ import {
   DataTable,
   Badge,
   EmptyState,
-  AlertBanner,
 } from "../components/UI";
 import { fmtDateTime, fmtNum, fmtMoney, hojeISO, diasAtrasISO, parseDecimal } from "../lib/format";
 import type {
   EstoqueDTO,
-  LoteDTO,
   MovimentacaoDTO,
   MovimentacaoResultadoDTO,
-  MotivoDesperdicio,
   ProdutoDTO,
   TipoMovimentacao,
   UnidadeMedida,
@@ -35,13 +31,6 @@ import type {
 import { useToast } from "../store/toast";
 
 const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
-const MOTIVOS: MotivoDesperdicio[] = [
-  "VENCIMENTO",
-  "DETERIORACAO",
-  "PREPARO_INCORRETO",
-  "SOBRA_NAO_APROVEITADA",
-  "OUTRO",
-];
 
 const TIPO_LABEL: Record<TipoMovimentacao, string> = {
   ENTRADA: "Entrada",
@@ -58,7 +47,7 @@ const TIPO_TONE: Record<TipoMovimentacao, "good" | "info" | "bad" | "neutral"> =
 };
 
 export function Movimentacoes() {
-  const { user, canMove } = useAuth();
+  const { isAdmin } = useAuth();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
 
@@ -115,9 +104,11 @@ export function Movimentacoes() {
         title="Movimentações"
         subtitle="Tudo o que sai e entra do estoque, com histórico completo."
         actions={
-          canMove && (
+          // Entrada é exclusiva do ADMIN (SecurityConfig). Consumo e desperdício
+          // têm telas próprias.
+          isAdmin && (
             <Button icon="plus" onClick={() => setShowRegister(true)}>
-              Registrar movimento
+              Registrar entrada
             </Button>
           )
         }
@@ -175,7 +166,11 @@ export function Movimentacoes() {
         ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhuma movimentação no período"
-            text="Use o botão Registrar movimento para começar a lançar entradas, consumo e desperdício."
+            text={
+              isAdmin
+                ? "Use o botão Registrar entrada para lançar compras e produtos que entraram no estoque."
+                : "Consulte as telas de Consumo e Desperdício para registrar as saídas do estoque."
+            }
             icon="clipboard-list"
           />
         ) : (
@@ -219,15 +214,14 @@ export function Movimentacoes() {
       </Card>
 
       {showRegister && (
-        <RegisterMovement
-          userPerfil={user?.perfil}
+        <RegisterEntrada
           initialProduto={produtoId}
           produtoOpts={produtoOpts}
           onClose={() => setShowRegister(false)}
           onDone={() => {
             setShowRegister(false);
             void refresh();
-            toast.success("Movimentação registrada");
+            toast.success("Entrada registrada");
           }}
         />
       )}
@@ -235,46 +229,29 @@ export function Movimentacoes() {
   );
 }
 
-type MovType = "ENTRADA" | "CONSUMO" | "DESPERDICIO";
-
-function RegisterMovement({
-  userPerfil,
+/** Entrada de mercadoria: só o ADMIN lança (POST /api/entradas). */
+function RegisterEntrada({
   initialProduto,
   produtoOpts,
   onClose,
   onDone,
 }: {
-  userPerfil?: string;
   initialProduto: string;
   produtoOpts: { value: string; label: string; sub?: string }[];
   onClose: () => void;
   onDone: () => void;
 }) {
-  const canEntrada = userPerfil === "ADMIN";
-
-  const [tipo, setTipo] = useState<MovType>("CONSUMO");
   const [produtoId, setProdutoId] = useState(initialProduto);
   const [quantidade, setQuantidade] = useState<number | null>(null);
   const [observacao, setObservacao] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Consumo / desperdício
-  const [manualLote, setManualLote] = useState(false);
-  const [loteId, setLoteId] = useState("");
-
-  // Desperdício
-  const [motivo, setMotivo] = useState<MotivoDesperdicio>("VENCIMENTO");
-  const [descricaoMotivo, setDescricaoMotivo] = useState("");
-
-  // Entrada
   const [valorTotalPago, setValorTotalPago] = useState<number | null>(null);
   const [unidadeCompra, setUnidadeCompra] = useState<UnidadeMedida>("KG");
   const [dataValidade, setDataValidade] = useState("");
   const [semCusto, setSemCusto] = useState(false);
 
-  const lotePath = produtoId && manualLote ? `/api/lotes?produtoId=${produtoId}` : null;
-  const { data: lotes } = useFetch<LoteDTO[]>(lotePath);
   const { data: detalheProduto } = useFetch<ProdutoDTO>(
     produtoId ? `/api/produtos/${produtoId}` : null
   );
@@ -283,24 +260,12 @@ function RegisterMovement({
     if (detalheProduto?.unidadeMedida) setUnidadeCompra(detalheProduto.unidadeMedida);
   }, [detalheProduto?.unidadeMedida]);
 
-  const lotesDisponiveis = useMemo(() => {
-    if (tipo === "DESPERDICIO") return lotes ?? []; // destruir busca todos
-    return (lotes ?? []).filter((l) => l.disponivel && !l.vencido);
-  }, [lotes, tipo]);
-
   const validate = (): string | null => {
     if (!produtoId) return "Escolha um produto.";
     if (!quantidade || quantidade <= 0) return "Informe uma quantidade maior que zero.";
-    if (tipo === "ENTRADA") {
-      if (!semCusto && (valorTotalPago === null || valorTotalPago < 0))
-        return "Informe o valor total pago, ou marque como Sem custo.";
-      if (valorTotalPago === 0) setSemCusto(true);
-    }
-    if (tipo === "DESPERDICIO" && motivo === "OUTRO" && !descricaoMotivo.trim())
-      return "Explique o motivo do desperdício quando o motivo for Outro.";
-    if (tipo === "CONSUMO" && manualLote && !loteId) return "Escolha o lote consumido.";
-    if (tipo === "DESPERDICIO" && manualLote && !loteId)
-      return "Escolha o lote descartado.";
+    if (!semCusto && (valorTotalPago === null || valorTotalPago < 0))
+      return "Informe o valor total pago, ou marque como Sem custo.";
+    if (valorTotalPago === 0) setSemCusto(true);
     return null;
   };
 
@@ -312,37 +277,16 @@ function RegisterMovement({
     }
     setSubmitting(true);
     setError(null);
-    const lote = lotesDisponiveis.find((l) => String(l.id) === loteId);
     try {
-      if (tipo === "ENTRADA") {
-        await api.post<MovimentacaoResultadoDTO>("/api/entradas", {
-          produtoId: Number(produtoId),
-          quantidade,
-          valorTotalPago: semCusto ? 0 : valorTotalPago ?? 0,
-          unidadeCompra,
-          dataValidade: dataValidade || null,
-          semCusto,
-          observacao: observacao || null,
-        });
-      } else if (tipo === "CONSUMO") {
-        await api.post<MovimentacaoResultadoDTO>("/api/consumos", {
-          produtoId: Number(produtoId),
-          loteId: lote?.id ?? null,
-          versionLote: lote?.version ?? null,
-          quantidade,
-          observacao: observacao || null,
-        });
-      } else {
-        await api.post<MovimentacaoResultadoDTO>("/api/desperdicios", {
-          produtoId: Number(produtoId),
-          loteId: lote?.id ?? null,
-          versionLote: lote?.version ?? null,
-          quantidade,
-          motivo,
-          descricaoMotivo: motivo === "OUTRO" ? descricaoMotivo : null,
-          observacao: observacao || null,
-        });
-      }
+      await api.post<MovimentacaoResultadoDTO>("/api/entradas", {
+        produtoId: Number(produtoId),
+        quantidade,
+        valorTotalPago: semCusto ? 0 : valorTotalPago ?? 0,
+        unidadeCompra,
+        dataValidade: dataValidade || null,
+        semCusto,
+        observacao: observacao || null,
+      });
       onDone();
     } catch (e) {
       setError((e as Error).message);
@@ -355,7 +299,7 @@ function RegisterMovement({
     <Modal
       open
       onClose={onClose}
-      title="Registrar movimento"
+      title="Registrar entrada"
       width="md"
       footer={
         <>
@@ -363,27 +307,11 @@ function RegisterMovement({
             Cancelar
           </Button>
           <Button onClick={() => void submit()} loading={submitting} icon="check">
-            Registrar
+            Registrar entrada
           </Button>
         </>
       }
     >
-      <Segmented
-        label="Tipo de movimento"
-        value={tipo}
-        onChange={(t) => {
-          setTipo(t as MovType);
-          setError(null);
-        }}
-        items={
-          [
-            ...(canEntrada ? [{ value: "ENTRADA", label: "Entrada" }] : []),
-            { value: "CONSUMO", label: "Consumo" },
-            { value: "DESPERDICIO", label: "Desperdício" },
-          ] as { value: string; label: string }[]
-        }
-      />
-
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
           {error}
@@ -396,156 +324,70 @@ function RegisterMovement({
         value={produtoId}
         onValue={(v) => {
           setProdutoId(v);
-          setLoteId("");
           setError(null);
         }}
         placeholder="Buscar produto…"
         required
-        error={error && !produtoId ? error : null}
       />
 
-      {tipo === "ENTRADA" ? (
-        <>
-          <div className="form-grid-2">
-            <NumberField
-              label="Quantidade"
-              value={quantidade}
-              onValue={setQuantidade}
-              min={0}
-              placeholder="Ex.: 5"
-              suffix={detalheProduto?.unidadeMedida ?? "UN"}
-              error={error && quantidade && quantidade <= 0 ? error : null}
-            />
-            <Select
-              value={unidadeCompra}
-              onChange={(e) => setUnidadeCompra(e.target.value as UnidadeMedida)}
-              aria-label="Unidade da compra"
-            >
-              {UNIDADES.map((u) => (
-                <option key={u} value={u}>
-                  {u === "UN" ? "Unidade (UN)" : u}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <Field label="Valor total pago (R$)" htmlFor="ent-valor" required={!semCusto}>
-            <div className="input-group">
-              <input
-                id="ent-valor"
-                className="input"
-                inputMode="decimal"
-                placeholder="Ex.: 120,00"
-                disabled={semCusto}
-                value={valorTotalPago === null ? "" : String(valorTotalPago).replace(".", ",")}
-                onChange={(e) => {
-                  const n = parseDecimal(e.target.value);
-                  setValorTotalPago(n);
-                }}
-              />
-              <span className="input-group__suffix">R$</span>
-            </div>
-          </Field>
-          <Checkbox checked={semCusto} onChange={setSemCusto} label="Entrada sem custo (doação, produção interna)" />
-          <div className="form-grid-2">
-            <Field label="Validade (opcional)" htmlFor="ent-validade">
-              <Input
-                id="ent-validade"
-                type="date"
-                value={dataValidade}
-                onChange={(e) => setDataValidade(e.target.value)}
-              />
-            </Field>
-            <Field label="Observação" htmlFor="ent-obs">
-              <Input
-                id="ent-obs"
-                placeholder="Fornecedor, nota, lote…"
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-              />
-            </Field>
-          </div>
-        </>
-      ) : (
-        <>
-          <NumberField
-            label={`Quantidade ${tipo === "CONSUMO" ? "consumida" : "descartada"}`}
-            value={quantidade}
-            onValue={setQuantidade}
-            min={0}
-            placeholder="Ex.: 2"
-            suffix={detalheProduto?.unidadeMedida ?? "UN"}
-            hint={tipo === "CONSUMO" ? "Sem escolher lote, o sistema consome pelo prazo de validade (FIFO)." : undefined}
-            error={error && quantidade && quantidade <= 0 ? error : null}
+      <div className="form-grid-2">
+        <NumberField
+          label="Quantidade"
+          value={quantidade}
+          onValue={setQuantidade}
+          min={0}
+          placeholder="Ex.: 5"
+          suffix={detalheProduto?.unidadeMedida ?? "UN"}
+          error={error && quantidade && quantidade <= 0 ? error : null}
+        />
+        <Select
+          value={unidadeCompra}
+          onChange={(e) => setUnidadeCompra(e.target.value as UnidadeMedida)}
+          aria-label="Unidade da compra"
+        >
+          {UNIDADES.map((u) => (
+            <option key={u} value={u}>
+              {u === "UN" ? "Unidade (UN)" : u}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <Field label="Valor total pago (R$)" htmlFor="ent-valor" required={!semCusto}>
+        <div className="input-group">
+          <input
+            id="ent-valor"
+            className="input"
+            inputMode="decimal"
+            placeholder="Ex.: 120,00"
+            disabled={semCusto}
+            value={valorTotalPago === null ? "" : String(valorTotalPago).replace(".", ",")}
+            onChange={(e) => {
+              const n = parseDecimal(e.target.value);
+              setValorTotalPago(n);
+            }}
           />
-
-          {tipo === "CONSUMO" && (
-            <Checkbox
-              checked={manualLote}
-              onChange={(v) => {
-                setManualLote(v);
-                setLoteId("");
-              }}
-              label="Escolho o lote manualmente"
-            />
-          )}
-
-          {manualLote && lotesDisponiveis.length > 0 && (
-            <SearchSelect
-              label={tipo === "CONSUMO" ? "Lote consumido" : "Lote descartado"}
-              options={lotesDisponiveis.map((l) => ({
-                value: String(l.id),
-                label: l.codigo,
-                sub: `Validade ${l.dataValidade ?? "—"} · saldo ${fmtNum(l.quantidadeAtual)} ${l.unidadeMedida}`,
-              }))}
-              value={loteId}
-              onValue={setLoteId}
-              placeholder="Escolha o lote…"
-            />
-          )}
-          {manualLote && lotesDisponiveis.length === 0 && (
-            <AlertBanner tone="info">Este produto não tem lotes disponíveis para escolha.</AlertBanner>
-          )}
-
-          {tipo === "DESPERDICIO" && (
-            <>
-              <Field label="Motivo" htmlFor="desc-motivo" required>
-                <Select
-                  id="desc-motivo"
-                  value={motivo}
-                  onChange={(e) => setMotivo(e.target.value as MotivoDesperdicio)}
-                >
-                  {MOTIVOS.map((m) => (
-                    <option key={m} value={m}>
-                      {m.replaceAll("_", " ")}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              {motivo === "OUTRO" && (
-                <Field label="Descreva o motivo" htmlFor="desc-outro" required>
-                  <Textarea
-                    id="desc-outro"
-                    value={descricaoMotivo}
-                    onChange={(e) => setDescricaoMotivo(e.target.value)}
-                    placeholder="Ex.: suspeita de problema com a geladeira…"
-                  />
-                </Field>
-              )}
-            </>
-          )}
-
-          <Field label="Observação (opcional)" htmlFor="mv-obs">
-            <Input
-              id="mv-obs"
-              placeholder="Notas internas…"
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-            />
-          </Field>
-
-          {!manualLote && <AlertBanner tone="info">Lote não informado: o sistema aplica a regra FIFO (primeiro que vence, primeiro que sai)</AlertBanner>}
-        </>
-      )}
+          <span className="input-group__suffix">R$</span>
+        </div>
+      </Field>
+      <Checkbox checked={semCusto} onChange={setSemCusto} label="Entrada sem custo (doação, produção interna)" />
+      <div className="form-grid-2">
+        <Field label="Validade (opcional)" htmlFor="ent-validade">
+          <Input
+            id="ent-validade"
+            type="date"
+            value={dataValidade}
+            onChange={(e) => setDataValidade(e.target.value)}
+          />
+        </Field>
+        <Field label="Observação" htmlFor="ent-obs">
+          <Input
+            id="ent-obs"
+            placeholder="Fornecedor, nota, lote…"
+            value={observacao}
+            onChange={(e) => setObservacao(e.target.value)}
+          />
+        </Field>
+      </div>
     </Modal>
   );
 }

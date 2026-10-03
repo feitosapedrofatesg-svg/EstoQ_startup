@@ -46,7 +46,7 @@ export function Dashboard() {
         subtitle={<span className="capitalize">{fmtDataHoje()}</span>}
         actions={
           <>
-            {canMove && <LinkButton to="/movimentacoes" icon="plus">Registrar movimento</LinkButton>}
+            {canMove && <LinkButton to="/consumo" icon="check-circle">Registrar consumo</LinkButton>}
             {canReport && (
               <LinkButton to="/relatorios" variant="outline" icon="chart">
                 Relatórios

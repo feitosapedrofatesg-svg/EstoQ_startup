@@ -53,9 +53,14 @@ export function Estoque() {
         subtitle="Saldo atual por produto, sempre calculado pelos lotes."
         actions={
           user && (user.perfil === "ADMIN" || user.perfil === "COZINHA") ? (
-            <LinkButton to="/movimentacoes" icon="plus">
-              Registrar movimento
-            </LinkButton>
+            <>
+              <LinkButton to="/consumo" icon="check-circle">
+                Registrar consumo
+              </LinkButton>
+              <LinkButton to="/desperdicio" icon="trash">
+                Registrar desperdício
+              </LinkButton>
+            </>
           ) : (
             <Link to="/relatorios" className="btn btn--outline">
               Ver relatórios
@@ -140,10 +145,10 @@ export function Estoque() {
         <ProdutoDetalhe
           produto={sel}
           onClose={() => setSel(null)}
-          onMovimentar={() => {
+          onRegistrarConsumo={() => {
             const id = sel.produtoId;
             setSel(null);
-            navigate(`/movimentacoes?produto=${id}`);
+            navigate(`/consumo?produto=${id}`);
           }}
         />
       )}
@@ -154,11 +159,11 @@ export function Estoque() {
 function ProdutoDetalhe({
   produto,
   onClose,
-  onMovimentar,
+  onRegistrarConsumo,
 }: {
   produto: EstoqueDTO;
   onClose: () => void;
-  onMovimentar: () => void;
+  onRegistrarConsumo: () => void;
 }) {
   const { data: lotes, loading, refresh } = useFetch<LoteDTO[]>(
     `/api/lotes?produtoId=${produto.produtoId}`
@@ -178,8 +183,8 @@ function ProdutoDetalhe({
       width="lg"
       footer={
         user && (user.perfil === "ADMIN" || user.perfil === "COZINHA") ? (
-          <Button icon="arrows" onClick={onMovimentar}>
-            Movimentar este produto
+          <Button icon="check-circle" onClick={onRegistrarConsumo}>
+            Registrar consumo
           </Button>
         ) : (
           <Button variant="ghost" onClick={onClose}>

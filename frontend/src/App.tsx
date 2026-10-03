@@ -9,7 +9,8 @@ import { Plataforma } from "./pages/Plataforma";
 import { Dashboard } from "./pages/Dashboard";
 import { Estoque } from "./pages/Estoque";
 import { Movimentacoes } from "./pages/Movimentacoes";
-import { ProdutosAbertos } from "./pages/ProdutosAbertos";
+import { Consumo } from "./pages/Consumo";
+import { Desperdicio } from "./pages/Desperdicio";
 import { Balanco } from "./pages/Balanco";
 import { Catalogo } from "./pages/Catalogo";
 import { Relatorios } from "./pages/Relatorios";
@@ -121,10 +122,18 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/produtos-abertos"
+          path="/consumo"
           element={
             <Guarded allow={canMove}>
-              <ProdutosAbertos />
+              <Consumo />
+            </Guarded>
+          }
+        />
+        <Route
+          path="/desperdicio"
+          element={
+            <Guarded allow={canMove}>
+              <Desperdicio />
             </Guarded>
           }
         />

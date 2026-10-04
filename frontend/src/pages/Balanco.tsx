@@ -132,13 +132,10 @@ export function Balanco() {
   };
 
   const salvarContagem = async (balancoId: number, itemId: number, quantidadeFisica: number) => {
-    setBusy(balancoId);
-    setBusyLabel("Contagem salva");
-    try {
-      const itemAtualizado = await api.put<ItemBalancoDTO>(
-        `/api/balancos/${balancoId}/itens/${itemId}/contagem`,
-        { quantidadeFisica }
-      );
+    const itemAnterior = data?.find((b) => b.id === balancoId)?.itens.find((item) => item.id === itemId);
+    if (!itemAnterior) return;
+
+    const mesclarItem = (itemAtualizado: ItemBalancoDTO) => {
       const merge = (prev: BalancoDTO[]) => prev.map((b) =>
         b.id === balancoId
           ? { ...b, itens: b.itens.map((item) => item.id === itemAtualizado.id ? itemAtualizado : item) }
@@ -146,8 +143,24 @@ export function Balanco() {
       );
       setData((prev) => (prev ? merge(prev) : prev));
       updateCache<BalancoDTO[]>("/api/balancos", merge);
+    };
+
+    setBusy(balancoId);
+    setBusyLabel("Contagem salva");
+    mesclarItem({
+      ...itemAnterior,
+      quantidadeFisica,
+      diferenca: quantidadeFisica - itemAnterior.quantidadeSistema,
+    });
+    try {
+      const itemAtualizado = await api.put<ItemBalancoDTO>(
+        `/api/balancos/${balancoId}/itens/${itemId}/contagem`,
+        { quantidadeFisica }
+      );
+      mesclarItem(itemAtualizado);
       toast.success("Contagem salva");
     } catch (e) {
+      mesclarItem(itemAnterior);
       toast.error("Contagem salva", (e as Error).message);
     } finally {
       setBusy(null);

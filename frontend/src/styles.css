@@ -2739,3 +2739,165 @@ a:hover {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media (max-width: 720px) {
+  .main__inner {
+    padding-inline: 14px;
+  }
+
+  .card__head {
+    align-items: stretch;
+    padding-inline: 16px;
+  }
+
+  .card__actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .card__body {
+    padding: 16px;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 24px);
+  }
+
+  .modal__head,
+  .modal__body {
+    padding-inline: 16px;
+  }
+
+  .modal__foot {
+    flex-wrap: wrap;
+    padding-inline: 16px;
+  }
+
+  .filterbar,
+  .filterbar>.search,
+  .filterbar>.input,
+  .search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filterbar__checks {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .detail-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .detail-summary>div {
+    min-width: 0;
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .detail-summary strong {
+    font-size: var(--t-3);
+  }
+
+  .filters {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .filters__dates {
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .filters__dates .field {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .filters__dates .input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filters__total {
+    padding-bottom: 0;
+  }
+
+  .cmv-hero {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .cmv-hero__side {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .cmv-hero__value {
+    font-size: 2rem;
+  }
+
+  .meta-cmv .field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .month-cal {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .month-cal__weekdays,
+  .month-cal__grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .month-cal__day {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .login--page {
+    grid-template-rows: auto 1fr;
+  }
+
+  .login--page .login__side {
+    grid-template-rows: 92px auto;
+    gap: 12px;
+    padding: 14px 18px 16px;
+  }
+
+  .login--page .login__video {
+    width: 100%;
+    height: 92px;
+    object-fit: contain;
+  }
+
+  .login--page .login__message {
+    position: static;
+    padding: 0;
+    background: none;
+  }
+
+  .login__message-title {
+    line-height: 1.15;
+  }
+
+  .login__message-copy {
+    max-width: none;
+    margin-top: 4px;
+  }
+
+  .login__message-brand {
+    margin-top: 6px;
+  }
+}

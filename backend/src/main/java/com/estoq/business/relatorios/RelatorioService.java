@@ -73,7 +73,8 @@ public class RelatorioService {
         return movimentos.desperdiciosAntesDe(fim).stream()
                 .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
                 .map(d -> new DesperdicioDTO(d.getDataHora(), d.getMotivo(), d.getDescricaoMotivo(),
-                        d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), d.getQuantidade(), d.getValorPrejuizo()))
+                        d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), d.getQuantidade(),
+                        d.getValorPrejuizo()))
                 .toList();
     }
 
@@ -88,8 +89,10 @@ public class RelatorioService {
                         agregado.put(chave, new DesperdicioAgregadoDTO(d.getProduto().getId(), d.getProduto().getNome(),
                                 d.getMotivo(), d.getQuantidade(), d.getValorPrejuizo()));
                     } else {
-                        agregado.put(chave, new DesperdicioAgregadoDTO(atual.produtoId(), atual.produtoNome(), atual.motivo(),
-                                atual.quantidade().add(d.getQuantidade()), atual.valorPrejuizo().add(d.getValorPrejuizo())));
+                        agregado.put(chave,
+                                new DesperdicioAgregadoDTO(atual.produtoId(), atual.produtoNome(), atual.motivo(),
+                                        atual.quantidade().add(d.getQuantidade()),
+                                        atual.valorPrejuizo().add(d.getValorPrejuizo())));
                     }
                 });
         return agregado.values().stream()
@@ -110,7 +113,8 @@ public class RelatorioService {
             var total = money(e.getValue());
             var nome = dto == null ? "?" : dto.produtoNome();
             var unidade = dto == null ? "" : dto.unidadeMedida().name();
-            return new ConsumoMedioDTO(e.getKey(), nome, unidade, total, dias, total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP));
+            return new ConsumoMedioDTO(e.getKey(), nome, unidade, total, dias,
+                    total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP));
         }).toList();
     }
 
@@ -130,12 +134,24 @@ public class RelatorioService {
                 continue;
             }
             var total = totalPorDia.getOrDefault(dia, zero());
-            resultado.add(new ConsumoDiaSemanaDTO(dia, total, total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP)));
+            resultado.add(new ConsumoDiaSemanaDTO(dia, total,
+                    total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP)));
         }
         return resultado;
     }
 
-    /** JOINED polimórfico custa 1 SELECT por linha nas subclasses; cada subtipo carrega em consulta homogênea. */
+    /**
+     * JOINED polimórfico custa 1 SELECT por linha nas subclasses; cada subtipo
+     * carrega em consulta homogênea.
+     */
+    private List<MovimentacaoEstoqueModel> movimentacoesEntre(LocalDateTime inicio, LocalDateTime fim) {
+        var lista = new ArrayList<MovimentacaoEstoqueModel>();
+        lista.addAll(movimentos.entradasEntre(inicio, fim));
+        lista.addAll(movimentos.consumosEntre(inicio, fim));
+        lista.addAll(movimentos.desperdiciosEntre(inicio, fim));
+        return lista;
+    }
+
     private List<MovimentacaoEstoqueModel> todasMovimentacoesAntesDe(LocalDateTime fim) {
         var lista = new ArrayList<MovimentacaoEstoqueModel>();
         lista.addAll(movimentos.entradasAntesDe(fim));
@@ -145,8 +161,7 @@ public class RelatorioService {
     }
 
     public CmvResumoDTO calcularCmv(LocalDateTime inicio, LocalDateTime fim, BigDecimal receitaBase) {
-        var historico = todasMovimentacoesAntesDe(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0).toList();
+        var historico = movimentacoesEntre(inicio, fim);
         var deltaPorLote = new HashMap<Long, BigDecimal>();
         var compras = zero();
         var consumido = zero();
@@ -182,14 +197,18 @@ public class RelatorioService {
         estoqueFinal = money(estoqueFinal);
         var cmv = money(estoqueInicial.add(compras).subtract(estoqueFinal));
         BigDecimal cmvPercentual = receitaBase != null && receitaBase.signum() > 0
-                ? cmv.divide(receitaBase, 4, RoundingMode.HALF_UP).movePointRight(2) : null;
+                ? cmv.divide(receitaBase, 4, RoundingMode.HALF_UP).movePointRight(2)
+                : null;
         var idealDto = parametroCmv.obterAtual();
         BigDecimal ideal = idealDto.percentualIdeal();
         BigDecimal diferenca = cmvPercentual != null && ideal != null ? cmvPercentual.subtract(ideal) : null;
-        BigDecimal desperdicioSobre = cmv.signum() > 0 ? desperdicio.divide(cmv, 4, RoundingMode.HALF_UP).movePointRight(2) : BigDecimal.ZERO;
+        BigDecimal desperdicioSobre = cmv.signum() > 0
+                ? desperdicio.divide(cmv, 4, RoundingMode.HALF_UP).movePointRight(2)
+                : BigDecimal.ZERO;
         var perdasNaoExplicadas = money(cmv.subtract(consumido.add(desperdicio)));
         return new CmvResumoDTO(inicio, fim, estoqueInicial, compras, estoqueFinal, cmv, receitaBase,
-                cmvPercentual == null ? null : cmvPercentual, ideal, diferenca, consumido, desperdicio, desperdicioSobre, perdasNaoExplicadas);
+                cmvPercentual == null ? null : cmvPercentual, ideal, diferenca, consumido, desperdicio,
+                desperdicioSobre, perdasNaoExplicadas);
     }
 
     public List<CmvMensalDTO> cmvPorMes(LocalDateTime inicio, LocalDateTime fim) {
@@ -241,7 +260,8 @@ public class RelatorioService {
                 var fimQtd = atual.subtract(devolvido).max(BigDecimal.ZERO);
                 var iniQtd = fimQtd.subtract(delta).max(BigDecimal.ZERO);
                 estoqueFinalMes[k] = estoqueFinalMes[k].add(fimQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
-                estoqueInicialMes[k] = estoqueInicialMes[k].add(iniQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
+                estoqueInicialMes[k] = estoqueInicialMes[k]
+                        .add(iniQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
                 devolvido = devolvido.add(delta);
             }
         }
@@ -263,7 +283,9 @@ public class RelatorioService {
                 continue;
             }
             var consumo = s(par.getConsumoMedioDiario());
-            var lead = par.getTempoReposicaoDias() != null && par.getTempoReposicaoDias() > 0 ? par.getTempoReposicaoDias() : reposDias;
+            var lead = par.getTempoReposicaoDias() != null && par.getTempoReposicaoDias() > 0
+                    ? par.getTempoReposicaoDias()
+                    : reposDias;
             var posicao = saldos.get(produto.getId());
             var saldo = s(posicao == null ? null : posicao.getSaldo());
             var sugestao = consumo.multiply(BigDecimal.valueOf(lead)).subtract(saldo).setScale(3, RoundingMode.HALF_UP);
@@ -273,6 +295,7 @@ public class RelatorioService {
             resultado.add(new ReposicaoSugeridaDTO(produto.getId(), produto.getNome(), produto.getCategoria().getNome(),
                     produto.getUnidadeMedida(), saldo, s(par.getEstoqueMinimo()), consumo, lead, sugestao));
         }
-        return resultado.stream().sorted(Comparator.comparing(ReposicaoSugeridaDTO::quantidadeSugerida).reversed()).toList();
+        return resultado.stream().sorted(Comparator.comparing(ReposicaoSugeridaDTO::quantidadeSugerida).reversed())
+                .toList();
     }
 }

@@ -2511,7 +2511,7 @@ a:hover {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1280px) {
   .shell__scrim {
     display: block;
     position: fixed;

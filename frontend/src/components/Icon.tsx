@@ -193,6 +193,19 @@ const PATHS: Record<string, ReactElement> = {
       <path d="M9 20v-5h6v5" />
     </>
   ),
+  eye: (
+    <>
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </>
+  ),
+  "eye-off": (
+    <>
+      <path d="m3 3 18 18" />
+      <path d="M10.6 6.2A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15 15 0 0 1-3 3.6M6.2 6.2C3.8 7.8 2.5 12 2.5 12s3.5 6 9.5 6a10.4 10.4 0 0 0 3.1-.5" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof PATHS;

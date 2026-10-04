@@ -894,6 +894,41 @@ a:hover {
   resize: vertical;
 }
 
+.login__password-wrap {
+  position: relative;
+}
+
+.login__password-wrap>.input {
+  padding-right: 48px;
+}
+
+.login__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.login__password-toggle:hover {
+  background: var(--paper);
+  color: var(--text);
+}
+
+.login__password-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .select-wrap {
   position: relative;
 }

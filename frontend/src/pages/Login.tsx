@@ -11,6 +11,7 @@ export function Login() {
   const prefilled = (location.state as { email?: string } | null)?.email ?? "";
   const [email, setEmail] = useState(prefilled);
   const [senha, setSenha] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -88,14 +89,26 @@ export function Login() {
           </Field>
 
           <Field label="Senha" htmlFor="login-senha" required>
-            <Input
-              id="login-senha"
-              type="password"
-              autoComplete="current-password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="Sua senha de acesso"
-            />
+            <div className="login__password-wrap">
+              <Input
+                id="login-senha"
+                type={senhaVisivel ? "text" : "password"}
+                autoComplete="current-password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="Sua senha de acesso"
+              />
+              <button
+                type="button"
+                className="login__password-toggle"
+                aria-label={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+                aria-pressed={senhaVisivel}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setSenhaVisivel((visivel) => !visivel)}
+              >
+                <Icon name={senhaVisivel ? "eye-off" : "eye"} size={19} />
+              </button>
+            </div>
           </Field>
 
           <Button type="submit" block size="lg" loading={loading} className="login__submit">

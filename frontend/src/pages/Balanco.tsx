@@ -366,8 +366,11 @@ export function Balanco() {
       {showNew && (
         <NovoBalanco
           onClose={() => setShowNew(false)}
-          onDone={() => {
+          onDone={(criado) => {
             setShowNew(false);
+            const inserir = (prev: BalancoDTO[]) => [criado, ...prev.filter((b) => b.id !== criado.id)];
+            setData((prev) => inserir(prev ?? []));
+            updateCache<BalancoDTO[]>("/api/balancos", inserir);
             toast.success("Balanço criado");
             void refresh();
           }}
@@ -377,7 +380,7 @@ export function Balanco() {
   );
 }
 
-function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: (criado: BalancoDTO) => void }) {
   const [tipo, setTipo] = useState<TipoBalanco>("GERAL");
   const [cats, setCats] = useState<CategoriaDTO[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -404,11 +407,11 @@ function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: () => v
     setSubmitting(true);
     setError(null);
     try {
-      await api.post("/api/balancos", {
+      const criado = await api.post<BalancoDTO>("/api/balancos", {
         tipo,
         ...(tipo === "PARCIAL" ? { categorias: [...selected] } : {}),
       });
-      onDone();
+      onDone(criado);
     } catch (e) {
       setError((e as Error).message);
     } finally {

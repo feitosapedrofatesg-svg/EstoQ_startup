@@ -61,7 +61,8 @@ class SecurityIntegrationTest {
         var nutri = login("nutricionista@test.local", "Teste@12345", 200);
         assertNotEquals(admin.getId(), cozinha.getId());
         assertNotEquals(cozinha.getId(), nutri.getId());
-        mvc.perform(get("/api/auth/me").session(admin)).andExpect(status().isOk()).andExpect(jsonPath("$.perfil").value("ADMIN"))
+        mvc.perform(get("/api/auth/me").session(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.perfil").value("ADMIN"))
                 .andExpect(jsonPath("$.senha").doesNotExist());
         mvc.perform(get("/api/auth/me").session(cozinha)).andExpect(jsonPath("$.perfil").value("COZINHA"));
         mvc.perform(get("/api/auth/me").session(nutri)).andExpect(jsonPath("$.perfil").value("NUTRICIONISTA"));
@@ -80,7 +81,8 @@ class SecurityIntegrationTest {
     @Test
     void exigeCsrfERevogaSessaoAoDesativar() throws Exception {
         mvc.perform(post("/api/auth/login").contentType("application/json").content("{}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Token CSRF inválido ou expirado."));
         var session = login("cozinha@test.local", "Teste@12345", 200);
         var u = users.findByEmailIgnoreCaseAndAtivoTrue("cozinha@test.local").orElseThrow();
         u.setAtivo(false);
@@ -90,10 +92,12 @@ class SecurityIntegrationTest {
 
     @Test
     void cozinhaENutricionistaNaoFazemGestaoOuEntrada() throws Exception {
-        for (String perfil : new String[]{"cozinha", "nutricionista"}) {
+        for (String perfil : new String[] { "cozinha", "nutricionista" }) {
             var session = login(perfil + "@test.local", "Teste@12345", 200);
-            mvc.perform(post("/api/entradas").session(session).with(csrf()).contentType("application/json").content("{}"))
-                    .andExpect(status().isForbidden());
+            mvc.perform(
+                    post("/api/entradas").session(session).with(csrf()).contentType("application/json").content("{}"))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message").value("Seu perfil não possui permissão para esta operação."));
             mvc.perform(get("/api/usuarios").session(session)).andExpect(status().isForbidden());
         }
         var admin = login("admin@test.local", "Teste@12345", 200);

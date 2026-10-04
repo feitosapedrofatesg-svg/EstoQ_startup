@@ -15,6 +15,7 @@ export class ApiError extends Error {
 }
 
 const CSRF_PATH = "/api/auth/csrf";
+const CSRF_ERROR = "Token CSRF inválido ou expirado.";
 
 let csrfToken: string | null = null;
 let csrfHeader = "X-CSRF-TOKEN";
@@ -53,6 +54,16 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, message, body?.title, body?.motive);
 }
 
+async function isCsrfFailure(res: Response): Promise<boolean> {
+  if (res.status !== 403) return false;
+  try {
+    const body = (await res.clone().json()) as ErrorResponse;
+    return body.message === CSRF_ERROR;
+  } catch {
+    return false;
+  }
+}
+
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
 async function request<T>(
@@ -89,7 +100,7 @@ async function request<T>(
     throw new ApiError(0, "Não foi possível falar com o servidor. Verifique sua conexão.");
   }
 
-  if (res.status === 403 && !retried && method !== "GET") {
+  if (!retried && method !== "GET" && await isCsrfFailure(res)) {
     await fetchCsrf(true);
     return request<T>(method, path, body, true);
   }
@@ -131,7 +142,7 @@ export const api = {
     } catch {
       throw new ApiError(0, "Não foi possível falar com o servidor. Verifique sua conexão.");
     }
-    if (res.status === 403) {
+    if (await isCsrfFailure(res)) {
       headers[csrfHeader] = await fetchCsrf(true);
       res = await fetch(path, { method: "POST", headers, credentials: "include" });
     }

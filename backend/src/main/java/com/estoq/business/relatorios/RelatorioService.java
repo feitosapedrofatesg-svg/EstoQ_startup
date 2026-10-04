@@ -184,12 +184,11 @@ public class RelatorioService {
         desperdicio = money(desperdicio);
         var estoqueFinal = zero();
         var estoqueInicial = zero();
-        var today = LocalDate.now();
-        for (var lote : loteRepository.listarEstoque()) {
+        for (var lote : loteRepository.listarEstoqueCmv()) {
             var preco = money(lote.getPrecoUnitario());
             var atual = money(lote.getQuantidadeAtual());
             estoqueFinal = estoqueFinal.add(atual.multiply(preco).setScale(2, RoundingMode.HALF_UP));
-            var delta = s(deltaPorLote.get(lote.getId()));
+            var delta = s(deltaPorLote.get(lote.getLoteId()));
             var inicioQtd = atual.subtract(delta).max(BigDecimal.ZERO);
             estoqueInicial = estoqueInicial.add(inicioQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
         }

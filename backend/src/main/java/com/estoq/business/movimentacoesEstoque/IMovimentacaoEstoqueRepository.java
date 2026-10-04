@@ -25,15 +25,15 @@ public interface IMovimentacaoEstoqueRepository extends IGenericRepository<Movim
         @Query("select d from DesperdicioModel d where d.dataHora < :corte order by d.dataHora, d.id")
         List<DesperdicioModel> desperdiciosAntesDe(LocalDateTime corte);
 
-        @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
+        @EntityGraph(attributePaths = { "lote" })
         @Query("select e from EntradaModel e where e.dataHora >= :inicio and e.dataHora < :fim")
         List<EntradaModel> entradasEntre(LocalDateTime inicio, LocalDateTime fim);
 
-        @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
+        @EntityGraph(attributePaths = { "lote" })
         @Query("select c from ConsumoModel c where c.dataHora >= :inicio and c.dataHora < :fim")
         List<ConsumoModel> consumosEntre(LocalDateTime inicio, LocalDateTime fim);
 
-        @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
+        @EntityGraph(attributePaths = { "lote" })
         @Query("select d from DesperdicioModel d where d.dataHora >= :inicio and d.dataHora < :fim")
         List<DesperdicioModel> desperdiciosEntre(LocalDateTime inicio, LocalDateTime fim);
 

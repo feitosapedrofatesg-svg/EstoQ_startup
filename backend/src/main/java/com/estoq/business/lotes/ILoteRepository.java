@@ -12,33 +12,47 @@ import java.util.Optional;
 
 public interface ILoteRepository extends IGenericRepository<LoteModel> {
 
-    @EntityGraph(attributePaths = {"produto", "produto.categoria", "produto.parametro"})
-    Optional<LoteModel> findByIdAndAtivoTrue(Long id);
+        @EntityGraph(attributePaths = { "produto", "produto.categoria", "produto.parametro" })
+        Optional<LoteModel> findByIdAndAtivoTrue(Long id);
 
-    boolean existsByProduto_Id(Long produtoId);
+        boolean existsByProduto_Id(Long produtoId);
 
-    @Query("select l from LoteModel l join fetch l.produto p left join fetch p.parametro "
-            + "where l.ativo=true and p.ativo=true order by l.dataValidade asc nulls last, l.id")
-    List<LoteModel> listarEstoque();
+        @Query("select l from LoteModel l join fetch l.produto p left join fetch p.parametro "
+                        + "where l.ativo=true and p.ativo=true order by l.dataValidade asc nulls last, l.id")
+        List<LoteModel> listarEstoque();
 
-    @Query("select l from LoteModel l where l.produto.id=:produtoId and l.ativo=true and l.quantidadeAtual>0 "
-            + "and (l.dataValidade is null or l.dataValidade>=:hoje) order by l.dataValidade asc nulls last, l.dataEntrada, l.id")
-    List<LoteModel> findDisponiveisBaixa(Long produtoId, LocalDate hoje);
+        @Query("select l.id as loteId, l.quantidadeAtual as quantidadeAtual, l.precoUnitario as precoUnitario "
+                        + "from LoteModel l where l.ativo=true and l.produto.ativo=true")
+        List<EstoqueCmv> listarEstoqueCmv();
 
-    @Query("select l from LoteModel l where l.produto.id=:produtoId and l.ativo=true and l.quantidadeAtual>0 "
-            + "order by l.dataValidade asc nulls last, l.dataEntrada, l.id")
-    List<LoteModel> findTodosBaixa(Long produtoId);
+        @Query("select l from LoteModel l where l.produto.id=:produtoId and l.ativo=true and l.quantidadeAtual>0 "
+                        + "and (l.dataValidade is null or l.dataValidade>=:hoje) order by l.dataValidade asc nulls last, l.dataEntrada, l.id")
+        List<LoteModel> findDisponiveisBaixa(Long produtoId, LocalDate hoje);
 
-    @Query("select coalesce(sum(l.quantidadeAtual),0) from LoteModel l where l.produto.id=:produtoId and l.ativo=true")
-    BigDecimal saldo(Long produtoId);
+        @Query("select l from LoteModel l where l.produto.id=:produtoId and l.ativo=true and l.quantidadeAtual>0 "
+                        + "order by l.dataValidade asc nulls last, l.dataEntrada, l.id")
+        List<LoteModel> findTodosBaixa(Long produtoId);
 
-    @Query("select l.produto.id as produtoId, sum(l.quantidadeAtual) as saldo, "
-            + "sum(l.quantidadeAtual*l.precoUnitario) as valor from LoteModel l where l.ativo=true group by l.produto.id")
-    List<PosicaoProduto> posicoes();
+        @Query("select coalesce(sum(l.quantidadeAtual),0) from LoteModel l where l.produto.id=:produtoId and l.ativo=true")
+        BigDecimal saldo(Long produtoId);
 
-    interface PosicaoProduto {
-        Long getProdutoId();
-        BigDecimal getSaldo();
-        BigDecimal getValor();
-    }
+        @Query("select l.produto.id as produtoId, sum(l.quantidadeAtual) as saldo, "
+                        + "sum(l.quantidadeAtual*l.precoUnitario) as valor from LoteModel l where l.ativo=true group by l.produto.id")
+        List<PosicaoProduto> posicoes();
+
+        interface PosicaoProduto {
+                Long getProdutoId();
+
+                BigDecimal getSaldo();
+
+                BigDecimal getValor();
+        }
+
+        interface EstoqueCmv {
+                Long getLoteId();
+
+                BigDecimal getQuantidadeAtual();
+
+                BigDecimal getPrecoUnitario();
+        }
 }

@@ -29,11 +29,19 @@ function buildNav(perfil: Perfil): NavGroup[] {
       },
     ];
   }
-  // A visão geral é só de ADMIN e NUTRICIONISTA: o NUTRICIONISTA não tem
-  // permissão de leitura sobre estoque, lotes e balanços (SecurityConfig), e o
-  // COZINHA cai direto no estoque porque não usa o dashboard.
+  // O dashboard fica disponível para ADMIN e NUTRICIONISTA. A cozinha cai
+  // direto no estoque porque não usa o dashboard de visão geral.
   const operacao: NavItem[] = [];
-  if (perfil === "ADMIN" || perfil === "COZINHA") {
+  if (perfil === "ADMIN") {
+    operacao.push(
+      { to: "/dashboard", label: "Visão geral", icon: "dashboard", end: true },
+      { to: "/estoque", label: "Estoque", icon: "boxes" },
+      { to: "/consumo", label: "Consumo", icon: "check-circle" },
+      { to: "/desperdicio", label: "Desperdício", icon: "trash" },
+      { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
+      { to: "/balanco", label: "Balanço físico", icon: "scale" }
+    );
+  } else if (perfil === "COZINHA") {
     operacao.push(
       { to: "/estoque", label: "Estoque", icon: "boxes" },
       { to: "/consumo", label: "Consumo", icon: "check-circle" },

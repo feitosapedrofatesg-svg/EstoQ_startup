@@ -92,6 +92,7 @@ function CmvPeriodo() {
   if (receitaBase !== null) qs.set("receitaBase", String(receitaBase));
 
   const { data, loading, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs.toString()}`);
+  const dataAtual = data?.receitaBase === receitaBase ? data : null;
 
   return (
     <Section title="CMV no período">
@@ -125,18 +126,20 @@ function CmvPeriodo() {
         </Button>
       </div>
 
-      {loading && !data && <p className="muted">Calculando…</p>}
-      {data && (
+      {(loading || (data !== null && dataAtual === null)) && (
+        <p className="muted">Calculando…</p>
+      )}
+      {dataAtual && (
         <>
           <div className="cmv-hero">
             <div>
               <span className="cmv-hero__label">CMV</span>
-              <strong className="cmv-hero__value">{fmtMoney(data.cmv)}</strong>
+              <strong className="cmv-hero__value">{fmtMoney(dataAtual.cmv)}</strong>
             </div>
             <div className="cmv-hero__side">
               <CmvGauge
-                percentual={data.cmvPercentual}
-                ideal={data.percentualIdeal}
+                percentual={dataAtual.cmvPercentual}
+                ideal={dataAtual.percentualIdeal}
                 label="Percentual de CMV"
               />
             </div>
@@ -145,7 +148,7 @@ function CmvPeriodo() {
           <div className="cmv-table-cols">
             <table className="table table--narrow">
               <tbody>
-                {CMV_ROWS(data).map((r) => (
+                {CMV_ROWS(dataAtual).map((r) => (
                   <tr key={r.label}>
                     <td className="muted-cell">{r.label}</td>
                     <td className={r.strong ? "cell-total" : ""}>{r.value}</td>
@@ -157,23 +160,23 @@ function CmvPeriodo() {
               <tbody>
                 <tr>
                   <td className="muted-cell">Consumo registrado</td>
-                  <td>{fmtMoney(data.valorConsumoRegistrado)}</td>
+                  <td>{fmtMoney(dataAtual.valorConsumoRegistrado)}</td>
                 </tr>
                 <tr>
                   <td className="muted-cell">Desperdício</td>
-                  <td className="text-bad">{fmtMoney(data.valorDesperdicio)}</td>
+                  <td className="text-bad">{fmtMoney(dataAtual.valorDesperdicio)}</td>
                 </tr>
                 <tr>
                   <td className="muted-cell">% de desperdício sobre o CMV</td>
-                  <td>{fmtPct(data.percentualDesperdicioSobreCmv)}</td>
+                  <td>{fmtPct(dataAtual.percentualDesperdicioSobreCmv)}</td>
                 </tr>
                 <tr>
                   <td className="muted-cell">Perdas não explicadas</td>
-                  <td className="text-bad">{fmtMoney(data.valorPerdasNaoExplicadas)}</td>
+                  <td className="text-bad">{fmtMoney(dataAtual.valorPerdasNaoExplicadas)}</td>
                 </tr>
                 <tr>
                   <td className="muted-cell">Diferença para a meta</td>
-                  <td>{fmtPct(data.diferencaPercentualParaMeta)}</td>
+                  <td>{fmtPct(dataAtual.diferencaPercentualParaMeta)}</td>
                 </tr>
               </tbody>
             </table>

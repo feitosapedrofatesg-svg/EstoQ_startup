@@ -26,6 +26,7 @@ export function useFetch<T>(path: string | null, deps: unknown[] = []): FetchSta
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
   const firstRun = useRef(true);
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     mounted.current = true;
@@ -36,6 +37,7 @@ export function useFetch<T>(path: string | null, deps: unknown[] = []): FetchSta
 
   const run = useCallback(
     async (force?: boolean) => {
+      const sequence = ++requestSequence.current;
       if (!path) {
         setData(null);
         setLoading(false);
@@ -54,11 +56,13 @@ export function useFetch<T>(path: string | null, deps: unknown[] = []): FetchSta
       try {
         const result = await api.get<T>(path);
         cache.set(path, { data: result, ts: Date.now() });
-        if (mounted.current) setData(result);
+        if (mounted.current && sequence === requestSequence.current) setData(result);
       } catch (e) {
-        if (mounted.current) setError((e as Error).message);
+        if (mounted.current && sequence === requestSequence.current) {
+          setError((e as Error).message);
+        }
       } finally {
-        if (mounted.current) setLoading(false);
+        if (mounted.current && sequence === requestSequence.current) setLoading(false);
       }
     },
     [path]

@@ -338,11 +338,11 @@ export function SearchSelect({
   const selected = options.find((o) => o.value === value);
 
   useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
+    const onDocClick = (e: PointerEvent) => {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+    document.addEventListener("pointerdown", onDocClick);
+    return () => document.removeEventListener("pointerdown", onDocClick);
   }, []);
 
   const filtered = options.filter((o) =>
@@ -426,10 +426,7 @@ export function SearchSelect({
                   aria-selected={o.value === value}
                   className={`searchselect__opt ${i === active ? "searchselect__opt--active" : ""}`}
                   onMouseEnter={() => setActive(i)}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    pick(o.value);
-                  }}
+                  onClick={() => pick(o.value)}
                 >
                   <span>{o.label}</span>
                   {o.sub && <span className="searchselect__sub">{o.sub}</span>}
@@ -507,7 +504,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         className={`modal modal--${width}`}
         role="dialog"

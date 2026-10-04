@@ -2511,7 +2511,7 @@ a:hover {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .shell__scrim {
     display: block;
     position: fixed;
@@ -2558,6 +2558,31 @@ a:hover {
     right: 12px;
     left: 12px;
     width: auto;
+  }
+}
+
+@media (pointer: coarse) {
+  .btn--sm {
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  .sidebar__logout {
+    width: 44px;
+    height: 44px;
+  }
+
+  .searchselect__trigger {
+    min-height: 48px;
+  }
+
+  .searchselect__opt {
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .mini-cal__week button {
+    height: 44px;
   }
 }
 

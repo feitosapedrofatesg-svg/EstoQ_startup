@@ -2417,6 +2417,58 @@ a:hover {
   width: 120px;
 }
 
+.contagem__headers,
+.contagem__row {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(80px, 1fr) minmax(150px, 1.5fr) minmax(120px, 1.2fr) 64px;
+  align-items: center;
+  gap: 12px;
+}
+
+.contagem__headers {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: var(--t-1);
+  font-weight: 700;
+}
+
+.contagem__rows {
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.contagem__row {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.contagem__row:last-child {
+  border-bottom: 0;
+}
+
+.contagem__cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contagem__product {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contagem__cell-label {
+  display: none;
+}
+
+.contagem__confirm .btn {
+  width: 100%;
+}
+
 .contagem__unit {
   color: var(--muted);
   font-size: var(--t-1);
@@ -2899,5 +2951,100 @@ a:hover {
 
   .login__message-brand {
     margin-top: 6px;
+  }
+}
+
+@media (max-width: 720px) {
+  .main__inner {
+    padding-inline: 10px;
+  }
+
+  .card__body {
+    padding: 12px;
+  }
+
+  .balanco {
+    padding: 12px;
+  }
+
+  .balanco__head {
+    gap: 10px;
+  }
+
+  .balanco__head-main>div {
+    min-width: 0;
+  }
+
+  .balanco__meta {
+    overflow-wrap: anywhere;
+  }
+
+  .contagem,
+  .contagem__table {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .contagem__headers {
+    display: none;
+  }
+
+  .contagem__rows {
+    display: grid;
+    gap: 10px;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .contagem__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .contagem__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .contagem__product,
+  .contagem__confirm {
+    grid-column: 1 / -1;
+  }
+
+  .contagem__cell-label {
+    display: block;
+    color: var(--muted);
+    font-size: var(--t-1);
+  }
+
+  .contagem__input {
+    width: 100%;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .contagem__input .input {
+    flex: 1 1 0;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .contagem__confirm .btn {
+    width: 100%;
+    min-height: 44px;
   }
 }

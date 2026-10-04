@@ -512,65 +512,74 @@ function ItensContagem({
       <div className="contagem__bar">
         <span className="contagem__label">Contagem</span>
       </div>
-      <DataTable
-        caption={`Contagem do balanço ${balanco.id}`}
-        headers={["Produto", "Sistema", "Contagem física", "Resultado", ""]}
-      >
-        {balanco.itens.map((i) => {
-          const n = parseDecimal(vals[i.id]);
-          const valid = n !== null && n >= 0;
-          const diff = valid && i.quantidadeSistema !== null ? n - i.quantidadeSistema : null;
-          return (
-            <tr key={i.id}>
-              <td>
-                <strong>{i.produtoNome}</strong>
-              </td>
-              <td>
-                {fmtNum(i.quantidadeSistema)} {i.unidadeMedida.toLowerCase()}
-              </td>
-              <td>
-                <div className="contagem__input">
-                  <input
-                    className="input"
-                    inputMode="decimal"
-                    aria-label={`Contagem de ${i.produtoNome}`}
-                    value={vals[i.id]}
-                    onChange={(e) => setVals((p) => ({ ...p, [i.id]: e.target.value }))}
-                    placeholder="0"
-                  />
-                  <span className="contagem__unit">{i.unidadeMedida.toLowerCase()}</span>
+      <div className="contagem__table" role="table" aria-label={`Contagem do balanço ${balanco.id}`}>
+        <div className="contagem__headers" role="row">
+          <span role="columnheader">Produto</span>
+          <span role="columnheader">Sistema</span>
+          <span role="columnheader">Contagem física</span>
+          <span role="columnheader">Resultado</span>
+          <span role="columnheader" />
+        </div>
+        <div className="contagem__rows" role="rowgroup">
+          {balanco.itens.map((i) => {
+            const n = parseDecimal(vals[i.id]);
+            const valid = n !== null && n >= 0;
+            const diff = valid && i.quantidadeSistema !== null ? n - i.quantidadeSistema : null;
+            return (
+              <div className="contagem__row" role="row" key={i.id}>
+                <strong className="contagem__product" role="cell">
+                  {i.produtoNome}
+                </strong>
+                <div className="contagem__cell" role="cell">
+                  <span className="contagem__cell-label">Sistema</span>
+                  <span>{fmtNum(i.quantidadeSistema)} {i.unidadeMedida.toLowerCase()}</span>
                 </div>
-              </td>
-              <td>
-                <span
-                  className={
-                    diff === null
-                      ? "muted"
-                      : diff === 0
-                        ? "text-good"
-                        : diff < 0
-                          ? "text-bad"
-                          : "text-good"
-                  }
-                >
-                  {diff === null ? "—" : `${diff > 0 ? "+" : ""}${fmtNum(diff)} ${i.unidadeMedida.toLowerCase()}`}
-                </span>
-              </td>
-              <td>
-                <Button
-                  size="sm"
-                  variant={isConfirmed(i) ? "good" : "outline"}
-                  disabled={isConfirmed(i) || !valid || busy}
-                  icon={isConfirmed(i) ? "check-circle" : undefined}
-                  onClick={() => valid && confirmItem(i.id, n)}
-                >
-                  OK
-                </Button>
-              </td>
-            </tr>
-          );
-        })}
-      </DataTable>
+                <div className="contagem__cell" role="cell">
+                  <span className="contagem__cell-label">Contagem física</span>
+                  <div className="contagem__input">
+                    <input
+                      className="input"
+                      inputMode="decimal"
+                      aria-label={`Contagem de ${i.produtoNome}`}
+                      value={vals[i.id]}
+                      onChange={(e) => setVals((p) => ({ ...p, [i.id]: e.target.value }))}
+                      placeholder="0"
+                    />
+                    <span className="contagem__unit">{i.unidadeMedida.toLowerCase()}</span>
+                  </div>
+                </div>
+                <div className="contagem__cell" role="cell">
+                  <span className="contagem__cell-label">Resultado</span>
+                  <span
+                    className={
+                      diff === null
+                        ? "muted"
+                        : diff === 0
+                          ? "text-good"
+                          : diff < 0
+                            ? "text-bad"
+                            : "text-good"
+                    }
+                  >
+                    {diff === null ? "—" : `${diff > 0 ? "+" : ""}${fmtNum(diff)} ${i.unidadeMedida.toLowerCase()}`}
+                  </span>
+                </div>
+                <div className="contagem__confirm" role="cell">
+                  <Button
+                    size="sm"
+                    variant={isConfirmed(i) ? "good" : "outline"}
+                    disabled={isConfirmed(i) || !valid || busy}
+                    icon={isConfirmed(i) ? "check-circle" : undefined}
+                    onClick={() => valid && confirmItem(i.id, n)}
+                  >
+                    OK
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

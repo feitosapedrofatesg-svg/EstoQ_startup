@@ -182,8 +182,8 @@ a:hover {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px 20px 18px;
+  justify-content: center;
+  padding: 16px 18px 12px;
   text-decoration: none;
 }
 
@@ -194,11 +194,19 @@ a:hover {
 .brand__logo {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 42px;
+  width: 100%;
+  max-width: 228px;
+  aspect-ratio: 1777 / 1005;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
+}
+
+.brand__logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand__word {
@@ -936,6 +944,7 @@ a:hover {
 }
 
 @media (max-width: 720px) {
+
   .form-grid-2,
   .form-grid-3 {
     grid-template-columns: 1fr;
@@ -1226,12 +1235,12 @@ a:hover {
 
 .modal__body .searchselect,
 .modal__body .field,
-.modal__body > .alertbanner,
-.modal__body > .segmented {
+.modal__body>.alertbanner,
+.modal__body>.segmented {
   margin-top: 14px;
 }
 
-.modal__body > :first-child {
+.modal__body> :first-child {
   margin-top: 0;
 }
 
@@ -1816,12 +1825,19 @@ a:hover {
 .splash__logo {
   display: grid;
   place-items: center;
-  width: 120px;
-  height: 84px;
+  width: min(240px, 80vw);
+  aspect-ratio: 1777 / 1005;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: var(--shadow-1);
+}
+
+.splash__logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .splash__text {
@@ -1932,6 +1948,67 @@ a:hover {
   justify-self: center;
 }
 
+.login--page .login__side {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: #191e2b;
+}
+
+.login--page .login__video {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  object-position: 38% center;
+}
+
+.login--page .login__message {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 64px 8% 34px;
+  color: #fff;
+  background: linear-gradient(transparent, rgb(10 13 20 / 78%));
+}
+
+.login__message-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--t-5);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.login__message-copy {
+  max-width: 38ch;
+  margin: 8px 0 0;
+  color: rgb(255 255 255 / 88%);
+  font-size: var(--t-2);
+  line-height: 1.5;
+}
+
+.login__message-brand {
+  margin: 22px 0 0;
+  color: rgb(255 255 255 / 72%);
+  font-size: var(--t-1);
+}
+
+.login--page .login__panel {
+  grid-column: 2;
+  background: var(--surface);
+}
+
+.login--page {
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 1fr);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login--page .login__video {
+    display: none;
+  }
+}
+
 @media (max-width: 860px) {
   .login {
     grid-template-columns: 1fr;
@@ -1939,6 +2016,48 @@ a:hover {
 
   .login__side {
     display: none;
+  }
+
+  .login--page {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(220px, 38dvh) 1fr;
+  }
+
+  .login--page .login__side {
+    display: grid;
+    grid-row: 1;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .login--page .login__message {
+    padding: 42px 22px 18px;
+  }
+
+  .login__message-title {
+    font-size: var(--t-4);
+  }
+
+  .login__message-copy {
+    max-width: 34ch;
+    font-size: var(--t-1);
+  }
+
+  .login__message-brand {
+    margin-top: 12px;
+  }
+
+  .login--page .login__panel {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 62dvh;
+    padding: 28px 22px 18px;
+    background: var(--surface);
+  }
+
+  .login--page .login__form {
+    max-width: 380px;
+    margin: 0 auto;
   }
 }
 
@@ -1951,8 +2070,8 @@ a:hover {
   flex-wrap: wrap;
 }
 
-.filterbar > .search,
-.filterbar > .input {
+.filterbar>.search,
+.filterbar>.input {
   width: 240px;
 }
 
@@ -1982,7 +2101,7 @@ a:hover {
   margin: 4px 0 18px;
 }
 
-.detail-summary > div {
+.detail-summary>div {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -2551,6 +2670,7 @@ a:hover {
 /* -------------------------------------------------- redução de movimento */
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

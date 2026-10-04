@@ -83,10 +83,7 @@ function Brand() {
   return (
     <Link to="/dashboard" className="brand" aria-label="estoQ — início">
       <span className="brand__logo">
-        <img src="/logo_small.png" alt="" width={44} height={29} />
-      </span>
-      <span className="brand__word">
-        esto<span className="brand__accent">Q</span>
+        <img src="/logo_estoq_oficial.png" alt="estoQ — Controle o desperdício do seu restaurante" width={220} height={124} />
       </span>
     </Link>
   );

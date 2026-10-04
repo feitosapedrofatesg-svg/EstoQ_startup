@@ -22,7 +22,7 @@ function Splash() {
   return (
     <div className="splash">
       <div className="splash__logo">
-        <img src="/logo_small.png" alt="estoQ" width={88} height={58} />
+        <img src="/logo_estoq_oficial.png" alt="estoQ" width={220} height={124} />
       </div>
       <p className="splash__text">Carregando estoQ…</p>
     </div>

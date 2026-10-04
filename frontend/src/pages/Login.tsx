@@ -42,23 +42,24 @@ export function Login() {
   };
 
   return (
-    <div className="login">
+    <div className="login login--page">
       <div className="login__side">
-        <div className="login__brand">
-          <img
-            className="login__logo"
-            src="/logo_login.png"
-            alt="estoQ — controle de estoque e CMV para cozinhas"
-            width={260}
-            height={173}
-          />
+        <video
+          className="login__video"
+          src="/login-kitchen.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+        <div className="login__message">
+          <p className="login__message-title">Menos desperdício, mais lucro.</p>
+          <p className="login__message-copy">O estoque e o CMV da sua cozinha em um só lugar.</p>
+          <p className="login__message-brand">estoQ · feito para quem cozinha de verdade</p>
         </div>
-        <blockquote className="login__quote">
-          <p className="login__quote-text">
-            Menos desperdício, mais lucro. O estoque e o CMV da sua cozinha em um só lugar.
-          </p>
-          <p className="login__quote-end">esto<span>Q</span> · feito para quem cozinha de verdade</p>
-        </blockquote>
       </div>
 
       <div className="login__panel">

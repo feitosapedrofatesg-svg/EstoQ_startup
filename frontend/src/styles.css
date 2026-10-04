@@ -2235,6 +2235,78 @@ a:hover {
   font-size: var(--t-3);
 }
 
+.cmv-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr)) minmax(220px, 1.35fr) auto;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.cmv-filters__dates {
+  display: contents;
+}
+
+.cmv-filter-field {
+  min-width: 0;
+  margin: 0;
+  padding: 10px 12px 12px;
+  gap: 7px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.cmv-filter-field .field__label {
+  color: var(--ink-2);
+}
+
+.cmv-filter-field .input {
+  min-height: 44px;
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.cmv-filter-field .input:hover {
+  border-color: var(--ink-3);
+}
+
+.cmv-filter-field--revenue {
+  border-color: #edc29f;
+}
+
+.cmv-filter-field--revenue .input-group__suffix {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.cmv-filters__refresh {
+  align-self: stretch;
+  min-width: 142px;
+  min-height: 100%;
+  padding-inline: 18px;
+  border-radius: var(--r-sm);
+  box-shadow: 0 3px 0 var(--accent-strong);
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.cmv-filters__refresh:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--accent-strong);
+}
+
+.cmv-filters__refresh:not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--accent-strong);
+}
+
+.cmv-filters__refresh svg {
+  transition: transform 240ms ease;
+}
+
+.cmv-filters__refresh:not(:disabled):hover svg {
+  transform: rotate(35deg);
+}
+
 .modal__body .form-grid-2,
 .modal__body .segmented {
   margin-top: 0;
@@ -2862,6 +2934,20 @@ a:hover {
     align-items: stretch;
   }
 
+  .cmv-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cmv-filter-field--revenue {
+    grid-column: 1;
+  }
+
+  .cmv-filters__refresh {
+    grid-column: 2;
+    align-self: end;
+    min-height: 66px;
+  }
+
   .filters__dates {
     width: 100%;
     min-width: 0;
@@ -2876,6 +2962,24 @@ a:hover {
   .filters__dates .input {
     width: 100%;
     min-width: 0;
+  }
+
+  .cmv-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .cmv-filter-field {
+    padding: 9px 10px 10px;
+  }
+
+  .cmv-filter-field--revenue,
+  .cmv-filters__refresh {
+    grid-column: 1 / -1;
+  }
+
+  .cmv-filters__refresh {
+    min-height: 48px;
   }
 
   .filters__total {

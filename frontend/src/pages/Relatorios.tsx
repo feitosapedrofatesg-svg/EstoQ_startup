@@ -93,19 +93,20 @@ function CmvPeriodo() {
 
   const { data, loading, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs.toString()}`);
   const dataAtual = data?.receitaBase === receitaBase ? data : null;
+  const calculando = loading || (data !== null && dataAtual === null);
 
   return (
     <Section title="CMV no período">
-      <div className="filters">
-        <div className="filters__dates">
-          <Field label="De" htmlFor="cmv-inicio">
+      <div className="cmv-filters">
+        <div className="cmv-filters__dates">
+          <Field className="cmv-filter-field" label="De" htmlFor="cmv-inicio">
             <Input id="cmv-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
           </Field>
-          <Field label="Até" htmlFor="cmv-fim">
+          <Field className="cmv-filter-field" label="Até" htmlFor="cmv-fim">
             <Input id="cmv-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
           </Field>
         </div>
-        <Field label="Receita base do período (R$)" htmlFor="cmv-receita">
+        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do período (R$)" htmlFor="cmv-receita">
           <div className="input-group">
             <input
               id="cmv-receita"
@@ -121,12 +122,18 @@ function CmvPeriodo() {
             <span className="input-group__suffix">R$</span>
           </div>
         </Field>
-        <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
-          Recalcular
+        <Button
+          className="cmv-filters__refresh"
+          variant="accent"
+          icon="refresh"
+          loading={calculando}
+          onClick={() => void refresh()}
+        >
+          {calculando ? "Calculando" : "Recalcular"}
         </Button>
       </div>
 
-      {(loading || (data !== null && dataAtual === null)) && (
+      {calculando && (
         <p className="muted">Calculando…</p>
       )}
       {dataAtual && (

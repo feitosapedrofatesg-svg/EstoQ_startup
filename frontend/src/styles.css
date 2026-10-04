@@ -2561,7 +2561,7 @@ a:hover {
   }
 }
 
-@media (pointer: coarse) {
+@media (any-pointer: coarse) {
   .btn--sm {
     min-height: 44px;
     padding-inline: 14px;

@@ -8,6 +8,7 @@ import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
 import com.estoq.business.itensBalanco.ItemBalancoModel;
+import com.estoq.business.itensBalanco.IItemBalancoRepository;
 import com.estoq.business.produtos.EstoqueService;
 import com.estoq.business.produtos.IProdutoRepository;
 import com.estoq.core.exceptions.BusinessException;
@@ -29,6 +30,7 @@ import java.util.List;
 public class BalancoService {
 
     private final IBalancoRepository repository;
+    private final IItemBalancoRepository itensBalanco;
     private final IProdutoRepository produtos;
     private final ICategoriaRepository categorias;
     private final EstoqueService estoque;
@@ -47,7 +49,8 @@ public class BalancoService {
     }
 
     private BalancoModel encontrar(Long id) {
-        return repository.findByIdAndAtivoTrue(id).orElseThrow(() -> new BusinessException("Balanço não encontrado.", HttpStatus.NOT_FOUND));
+        return repository.findByIdAndAtivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Balanço não encontrado.", HttpStatus.NOT_FOUND));
     }
 
     @Transactional
@@ -65,7 +68,8 @@ public class BalancoService {
             balanco.getCategorias().addAll(selecionadas);
         }
         repository.saveAndFlush(balanco);
-        configuracoes.findAllByAtivoTrueOrderByIdAsc().stream().findFirst().ifPresent(alertas::reavaliarBalancoPendente);
+        configuracoes.findAllByAtivoTrueOrderByIdAsc().stream().findFirst()
+                .ifPresent(alertas::reavaliarBalancoPendente);
         return adapter.toDto(balanco);
     }
 
@@ -82,7 +86,8 @@ public class BalancoService {
             throw new ConflictException("Balanço parcial sem categorias selecionadas.");
         }
         var alvo = balanco.getTipo() == TipoBalanco.PARCIAL
-                ? produtos.findAllByAtivoTrueAndCategoria_IdIn(balanco.getCategorias().stream().map(CategoriaModel::getId).toList())
+                ? produtos.findAllByAtivoTrueAndCategoria_IdIn(
+                        balanco.getCategorias().stream().map(CategoriaModel::getId).toList())
                 : produtos.findAllByAtivoTrue();
         for (var produto : alvo) {
             var item = new ItemBalancoModel();
@@ -98,19 +103,20 @@ public class BalancoService {
     }
 
     @Transactional
-    public BalancoDTO registrarContagem(Long id, Long itemId, ContagemRequestDTO dto) {
-        var balanco = encontrar(id);
+    public ItemBalancoDTO registrarContagem(Long id, Long itemId, ContagemRequestDTO dto) {
+        var item = itensBalanco.findByIdAndBalanco_IdAndAtivoTrue(itemId, id)
+                .orElseThrow(() -> new BusinessException("Item não pertence a este balanço.", HttpStatus.NOT_FOUND));
+        var balanco = item.getBalanco();
         if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
             throw new ConflictException("Registre contagens apenas em balanço EM_ANDAMENTO.");
         }
-        var item = balanco.getItens().stream().filter(i -> i.getId().equals(itemId)).findFirst()
-                .orElseThrow(() -> new BusinessException("Item não pertence a este balanço.", HttpStatus.NOT_FOUND));
         if (dto.quantidadeFisica() == null || dto.quantidadeFisica().signum() < 0) {
-            throw new FieldValidationException("quantidadeFisica", "Informe a quantidade física contada (não negativa).");
+            throw new FieldValidationException("quantidadeFisica",
+                    "Informe a quantidade física contada (não negativa).");
         }
         item.definirContagem(dto.quantidadeFisica());
-        repository.flush();
-        return adapter.toDto(balanco);
+        itensBalanco.flush();
+        return adapter.toItemDto(item);
     }
 
     @Transactional

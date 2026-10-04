@@ -103,7 +103,8 @@ class BalancoCmvIntegrationTest {
         u.setSenha("hash");
         u.setPerfil(Perfil.ADMIN);
         users.saveAndFlush(u);
-        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(u.getEmail(), null, List.of()));
+        SecurityContextHolder.getContext()
+                .setAuthentication(UsernamePasswordAuthenticationToken.authenticated(u.getEmail(), null, List.of()));
         var c = new CategoriaModel();
         c.setNome("Categoria");
         categorias.saveAndFlush(c);
@@ -112,7 +113,8 @@ class BalancoCmvIntegrationTest {
         d.setCategoriaId(c.getId());
         d.setUnidadeMedida(UnidadeMedida.KG);
         produtoId = produtos.criar(d).getId();
-        entradas.registrarEntrada(new EntradaRequestDTO(produtoId, new BigDecimal("10"), new BigDecimal("200"), UnidadeMedida.KG, LocalDate.now().plusDays(60), null, false));
+        entradas.registrarEntrada(new EntradaRequestDTO(produtoId, new BigDecimal("10"), new BigDecimal("200"),
+                UnidadeMedida.KG, LocalDate.now().plusDays(60), null, false));
     }
 
     @AfterEach
@@ -128,7 +130,8 @@ class BalancoCmvIntegrationTest {
         var item = iniciado.itens().getFirst();
         assertEquals(0, new BigDecimal("10").compareTo(item.quantidadeSistema()));
         var contado = balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8")));
-        var confirmado = balancos.confirmar(contado.id());
+        assertEquals(0, new BigDecimal("8").compareTo(contado.quantidadeFisica()));
+        var confirmado = balancos.confirmar(iniciado.id());
         assertEquals(StatusBalanco.CONCLUIDO, confirmado.status());
         var ajustado = balancos.gerarAjustes(confirmado.id());
         assertTrue(ajustado.itens().getFirst().ajusteAplicado());
@@ -163,7 +166,8 @@ class BalancoCmvIntegrationTest {
     @Test
     void cmvUsaMovimentacoesELote() {
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
-        desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, new BigDecimal("1"), MotivoDesperdicio.DETERIORACAO, null, null, null));
+        desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, new BigDecimal("1"),
+                MotivoDesperdicio.DETERIORACAO, null, null, null));
         var fim = LocalDateTime.now().plusDays(1);
         var cmv = relatorios.calcularCmv(fim.minusDays(30), fim, new BigDecimal("100"));
         assertEquals(0, new BigDecimal("0").compareTo(cmv.valorEstoqueInicial()));
@@ -199,10 +203,12 @@ class BalancoCmvIntegrationTest {
         var semEstoque = produtos.criar(d).getId();
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
         var iniciado = balancos.iniciar(criado.id());
-        var existente = iniciado.itens().stream().filter(i -> i.produtoId().equals(produtoId)).findFirst().orElseThrow();
+        var existente = iniciado.itens().stream().filter(i -> i.produtoId().equals(produtoId)).findFirst()
+                .orElseThrow();
         var novo = iniciado.itens().stream().filter(i -> i.produtoId().equals(semEstoque)).findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("0").compareTo(novo.quantidadeSistema()));
-        balancos.registrarContagem(iniciado.id(), existente.id(), new ContagemRequestDTO(existente.quantidadeSistema()));
+        balancos.registrarContagem(iniciado.id(), existente.id(),
+                new ContagemRequestDTO(existente.quantidadeSistema()));
         balancos.registrarContagem(iniciado.id(), novo.id(), new ContagemRequestDTO(new BigDecimal("3")));
         var confirmado = balancos.confirmar(iniciado.id());
         balancos.gerarAjustes(confirmado.id());
@@ -233,7 +239,8 @@ class BalancoCmvIntegrationTest {
         configRepository.flush();
         alertas.avaliarAgendamentos();
         assertEquals(1, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
-        assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao().isAfter(LocalDate.now()));
+        assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao()
+                .isAfter(LocalDate.now()));
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
         var iniciado = balancos.iniciar(criado.id());
         var item = iniciado.itens().getFirst();
@@ -248,7 +255,8 @@ class BalancoCmvIntegrationTest {
     @Test
     void relatoriosAgregadosDesperdicioConsumoECmvMensal() {
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
-        desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, new BigDecimal("1"), MotivoDesperdicio.DETERIORACAO, null, null, null));
+        desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, new BigDecimal("1"),
+                MotivoDesperdicio.DETERIORACAO, null, null, null));
         var fim = LocalDateTime.now().plusDays(1);
         var inicio = fim.minusDays(30);
         var agregado = relatorios.desperdicioAgregado(inicio, fim);
@@ -259,7 +267,8 @@ class BalancoCmvIntegrationTest {
         assertEquals(7, consumoDia.size());
         var comConsumo = consumoDia.stream().filter(d -> d.quantidadeTotal().signum() > 0).findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("2").compareTo(comConsumo.quantidadeTotal()));
-        var somaMensal = relatorios.cmvPorMes(inicio, fim).stream().map(CmvMensalDTO::cmv).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var somaMensal = relatorios.cmvPorMes(inicio, fim).stream().map(CmvMensalDTO::cmv).reduce(BigDecimal.ZERO,
+                BigDecimal::add);
         assertEquals(0, new BigDecimal("60").compareTo(somaMensal));
     }
 

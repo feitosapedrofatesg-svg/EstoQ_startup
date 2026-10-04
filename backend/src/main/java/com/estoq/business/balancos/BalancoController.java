@@ -46,7 +46,8 @@ public class BalancoController {
     }
 
     @PutMapping("/api/balancos/{id}/itens/{itemId}/contagem")
-    public BalancoDTO contagem(@PathVariable Long id, @PathVariable Long itemId, @Valid @RequestBody ContagemRequestDTO dto) {
+    public ItemBalancoDTO contagem(@PathVariable Long id, @PathVariable Long itemId,
+            @Valid @RequestBody ContagemRequestDTO dto) {
         return service.registrarContagem(id, itemId, dto);
     }
 
@@ -71,8 +72,10 @@ public class BalancoController {
     }
 
     @PutMapping("/api/configuracoes-balanco/{id}")
-    public ConfiguracaoBalancoDTO atualizarConfiguracao(@PathVariable Long id, @RequestBody ConfiguracaoBalancoDTO dto) {
-        return configuracoes.salvar(new ConfiguracaoBalancoDTO(id, dto.version(), dto.periodicidade(), dto.diaExecucao(), dto.proximaExecucao()));
+    public ConfiguracaoBalancoDTO atualizarConfiguracao(@PathVariable Long id,
+            @RequestBody ConfiguracaoBalancoDTO dto) {
+        return configuracoes.salvar(new ConfiguracaoBalancoDTO(id, dto.version(), dto.periodicidade(),
+                dto.diaExecucao(), dto.proximaExecucao()));
     }
 
     @DeleteMapping("/api/configuracoes-balanco/{id}")

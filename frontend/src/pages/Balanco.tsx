@@ -19,6 +19,7 @@ import type {
   BalancoDTO,
   CategoriaDTO,
   ConfiguracaoBalancoDTO,
+  ItemBalancoDTO,
   Page,
   PeriodicidadeBalanco,
   TipoBalanco,
@@ -124,6 +125,30 @@ export function Balanco() {
       updateCache<BalancoDTO[]>("/api/balancos", merge);
     } catch (e) {
       toast.error(label, (e as Error).message);
+    } finally {
+      setBusy(null);
+      setBusyLabel("");
+    }
+  };
+
+  const salvarContagem = async (balancoId: number, itemId: number, quantidadeFisica: number) => {
+    setBusy(balancoId);
+    setBusyLabel("Contagem salva");
+    try {
+      const itemAtualizado = await api.put<ItemBalancoDTO>(
+        `/api/balancos/${balancoId}/itens/${itemId}/contagem`,
+        { quantidadeFisica }
+      );
+      const merge = (prev: BalancoDTO[]) => prev.map((b) =>
+        b.id === balancoId
+          ? { ...b, itens: b.itens.map((item) => item.id === itemAtualizado.id ? itemAtualizado : item) }
+          : b
+      );
+      setData((prev) => (prev ? merge(prev) : prev));
+      updateCache<BalancoDTO[]>("/api/balancos", merge);
+      toast.success("Contagem salva");
+    } catch (e) {
+      toast.error("Contagem salva", (e as Error).message);
     } finally {
       setBusy(null);
       setBusyLabel("");
@@ -280,13 +305,7 @@ export function Balanco() {
                       {b.status === "EM_ANDAMENTO" && (
                         <ItensContagem
                           balanco={b}
-                          onItem={(id, q) =>
-                            void doAction(b.id, "Contagem salva", () =>
-                              api.put<BalancoDTO>(`/api/balancos/${b.id}/itens/${id}/contagem`, {
-                                quantidadeFisica: q,
-                              })
-                            )
-                          }
+                          onItem={(id, q) => void salvarContagem(b.id, id, q)}
                           busy={busy === b.id}
                         />
                       )}
@@ -356,7 +375,7 @@ function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: () => v
     let mounted = true;
     api.get<Page<CategoriaDTO>>("/api/categorias?size=100").then((r) => {
       if (mounted) setCats(r.content);
-    }).catch(() => {});
+    }).catch(() => { });
     return () => { mounted = false; };
   }, []);
 
@@ -556,8 +575,8 @@ const WEEK_DAYS: { label: string; value: number }[] = [
 ];
 
 const MONTH_NAMES = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
 function buildMonthGrid(year: number, month: number) {

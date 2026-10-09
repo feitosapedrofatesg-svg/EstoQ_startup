@@ -97,6 +97,8 @@ public class SecurityConfig {
                                 "/api/parametros-cmv")
                         .hasAnyRole("ADMIN", "NUTRICIONISTA")
                         .requestMatchers(HttpMethod.PUT, "/api/parametros-cmv").hasAnyRole("ADMIN", "NUTRICIONISTA")
+                        .requestMatchers(HttpMethod.PUT, "/api/relatorios/cmv/receita-base")
+                        .hasAnyRole("ADMIN", "NUTRICIONISTA")
                         .anyRequest().hasRole("ADMIN"))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(

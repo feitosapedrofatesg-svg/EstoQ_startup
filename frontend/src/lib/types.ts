@@ -247,6 +247,12 @@ export interface CmvResumoDTO {
   valorPerdasNaoExplicadas: number;
 }
 
+export interface CmvReceitaBaseDTO {
+  inicio: string;
+  fim: string;
+  receitaBase: number | null;
+}
+
 export interface CmvMensalDTO {
   periodo: string;
   cmv: number;

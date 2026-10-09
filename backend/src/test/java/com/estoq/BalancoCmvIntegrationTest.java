@@ -30,6 +30,8 @@ import com.estoq.business.produtos.ProdutoDTO;
 import com.estoq.business.produtos.ProdutoService;
 import com.estoq.business.produtos.UnidadeMedida;
 import com.estoq.business.relatorios.CmvMensalDTO;
+import com.estoq.business.relatorios.CmvReceitaBaseDTO;
+import com.estoq.business.relatorios.CmvReceitaBaseService;
 import com.estoq.business.relatorios.RelatorioService;
 import com.estoq.business.usuarios.IUsuarioRepository;
 import com.estoq.business.usuarios.Perfil;
@@ -83,6 +85,8 @@ class BalancoCmvIntegrationTest {
     IMovimentacaoEstoqueRepository movimentos;
     @Autowired
     RelatorioService relatorios;
+    @Autowired
+    CmvReceitaBaseService receitasCmv;
     @Autowired
     ParametroCmvService parametrosCmv;
     @Autowired
@@ -191,6 +195,18 @@ class BalancoCmvIntegrationTest {
         assertThrows(FieldValidationException.class,
                 () -> parametrosCmv.salvar(new ParametroCmvDTO(null, null, new BigDecimal("120"))));
         assertEquals(0, new BigDecimal("30").compareTo(parametrosCmv.obterAtual().percentualIdeal()));
+    }
+
+    @Test
+    void receitaBaseCmvPermaneceSalvaPorPeriodo() {
+        var inicio = LocalDate.of(2026, 9, 1);
+        var fim = LocalDate.of(2026, 9, 30);
+        assertNull(receitasCmv.obter(inicio, fim).receitaBase());
+
+        receitasCmv.salvar(new CmvReceitaBaseDTO(inicio, fim, new BigDecimal("12500.50")));
+
+        assertEquals(0, new BigDecimal("12500.50").compareTo(receitasCmv.obter(inicio, fim).receitaBase()));
+        assertNull(receitasCmv.obter(inicio, fim.minusDays(1)).receitaBase());
     }
 
     @Test

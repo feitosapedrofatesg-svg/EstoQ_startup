@@ -4,6 +4,8 @@ import com.estoq.business.lotes.LoteDTO;
 import com.estoq.business.produtos.EstoqueDTO;
 import com.estoq.business.produtosAbertos.ProdutoAbertoDTO;
 import com.estoq.business.relatorios.CmvMensalDTO;
+import com.estoq.business.relatorios.CmvReceitaBaseDTO;
+import com.estoq.business.relatorios.CmvReceitaBaseService;
 import com.estoq.business.relatorios.CmvResumoDTO;
 import com.estoq.business.relatorios.ConsumoDiaSemanaDTO;
 import com.estoq.business.relatorios.ConsumoMedioDTO;
@@ -20,6 +22,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,6 +39,7 @@ public class RelatoriosController {
     private final RelatorioService relatorios;
     private final RelatorioPdfService pdfs;
     private final DashboardService dashboard;
+    private final CmvReceitaBaseService receitasCmv;
 
     @GetMapping("/api/relatorios/estoque-atual")
     public List<EstoqueDTO> estoqueAtual() {
@@ -91,6 +96,18 @@ public class RelatoriosController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
             @RequestParam(required = false) BigDecimal receitaBase) {
         return relatorios.calcularCmv(definirInicio(inicio), definirFim(fim), receitaBase);
+    }
+
+    @GetMapping("/api/relatorios/cmv/receita-base")
+    public CmvReceitaBaseDTO receitaBaseCmv(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+        return receitasCmv.obter(inicio, fim);
+    }
+
+    @PutMapping("/api/relatorios/cmv/receita-base")
+    public CmvReceitaBaseDTO salvarReceitaBaseCmv(@RequestBody CmvReceitaBaseDTO dto) {
+        return receitasCmv.salvar(dto);
     }
 
     @GetMapping("/api/relatorios/cmv/mensal")

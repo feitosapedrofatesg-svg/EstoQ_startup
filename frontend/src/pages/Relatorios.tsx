@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFetch } from "../lib/hooks";
 import { api, downloadBlob } from "../lib/api";
 import {
@@ -24,6 +24,7 @@ import {
 } from "../lib/format";
 import type {
   CmvMensalDTO,
+  CmvReceitaBaseDTO,
   CmvResumoDTO,
   ConsumoDiaSemanaDTO,
   ConsumoMedioDTO,
@@ -85,6 +86,54 @@ function CmvPeriodo() {
   const { inicio, fim, setInicio, setFim } = usePeriodo();
   const [receitaBase, setReceitaBase] = useState<number | null>(null);
   const [tmpReceita, setTmpReceita] = useState("");
+  const [carregandoReceita, setCarregandoReceita] = useState(true);
+  const [salvandoReceita, setSalvandoReceita] = useState(false);
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const periodoRef = useRef(`${inicio}|${fim}`);
+  periodoRef.current = `${inicio}|${fim}`;
+
+  useEffect(() => {
+    let ativo = true;
+    const chavePeriodo = `${inicio}|${fim}`;
+    const periodo = new URLSearchParams({ inicio, fim }).toString();
+    setCarregandoReceita(true);
+    setReceitaBase(null);
+    setTmpReceita("");
+    api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?${periodo}`)
+      .then((salva) => {
+        if (!ativo || periodoRef.current !== chavePeriodo) return;
+        setReceitaBase(salva.receitaBase);
+        setTmpReceita(salva.receitaBase === null ? "" : String(salva.receitaBase).replace(".", ","));
+      })
+      .catch((e) => {
+        if (ativo) toastRef.current.error("Não foi possível carregar a receita base", (e as Error).message);
+      })
+      .finally(() => {
+        if (ativo) setCarregandoReceita(false);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [inicio, fim]);
+
+  const salvarReceita = async () => {
+    const chavePeriodo = `${inicio}|${fim}`;
+    setSalvandoReceita(true);
+    try {
+      const salva = await api.put<CmvReceitaBaseDTO>("/api/relatorios/cmv/receita-base", {
+        inicio,
+        fim,
+        receitaBase: parseDecimal(tmpReceita),
+      });
+      if (periodoRef.current === chavePeriodo) setReceitaBase(salva.receitaBase);
+    } catch (e) {
+      toast.error("Não foi possível salvar a receita base", (e as Error).message);
+    } finally {
+      setSalvandoReceita(false);
+    }
+  };
 
   const qs = new URLSearchParams();
   qs.set("inicio", inicio);
@@ -92,8 +141,8 @@ function CmvPeriodo() {
   if (receitaBase !== null) qs.set("receitaBase", String(receitaBase));
 
   const { data, loading, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs.toString()}`);
-  const dataAtual = data?.receitaBase === receitaBase ? data : null;
-  const calculando = loading || (data !== null && dataAtual === null);
+  const dataAtual = !carregandoReceita && data?.receitaBase === receitaBase ? data : null;
+  const calculando = carregandoReceita || loading || (data !== null && dataAtual === null);
 
   return (
     <Section title="CMV no período">
@@ -115,9 +164,8 @@ function CmvPeriodo() {
               placeholder="Opcional, para calcular o % do CMV"
               value={tmpReceita}
               onChange={(e) => setTmpReceita(e.target.value)}
-              onBlur={() => {
-                setReceitaBase(parseDecimal(tmpReceita));
-              }}
+              onBlur={() => void salvarReceita()}
+              disabled={carregandoReceita || salvandoReceita}
             />
             <span className="input-group__suffix">R$</span>
           </div>

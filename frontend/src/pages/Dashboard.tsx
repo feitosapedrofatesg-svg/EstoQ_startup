@@ -3,7 +3,7 @@ import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
 import { PageHeader, Card, StatCard, Badge, EmptyState, LinkButton, Button } from "../components/UI";
 import { CmvGauge } from "../components/Charts";
-import { fmtMoney, fmtPct, fmtDateTime, fmtDataHoje } from "../lib/format";
+import { fmtMoney, fmtPct, fmtDateTime, fmtDataHoje, diasAtrasISO, hojeISO } from "../lib/format";
 import type { AlertaDTO, DashboardResumoDTO } from "../lib/types";
 import { useToast } from "../store/toast";
 
@@ -25,7 +25,8 @@ const ALERT_LABEL: Record<AlertaDTO["tipo"], string> = {
 
 export function Dashboard() {
   const { user, isAdmin, isCozinha, canReport, canMove } = useAuth();
-  const { data, loading, error, refresh } = useFetch<DashboardResumoDTO>("/api/dashboard/resumo");
+  const periodo = new URLSearchParams({ inicio: diasAtrasISO(30), fim: hojeISO() });
+  const { data, loading, error, refresh } = useFetch<DashboardResumoDTO>(`/api/dashboard/resumo?${periodo}`, [], true);
   const canSeeAlerts = isAdmin || isCozinha;
   const { data: alerts, refresh: refreshAlerts } = useFetch<AlertaDTO[]>(canSeeAlerts ? "/api/alertas" : null);
   const toast = useToast();

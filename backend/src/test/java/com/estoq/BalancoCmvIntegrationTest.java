@@ -19,6 +19,7 @@ import com.estoq.business.consumos.ConsumoService;
 import com.estoq.business.desperdicios.DesperdicioRequestDTO;
 import com.estoq.business.desperdicios.DesperdicioService;
 import com.estoq.business.desperdicios.MotivoDesperdicio;
+import com.estoq.business.dashboard.DashboardService;
 import com.estoq.business.entradas.EntradaRequestDTO;
 import com.estoq.business.entradas.EntradaService;
 import com.estoq.business.lotes.ILoteRepository;
@@ -85,6 +86,8 @@ class BalancoCmvIntegrationTest {
     IMovimentacaoEstoqueRepository movimentos;
     @Autowired
     RelatorioService relatorios;
+    @Autowired
+    DashboardService dashboard;
     @Autowired
     CmvReceitaBaseService receitasCmv;
     @Autowired
@@ -207,6 +210,17 @@ class BalancoCmvIntegrationTest {
 
         assertEquals(0, new BigDecimal("12500.50").compareTo(receitasCmv.obter(inicio, fim).receitaBase()));
         assertNull(receitasCmv.obter(inicio, fim.minusDays(1)).receitaBase());
+    }
+
+    @Test
+    void resumoDaVisaoGeralUsaReceitaBaseSalvaNoMesmoPeriodo() {
+        var inicio = LocalDate.now().minusDays(30);
+        var fim = LocalDate.now();
+        receitasCmv.salvar(new CmvReceitaBaseDTO(inicio, fim, new BigDecimal("100")));
+
+        var resumo = dashboard.resumo(inicio.atStartOfDay(), fim.plusDays(1).atStartOfDay(), null);
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(resumo.cmvPercentual()));
     }
 
     @Test

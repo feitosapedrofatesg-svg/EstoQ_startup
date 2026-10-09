@@ -7,6 +7,7 @@ import com.estoq.business.lotes.LoteService;
 import com.estoq.business.produtos.EstoqueService;
 import com.estoq.business.produtos.IProdutoRepository;
 import com.estoq.business.produtosAbertos.IProdutoAbertoRepository;
+import com.estoq.business.relatorios.CmvReceitaBaseService;
 import com.estoq.business.relatorios.RelatorioService;
 
 import static com.estoq.core.helpers.NumeroUtil.s;
@@ -30,10 +31,13 @@ public class DashboardService {
     private final EstoqueService estoque;
     private final LoteService lotes;
     private final RelatorioService relatorios;
+    private final CmvReceitaBaseService receitasCmv;
     private final IAlertaRepository alertas;
 
     public DashboardResumoDTO resumo(LocalDateTime inicio, LocalDateTime fim, BigDecimal receitaBase) {
-        var cmv = relatorios.calcularCmv(inicio, fim, receitaBase);
+        var receitaParaCalculo = receitaBase != null ? receitaBase
+                : receitasCmv.obter(inicio.toLocalDate(), fim.toLocalDate().minusDays(1)).receitaBase();
+        var cmv = relatorios.calcularCmv(inicio, fim, receitaParaCalculo);
         return new DashboardResumoDTO(
                 produtos.countByAtivoTrue(),
                 estoque.listar(false, true).size(),
@@ -41,7 +45,8 @@ public class DashboardService {
                 lotes.vencidos().size(),
                 abertos.countByAtivoTrueAndFinalizadoFalse(),
                 balancos.countByAtivoTrueAndStatusNot(StatusBalanco.CONCLUIDO),
-                s(cmv.valorDesperdicio()), s(cmv.cmv()), cmv.cmvPercentual(), cmv.percentualIdeal(), cmv.diferencaPercentualParaMeta(),
+                s(cmv.valorDesperdicio()), s(cmv.cmv()), cmv.cmvPercentual(), cmv.percentualIdeal(),
+                cmv.diferencaPercentualParaMeta(),
                 s(cmv.valorPerdasNaoExplicadas()));
     }
 }

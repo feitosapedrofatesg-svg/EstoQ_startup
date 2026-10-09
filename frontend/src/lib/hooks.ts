@@ -20,7 +20,7 @@ interface FetchState<T> {
 const cache = new Map<string, { data: unknown; ts: number }>();
 const TTL_MS = 60_000;
 
-export function useFetch<T>(path: string | null, deps: unknown[] = []): FetchState<T> {
+export function useFetch<T>(path: string | null, deps: unknown[] = [], revalidateOnMount = false): FetchState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(!!path);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function useFetch<T>(path: string | null, deps: unknown[] = []): FetchSta
 
   useEffect(() => {
     // Primeira montagem usa o cache; troca de caminho (filtros) sempre refaz a rede.
-    void run(!firstRun.current);
+    void run(revalidateOnMount || !firstRun.current);
     firstRun.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, ...deps]);

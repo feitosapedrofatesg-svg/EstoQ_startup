@@ -417,44 +417,59 @@ function ConsumoMedio() {
 function Reposicao() {
   const { data, loading } = useFetch<ReposicaoSugeridaDTO[]>("/api/relatorios/reposicao-sugerida?dias=7");
   const total = useMemo(() => (data ?? []).length, [data]);
+  const [minimizada, setMinimizada] = useState(false);
 
   return (
-    <Section title={`Reposição sugerida${total ? ` (${total})` : ""}`}>
-      {loading ? (
-        <p className="muted">Carregando…</p>
-      ) : data && data.length === 0 ? (
-        <EmptyState
-          title="Nada a repor"
-          text="Todos os produtos estão nos níveis ideais para os próximos dias."
-          icon="check-circle"
+    <Card
+      title={`Reposição sugerida${total ? ` (${total})` : ""}`}
+      actions={(
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={minimizada ? "chevron-down" : "chevron-right"}
+          aria-expanded={!minimizada}
+          aria-label={minimizada ? "Expandir reposição sugerida" : "Minimizar reposição sugerida"}
+          onClick={() => setMinimizada((atual) => !atual)}
         />
-      ) : (
-        <DataTable caption="Reposição sugerida" headers={["Produto", "Categoria", "Saldo", "Mínimo", "Consumo/dia", "Comprar"]}>
-          {data?.map((r) => (
-            <tr key={r.produtoId}>
-              <td>
-                <strong>{r.produtoNome}</strong>
-              </td>
-              <td className="muted-cell">{r.categoriaNome}</td>
-              <td>
-                {fmtNum(r.saldoAtual)} {r.unidadeMedida}
-              </td>
-              <td className="muted-cell">
-                {fmtNum(r.estoqueMinimo)} {r.unidadeMedida}
-              </td>
-              <td className="muted-cell">
-                {fmtNum(r.consumoMedioDiario)} {r.unidadeMedida}/dia
-              </td>
-              <td>
-                <strong className="text-good">
-                  +{fmtNum(r.quantidadeSugerida)} {r.unidadeMedida}
-                </strong>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
       )}
-    </Section>
+    >
+      {!minimizada && (
+        loading ? (
+          <p className="muted">Carregando…</p>
+        ) : data && data.length === 0 ? (
+          <EmptyState
+            title="Nada a repor"
+            text="Todos os produtos estão nos níveis ideais para os próximos dias."
+            icon="check-circle"
+          />
+        ) : (
+          <DataTable caption="Reposição sugerida" headers={["Produto", "Categoria", "Saldo", "Mínimo", "Consumo/dia", "Comprar"]}>
+            {data?.map((r) => (
+              <tr key={r.produtoId}>
+                <td>
+                  <strong>{r.produtoNome}</strong>
+                </td>
+                <td className="muted-cell">{r.categoriaNome}</td>
+                <td>
+                  {fmtNum(r.saldoAtual)} {r.unidadeMedida}
+                </td>
+                <td className="muted-cell">
+                  {fmtNum(r.estoqueMinimo)} {r.unidadeMedida}
+                </td>
+                <td className="muted-cell">
+                  {fmtNum(r.consumoMedioDiario)} {r.unidadeMedida}/dia
+                </td>
+                <td>
+                  <strong className="text-good">
+                    +{fmtNum(r.quantidadeSugerida)} {r.unidadeMedida}
+                  </strong>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        )
+      )}
+    </Card>
   );
 }
 

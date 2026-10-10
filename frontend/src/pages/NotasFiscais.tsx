@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useFetch, invalidarCache } from "../lib/hooks";
@@ -18,6 +18,15 @@ const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
 
 export function NotasFiscais() {
   const [params, setParams] = useSearchParams();
+  const inicioLista = useRef<HTMLDivElement>(null);
+  const finalLista = useRef<HTMLDivElement>(null);
+  const navegarLista = (destino: HTMLDivElement | null) => {
+    if (!destino) return;
+    // Mantém a navegação acessível e respeita a preferência por movimento reduzido.
+    const reduzirMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    destino.scrollIntoView({ behavior: reduzirMovimento ? "instant" : "smooth", block: "start" });
+    destino.focus({ preventScroll: true });
+  };
   const [nota, setNota] = useState<NotaFiscalDTO | null>(null);
   const [itens, setItens] = useState<ItemRevisao[]>([]);
   const [arquivos, setArquivos] = useState<File[]>([]);
@@ -155,6 +164,11 @@ export function NotasFiscais() {
             }}><option value="">Escolher categoria…</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
+      <nav className="nota-navegacao" aria-label="Navegação dos itens da nota fiscal">
+        <Button variant="outline" onClick={() => navegarLista(inicioLista.current)}>↑ Voltar ao início</Button>
+        <Button onClick={() => navegarLista(finalLista.current)}>↓ Ir ao final da lista</Button>
+      </nav>
+      <div ref={inicioLista} className="nota-lista-destino" tabIndex={-1} aria-label="Início da lista de itens" />
       {itens.map(item => <Card key={`${nota.id}-${item.id}`} className={item.incerto && !nota.confirmada ? "nota-item--ocr" : ""} title={`${item.numero}. ${item.descricao}`}>
         <p className="muted">Código {item.codigo} · Nota: {fmtNum(item.quantidadeNota)} {item.unidadeNota} · Bruto: {fmtMoney(item.valorBruto)} · Desconto: {fmtMoney(item.desconto)} · Ajuste rateado: {fmtMoney(item.valorRateado)}</p>
         {!nota.confirmada && <Checkbox checked={item.selecionado} onChange={selecionado => alterar(item.id, { selecionado })} label="Incluir este item no estoque" />}
@@ -186,6 +200,7 @@ export function NotasFiscais() {
           {item.incerto && <Checkbox checked={item.leituraConferida} onChange={leituraConferida => alterar(item.id, { leituraConferida })} label="Conferi os dados deste item com a imagem" />}
         </fieldset>}
       </Card>)}
+      <div ref={finalLista} className="nota-lista-destino" tabIndex={-1} aria-label="Final da lista de itens" />
       {!nota.confirmada && <Card title="Confirmar entrada">
         <p>Custo dos itens selecionados: <strong>{fmtMoney(totalSelecionado)}</strong></p>
         <p>Conferência da nota inteira: {fmtMoney(totalRevisado)} de {fmtMoney(nota.valorTotal)}</p>

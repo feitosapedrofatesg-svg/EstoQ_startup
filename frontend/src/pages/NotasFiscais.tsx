@@ -7,7 +7,6 @@ import type { CategoriaDTO, ItemNotaFiscalDTO, NotaFiscalDTO, Page, ProdutoDTO, 
 import { PageHeader, Card, Button, LinkButton, Field, Input, Select, Checkbox, SearchSelect, AlertBanner } from "../components/UI";
 import { useToast } from "../store/toast";
 
-type ItemRevisao = ItemNotaFiscalDTO & { leituraConferida: boolean };
 function CampoDecimal({ id, label, value, onValue }: { id: string; label: string; value: number; onValue: (valor: number) => void }) {
   const [texto, setTexto] = useState(String(value).replace(".", ","));
   useEffect(() => { setTexto(String(value).replace(".", ",")); }, [value]);
@@ -28,7 +27,7 @@ export function NotasFiscais() {
     destino.focus({ preventScroll: true });
   };
   const [nota, setNota] = useState<NotaFiscalDTO | null>(null);
-  const [itens, setItens] = useState<ItemRevisao[]>([]);
+  const [itens, setItens] = useState<ItemNotaFiscalDTO[]>([]);
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<{ nome: string; url: string; indice: number }[]>([]);
   const [ocupado, setOcupado] = useState(false);
@@ -65,7 +64,7 @@ export function NotasFiscais() {
   };
   const mostrar = (resultado: NotaFiscalDTO) => {
     setNota(resultado);
-    setItens(resultado.itens.map(i => ({ ...i, leituraConferida: !i.incerto })));
+    setItens(resultado.itens);
     setCustosConferidos(false);
   };
   useEffect(() => {
@@ -81,7 +80,7 @@ export function NotasFiscais() {
     return () => { ativo = false; };
   }, [notaId]);
 
-  const alterar = (id: number, campos: Partial<ItemRevisao>) => {
+  const alterar = (id: number, campos: Partial<ItemNotaFiscalDTO>) => {
     setItens(anteriores => anteriores.map(i => i.id === id ? { ...i, ...campos } : i));
     setCustosConferidos(false);
   };
@@ -105,8 +104,9 @@ export function NotasFiscais() {
       const resultado = await api.post<NotaFiscalDTO>(`/api/notas-fiscais/${nota.id}/confirmar`, {
         version: nota.version, custosConferidos,
         itens: itens.map(({ id, selecionado, produtoId, nomeProduto, categoriaId, unidadeEstoque, quantidadeNota,
-          fator, valorEntrada, validade, embalagemConfirmada, leituraConferida }) => ({ id, selecionado, produtoId,
-          nomeProduto, categoriaId, unidadeEstoque, quantidadeNota, fator, valorEntrada, validade, embalagemConfirmada, leituraConferida })),
+          fator, valorEntrada, validade }) => ({ id, selecionado, produtoId,
+          nomeProduto, categoriaId, unidadeEstoque, quantidadeNota, fator, valorEntrada, validade,
+          embalagemConfirmada: custosConferidos, leituraConferida: custosConferidos })),
       });
       mostrar(resultado);
       invalidarCache(["/api/produtos", "/api/estoque", "/api/lotes", "/api/movimentacoes", "/api/dashboard", "/api/alertas"]);
@@ -196,8 +196,6 @@ export function NotasFiscais() {
             <Field label="Validade (opcional)" htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
           </div>
           <p><strong>Entrada: {fmtNum(item.quantidadeNota * item.fator)} {item.unidadeEstoque}</strong> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</p>
-          <Checkbox checked={item.embalagemConfirmada} onChange={embalagemConfirmada => alterar(item.id, { embalagemConfirmada })} label="Conferi a unidade e o conteúdo da embalagem" />
-          {item.incerto && <Checkbox checked={item.leituraConferida} onChange={leituraConferida => alterar(item.id, { leituraConferida })} label="Conferi os dados deste item com a imagem" />}
         </fieldset>}
       </Card>)}
       <div ref={finalLista} className="nota-lista-destino" tabIndex={-1} aria-label="Final da lista de itens" />
@@ -205,8 +203,9 @@ export function NotasFiscais() {
         <p>Custo dos itens selecionados: <strong>{fmtMoney(totalSelecionado)}</strong></p>
         <p>Conferência da nota inteira: {fmtMoney(totalRevisado)} de {fmtMoney(nota.valorTotal)}</p>
         {!totalFecha && <AlertBanner tone="warn">Os custos precisam fechar o total da nota, considerando também as linhas desmarcadas.</AlertBanner>}
+        <p className="muted">A conferência abaixo vale para todos os itens, incluindo os dados da imagem, as unidades e o conteúdo das embalagens.</p>
         <Checkbox checked={custosConferidos} onChange={setCustosConferidos} label="Conferi os itens, os descontos e os custos rateados" />
-        <Button loading={ocupado} disabled={!custosConferidos || !totalFecha || !selecionados.length || selecionados.some(i => !Number.isFinite(i.quantidadeNota * i.fator) || i.quantidadeNota <= 0 || i.fator <= 0 || !Number.isFinite(i.valorEntrada) || i.valorEntrada < 0 || !i.embalagemConfirmada || (i.incerto && !i.leituraConferida) || (!i.produtoId && (!i.categoriaId || !i.nomeProduto.trim())))} onClick={() => void confirmar()}>Confirmar entrada no estoque</Button>
+        <Button loading={ocupado} disabled={!custosConferidos || !totalFecha || !selecionados.length || selecionados.some(i => !Number.isFinite(i.quantidadeNota * i.fator) || i.quantidadeNota <= 0 || i.fator <= 0 || !Number.isFinite(i.valorEntrada) || i.valorEntrada < 0 || (!i.produtoId && (!i.categoriaId || !i.nomeProduto.trim())))} onClick={() => void confirmar()}>Confirmar entrada no estoque</Button>
       </Card>}
     </>}
   </>;

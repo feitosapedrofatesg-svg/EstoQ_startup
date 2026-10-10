@@ -44,10 +44,8 @@ public class NotaFiscalValidation {
         } catch (ArithmeticException e) { throw new FieldValidationException("quantidade", "A conversão exige mais de três casas decimais. Corrija a quantidade."); }
     }
 
-    public void validarItem(ConfirmarNotaDTO.Item item, ItemNotaFiscalModel original) {
+    public void validarItem(ConfirmarNotaDTO.Item item) {
         if (item.unidadeEstoque()==null) erro("Escolha a unidade do estoque.");
-        if (!item.embalagemConfirmada()) erro("Confira a unidade e o conteúdo da embalagem.");
-        if (original.isIncerto() && !item.leituraConferida()) erro("Confira os dados extraídos da imagem.");
         if (item.produtoId()==null && (item.nomeProduto()==null || item.nomeProduto().isBlank() || item.categoriaId()==null))
             erro("Produtos novos precisam de nome e categoria.");
         dinheiro(item.valorEntrada());

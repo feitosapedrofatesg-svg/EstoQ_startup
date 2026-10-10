@@ -92,7 +92,8 @@ public class NotaFiscalService {
             var escolha = decisoes.get(item.getId());
             item.setSelecionado(escolha.selecionado());
             if (!escolha.selecionado()) continue;
-            validation.validarItem(escolha,item);
+            // A conferência final da nota cobre todas as linhas e embalagens.
+            validation.validarItem(escolha);
             Long produtoId = escolha.produtoId();
             if (produtoId==null) {
                 var chaveProduto = AssociadorProdutoNota.normalizar(escolha.nomeProduto()) + "|" + escolha.unidadeEstoque() + "|" + escolha.categoriaId();

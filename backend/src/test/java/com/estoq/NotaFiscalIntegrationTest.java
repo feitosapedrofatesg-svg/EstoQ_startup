@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 class NotaFiscalIntegrationTest {
     @Autowired NotaFiscalService notas;
+    @Autowired INotaFiscalRepository notaRepository;
     @Autowired ProdutoService produtos;
     @Autowired IProdutoRepository produtoRepository;
     @Autowired ICategoriaRepository categorias;
@@ -80,10 +81,24 @@ class NotaFiscalIntegrationTest {
         assertTrue(produtoRepository.findAllByAtivoTrue().isEmpty());
         assertFalse(notas.buscar(nota.id()).confirmada());
     }
-    @Test void exigeRevisaoDosCustosDaEmbalagemEDeTodosOsItens() {
+    @Test void exigeConferenciaFinalERevisaoDeTodosOsItens() {
         var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ","KG");
         var dto=confirmar(nota,null,categoriaId,BigDecimal.ONE);
         assertThrows(FieldValidationException.class,()->notas.confirmar(nota.id(),new ConfirmarNotaDTO(dto.version(),dto.itens(),false)));
         assertThrows(FieldValidationException.class,()->notas.confirmar(nota.id(),new ConfirmarNotaDTO(dto.version(),List.of(),true)));
     }
+    @Test void conferenciaFinalDispensaCaixinhasIndividuaisMesmoComOcr() {
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ 5KG","PC1");
+        var original=notaRepository.findById(nota.id()).orElseThrow();
+        original.getItens().getFirst().setIncerto(true);
+        notaRepository.saveAndFlush(original);
+        nota=notas.buscar(nota.id());
+        var item=nota.itens().getFirst();
+        var escolha=new ConfirmarNotaDTO.Item(item.id(),true,null,item.nomeProduto(),categoriaId,
+            UnidadeMedida.KG,item.quantidadeNota(),new BigDecimal("5"),item.valorEntrada(),null,false,false);
+        var concluida=notas.confirmar(nota.id(),new ConfirmarNotaDTO(nota.version(),List.of(escolha),true));
+        assertTrue(concluida.confirmada());
+        assertEquals(0,new BigDecimal("10").compareTo(produtos.buscar(concluida.itens().getFirst().produtoId()).getSaldoAtual()));
+    }
+
 }

@@ -17,7 +17,7 @@ produtos e desmarcar linhas que não devem entrar no estoque.
 
 As próximas compras reconhecem o código do fornecedor e o fator de embalagem
 confirmado. Mudança de descrição ou unidade pede nova conferência. Pacotes e
-garrafas não são convertidos para peso/volume sem confirmação.
+garrafas não são convertidos para peso/volume sem a conferência final da nota.
 
 ## JPG, PNG e câmera
 
@@ -31,7 +31,8 @@ A orientação EXIF é aplicada e a imagem é convertida para tons de cinza.
 Cada foto admite até 20 megapixels. A nota tem prazo de 30 segundos e apenas uma
 leitura de imagem roda por instância; outra tentativa recebe aviso para aguardar.
 
-Todos os itens de OCR exigem conferência com a imagem. A soma das linhas precisa
+A caixa final de conferência vale para todos os itens, incluindo o OCR, as unidades
+e o conteúdo das embalagens; não é necessário marcar cada item individualmente. A soma das linhas precisa
 fechar o total dos produtos; texto incompleto e páginas ausentes não geram uma
 entrada parcial. Fotos de notas diferentes não podem ser combinadas.
 

@@ -6,6 +6,7 @@ import com.estoq.business.balancos.CriarBalancoRequestDTO;
 import com.estoq.business.balancos.StatusBalanco;
 import com.estoq.business.balancos.TipoBalanco;
 import com.estoq.business.alertas.AlertaService;
+import com.estoq.business.alertas.AlertaModel;
 import com.estoq.business.alertas.IAlertaRepository;
 import com.estoq.business.alertas.TipoAlerta;
 import com.estoq.business.categorias.CategoriaModel;
@@ -280,6 +281,33 @@ class BalancoCmvIntegrationTest {
         assertEquals(1, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
         balancos.gerarAjustes(confirmado.id());
         assertEquals(0, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
+    }
+
+    @Test
+    void centralDeAlertasContaAbertosPorPerfilEAtualizaAoMarcarVisto() {
+        var alertaAdmin = new AlertaModel();
+        alertaAdmin.setTipo(TipoAlerta.BALANCO_PENDENTE);
+        alertaAdmin.setPerfilDestino(Perfil.ADMIN);
+        alertaAdmin.setMensagem("Alerta do administrador");
+        alertaAdmin.setDataGeracao(LocalDateTime.now());
+        alertaRepository.saveAndFlush(alertaAdmin);
+
+        var alertaCozinha = new AlertaModel();
+        alertaCozinha.setTipo(TipoAlerta.BALANCO_PENDENTE);
+        alertaCozinha.setPerfilDestino(Perfil.COZINHA);
+        alertaCozinha.setMensagem("Alerta da cozinha");
+        alertaCozinha.setDataGeracao(LocalDateTime.now());
+        alertaRepository.saveAndFlush(alertaCozinha);
+
+        assertEquals(1, alertas.contarAbertos(Perfil.ADMIN));
+        assertEquals(1, alertas.listar(false, Perfil.ADMIN).size());
+        assertEquals(1, alertas.contarAbertos(Perfil.COZINHA));
+
+        alertas.marcarVisualizado(alertaAdmin.getId());
+
+        assertEquals(0, alertas.contarAbertos(Perfil.ADMIN));
+        assertEquals(0, alertas.listar(false, Perfil.ADMIN).size());
+        assertEquals(1, alertas.contarAbertos(Perfil.COZINHA));
     }
 
     @Test

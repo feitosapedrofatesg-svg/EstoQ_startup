@@ -28,7 +28,9 @@ export function Dashboard() {
   const periodo = new URLSearchParams({ inicio: diasAtrasISO(30), fim: hojeISO() });
   const { data, loading, error, refresh } = useFetch<DashboardResumoDTO>(`/api/dashboard/resumo?${periodo}`, [], true);
   const canSeeAlerts = isAdmin || isCozinha;
-  const { data: alerts, refresh: refreshAlerts } = useFetch<AlertaDTO[]>(canSeeAlerts ? "/api/alertas" : null);
+  const { data: alerts, refresh: refreshAlerts } = useFetch<AlertaDTO[]>(
+    canSeeAlerts ? "/api/alertas?visualizado=false" : null
+  );
   const toast = useToast();
 
   const markSeen = async (id: number) => {

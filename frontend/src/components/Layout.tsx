@@ -120,7 +120,7 @@ function AlertBell() {
     if (!open) {
       setLoading(true);
       try {
-        const list = await api.get<AlertaDTO[]>("/api/alertas");
+        const list = await api.get<AlertaDTO[]>("/api/alertas?visualizado=false");
         setAlerts(list);
       } catch {
         /* sem alertas */

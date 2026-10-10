@@ -90,7 +90,8 @@ public class AlertaService {
         for (var configuracao : configuracoesBalanco.findAllByAtivoTrueOrderByIdAsc()) {
             if (configuracoes.estaVencida(configuracao)) {
                 gerar(TipoAlerta.BALANCO_PENDENTE, null, null, configuracao.getPeriodicidade());
-                configuracao.setProximaExecucao(configuracoes.calcularProxima(configuracao.getPeriodicidade(), configuracao.getDiaExecucao(), LocalDate.now()));
+                configuracao.setProximaExecucao(configuracoes.calcularProxima(configuracao.getPeriodicidade(),
+                        configuracao.getDiaExecucao(), LocalDate.now()));
             }
         }
     }
@@ -133,8 +134,8 @@ public class AlertaService {
                 .map(adapter::toDto).toList();
     }
 
-    public long contarAbertos() {
-        return repository.countByAtivoTrueAndVisualizadoFalse();
+    public long contarAbertos(Perfil perfil) {
+        return repository.countByAtivoTrueAndVisualizadoFalseAndPerfilDestino(perfil);
     }
 
     @Transactional

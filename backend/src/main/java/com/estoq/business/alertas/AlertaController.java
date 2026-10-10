@@ -28,7 +28,7 @@ public class AlertaController {
 
     @GetMapping("/abertos")
     public long abertos() {
-        return service.contarAbertos();
+        return service.contarAbertos(usuarioAtual.obter().getPerfil());
     }
 
     @PutMapping("/{id}/visualizado")

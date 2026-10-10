@@ -65,15 +65,17 @@ Para telas touch híbridas, foi considerada a diferença entre `pointer: coarse`
 
 ## Listas recolhidas por padrão
 
-As listas de estoque, lotes, consumo, desperdício, catálogo, movimentações,
-equipe, backups, cozinhas, balanços, alertas e relatórios começam minimizadas.
-O cabeçalho mantém o título e um botão explícito **Maximizar lista**. Ao abrir,
-o botão passa a **Minimizar lista**, e os filtros e ações ficam disponíveis.
-Os filtros já escolhidos são preservados ao minimizar e maximizar.
+As listas de desperdício e cozinhas e a seção Reposição sugerida dos relatórios
+começam minimizadas, com os botões **Maximizar lista** e **Minimizar lista**.
+Os filtros escolhidos são preservados ao recolher a lista.
 
-O botão tem contraste de cor, texto, ícone e altura mínima de 44 px. No celular,
-ocupa a largura do cabeçalho. Os itens de cada balanço também começam recolhidos,
-com um botão **Maximizar balanço**. Formulários e indicadores continuam acessíveis.
+Estoque, consumo, catálogo, movimentações, equipe, backups, visão geral e as
+outras seções dos relatórios ficam visíveis sem botão de recolhimento.
+A relação de balanços fica aberta; apenas os itens de cada balanço começam
+recolhidos, com botões individuais **Maximizar balanço** e **Minimizar balanço**.
+
+Os botões têm contraste de cor, texto, ícone e altura mínima de 44 px.
+No celular, ocupam a largura do cabeçalho.
 
 ## Validação
 

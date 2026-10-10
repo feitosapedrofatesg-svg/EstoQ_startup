@@ -255,7 +255,7 @@ function CmvMensal() {
   );
 
   return (
-    <Section collapsible title="CMV mês a mês">
+    <Section title="CMV mês a mês">
       {loading ? (
         <p className="muted">Carregando…</p>
       ) : data && data.length === 0 ? (
@@ -313,7 +313,7 @@ function Desperdicio() {
   }, [agreg]);
 
   return (
-    <Section collapsible title="Desperdício">
+    <Section title="Desperdício">
       <div className="filters">
         <div className="filters__dates">
           <Field label="De" htmlFor="des-inicio">
@@ -377,7 +377,7 @@ function ConsumoMedio() {
   const maxIdx = bars.reduce((a, b, i) => (b.value > bars[a].value ? i : a), 0);
 
   return (
-    <Section collapsible title="Consumo médio">
+    <Section title="Consumo médio">
       <div className="filters">
         <Field label="Janela (dias)" htmlFor="cons-dias">
           <Input id="cons-dias" type="number" min={1} max={365} value={dias} onChange={(e) => setDias(parseInt(e.target.value || "30", 10))} />
@@ -488,7 +488,7 @@ function Pdfs({ toast }: { toast: ReturnType<typeof useToast> }) {
   };
 
   return (
-    <Section collapsible title="Exportar em PDF">
+    <Section title="Exportar em PDF">
       <div className="pdf-grid">
         {docs.map((d) => (
           <Button

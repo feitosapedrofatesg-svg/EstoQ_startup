@@ -70,7 +70,6 @@ export function Estoque() {
       />
 
       <Card
-        collapsible
         title="Produtos e saldos"
         actions={
           <div className="filterbar">
@@ -218,7 +217,7 @@ function ProdutoDetalhe({
         </LinkButton>
       </div>
 
-      <Card collapsible title="Lotes">
+      <Card title="Lotes">
       {loading && <p className="muted">Carregando lotes…</p>}
       {lotes && lotes.length === 0 && (
         <EmptyState title="Sem lotes" text="Registre uma entrada para criar o primeiro lote deste produto." />

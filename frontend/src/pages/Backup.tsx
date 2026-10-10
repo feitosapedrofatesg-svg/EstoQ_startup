@@ -65,7 +65,7 @@ export function Backup() {
         </p>
       </AlertBanner>
 
-      <Card collapsible title="Backups salvos">
+      <Card title="Backups salvos">
         {error && <div className="alertbanner alertbanner--bad">{error}</div>}
         {loading && !data ? (
           <p className="muted">Carregando…</p>

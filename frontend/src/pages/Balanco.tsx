@@ -189,7 +189,7 @@ export function Balanco() {
         <ConfigBalanco config={configs[0] ?? null} onDone={() => void refreshConfig()} />
       )}
 
-      <Card collapsible title="Balanços">
+      <Card title="Balanços">
         {loading && !data ? (
           <p className="muted">Carregando…</p>
         ) : data && data.length === 0 ? (

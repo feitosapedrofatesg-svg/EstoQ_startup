@@ -12,7 +12,13 @@ inclusive a segunda página). Modelos que não puderem ser lidos devem usar XML
 ou entrada manual. O XML não carrega entidades ou recursos externos.
 
 Na revisão, associe o produto ao catálogo ou escolha criar um novo produto com
-nome, categoria e unidade. É possível aplicar uma categoria a todos os novos
+nome e unidade. A categoria é sugerida a partir dos produtos já classificados e
+regras pelo nome do item (carnes, grãos, bebidas, limpeza e outros grupos).
+A sugestão usa somente categorias ativas da cozinha autenticada. Correspondências
+ambíguas ou desconhecidas entram em **Sem classificação**, criada somente na
+confirmação se ainda não existir. Você pode substituir a sugestão por uma categoria
+manual. Rascunhos antigos também aceitam confirmação sem categoria preenchida.
+É possível aplicar uma categoria a todos os novos
 produtos e desmarcar linhas que não devem entrar no estoque.
 
 As próximas compras reconhecem o código do fornecedor e o fator de embalagem

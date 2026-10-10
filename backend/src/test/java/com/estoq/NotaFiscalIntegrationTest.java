@@ -101,4 +101,28 @@ class NotaFiscalIntegrationTest {
         assertEquals(0,new BigDecimal("10").compareTo(produtos.buscar(concluida.itens().getFirst().produtoId()).getSaldoAtual()));
     }
 
+    @Test void sugereCategoriaPeloNomeSemCriarProdutoNaLeitura() {
+        var graos=new CategoriaModel();graos.setNome("Grãos");categorias.saveAndFlush(graos);
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ 5KG","PC1");
+        assertEquals(graos.getId(),nota.itens().getFirst().categoriaId());
+        assertTrue(produtoRepository.findAllByAtivoTrue().isEmpty());
+        var concluida=notas.confirmar(nota.id(),confirmar(nota,null,null,new BigDecimal("5")));
+        assertEquals(graos.getId(),concluida.itens().getFirst().categoriaId());
+        assertEquals(1,produtoRepository.findAllByAtivoTrue().size());
+    }
+    @Test void produtoDesconhecidoEntraSemCategoriaManualEReutilizaSemClassificacao() {
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"ARTIGO DESCONHECIDO","KG");
+        assertNull(nota.itens().getFirst().categoriaId());
+        assertEquals(1,categorias.findAllByAtivoTrue().size());
+        var concluida=notas.confirmar(nota.id(),confirmar(nota,null,null,BigDecimal.ONE));
+        var categoria=concluida.itens().getFirst().categoriaId();
+        assertEquals("Sem classificação",categorias.findById(categoria).orElseThrow().getNome());
+        var arquivo=new MockMultipartFile("arquivos","nota.xml","application/xml",
+            NotaFiscalExemplo.xml(NotaFiscalExemplo.CHAVE.replace("000000011","000000021"),"OUTRO ARTIGO","AR2","KG","2","20.00").getBytes());
+        var segunda=notas.analisar(List.of(arquivo));
+        var outra=notas.confirmar(segunda.id(),confirmar(segunda,null,null,BigDecimal.ONE));
+        assertEquals(categoria,outra.itens().getFirst().categoriaId());
+        assertEquals(2,categorias.findAllByAtivoTrue().size());
+    }
+
 }

@@ -34,7 +34,7 @@ export function NotasFiscais() {
   const [erro, setErro] = useState<string | null>(null);
   const [custosConferidos, setCustosConferidos] = useState(false);
   const [produtos, setProdutos] = useState<ProdutoDTO[]>([]);
-  const { data: categorias } = useFetch<Page<CategoriaDTO>>("/api/categorias?size=2000");
+  const { data: categorias, refresh: atualizarCategorias } = useFetch<Page<CategoriaDTO>>("/api/categorias?size=2000");
   const toast = useToast();
   const notaId = params.get("id");
   useEffect(() => {
@@ -113,8 +113,9 @@ export function NotasFiscais() {
           embalagemConfirmada: custosConferidos, leituraConferida: custosConferidos })),
       });
       mostrar(resultado);
-      invalidarCache(["/api/produtos", "/api/estoque", "/api/lotes", "/api/movimentacoes", "/api/dashboard", "/api/alertas"]);
+      invalidarCache(["/api/categorias", "/api/produtos", "/api/estoque", "/api/lotes", "/api/movimentacoes", "/api/dashboard", "/api/alertas"]);
       void carregarCatalogo().catch(e => setErro((e as Error).message));
+      void atualizarCategorias();
       toast.success("Entrada confirmada", "Produtos, lotes e estoque foram atualizados.");
     } catch (e) { setErro((e as Error).message); }
     finally { setOcupado(false); }
@@ -129,7 +130,6 @@ export function NotasFiscais() {
   if (!totalFecha) pendencias.push("A soma dos custos precisa fechar o total da nota.");
   for (const item of selecionados) {
     const linha = `Item ${item.numero} (${item.descricao})`;
-    if (!item.produtoId && !item.categoriaId) pendencias.push(`${linha}: escolha uma categoria. Você pode aplicar uma categoria a todos os produtos novos no início da lista.`);
     if (!item.produtoId && !item.nomeProduto?.trim()) pendencias.push(`${linha}: informe o nome do produto.`);
     if (!Number.isFinite(item.quantidadeNota * item.fator) || item.quantidadeNota <= 0 || item.fator <= 0)
       pendencias.push(`${linha}: informe quantidade e conteúdo da embalagem maiores que zero.`);
@@ -169,6 +169,7 @@ export function NotasFiscais() {
     </Card>
     {nota && <>
       <Card title={`NF-e ${nota.numero} · ${nota.fornecedor}`}>
+        {!nota.confirmada && <p className="muted">Categorias sugeridas pelo catálogo e pelo nome do item. Sem correspondência, o produto entra em “Sem classificação”. Você pode alterar as sugestões abaixo.</p>}
         <p>Emissão: {fmtDate(nota.emissao)} · Total: <strong>{fmtMoney(nota.valorTotal)}</strong></p>
         <p className="muted" style={{ overflowWrap: "anywhere" }}>Chave: {nota.chave}</p>
         {nota.avisos.map((aviso, index) => <AlertBanner key={index} tone="warn">{aviso}</AlertBanner>)}
@@ -178,7 +179,7 @@ export function NotasFiscais() {
             <Select id="nota-categoria-geral" defaultValue="" onChange={e => {
               const categoriaId = Number(e.target.value) || null;
               setItens(prev => prev.map(i => !i.produtoId ? { ...i, categoriaId } : i)); setCustosConferidos(false);
-            }}><option value="">Escolher categoria…</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
+            }}><option value="">Usar classificação automática</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
       <nav className="nota-navegacao" aria-label="Navegação dos itens da nota fiscal">
@@ -200,7 +201,7 @@ export function NotasFiscais() {
           {!item.produtoId && <div className="form-grid-2">
             <Field label="Nome do novo produto" htmlFor={`nota-nome-${item.id}`}><Input id={`nota-nome-${item.id}`} value={item.nomeProduto} maxLength={120} onChange={e => alterar(item.id, { nomeProduto: e.target.value })} /></Field>
             <Field label="Categoria" htmlFor={`nota-categoria-${item.id}`}><Select id={`nota-categoria-${item.id}`} value={item.categoriaId ?? ""} onChange={e => alterar(item.id, { categoriaId: Number(e.target.value) || null })}>
-              <option value="">Escolher categoria…</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              <option value="">Automática · Sem classificação se não reconhecido</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </Select></Field>
           </div>}
           <div className="form-grid-2">

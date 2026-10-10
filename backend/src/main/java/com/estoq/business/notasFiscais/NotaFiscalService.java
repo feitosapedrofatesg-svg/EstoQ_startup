@@ -1,6 +1,7 @@
 package com.estoq.business.notasFiscais;
 
 import com.estoq.business.auth.UsuarioAtual;
+import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.entradas.EntradaRequestDTO;
 import com.estoq.business.entradas.EntradaService;
 import com.estoq.business.produtos.*;
@@ -28,13 +29,22 @@ public class NotaFiscalService {
     private final NotaFiscalAdapter adapter;
     private final AssociadorProdutoNota associador;
     private final RateioNota rateio;
+    private final ICategoriaRepository categorias;
+    private final AssociadorCategoriaNota associadorCategoria;
+    private final CategoriaAutomaticaNotaService categoriaAutomatica;
 
     @Transactional
     public NotaFiscalDTO analisar(List<MultipartFile> arquivos) {
         var dados = leitor.ler(arquivos);
         validation.validarLeitura(dados);
         var existente = repository.findByChaveAndAtivoTrue(dados.chave()).orElse(null);
-        if (existente!=null) return adapter.toDto(existente);
+        if (existente!=null) {
+            if (!existente.isConfirmada()) {
+                sugerirCategorias(existente);
+                repository.saveAndFlush(existente);
+            }
+            return adapter.toDto(existente);
+        }
         var nota = new NotaFiscalModel();
         nota.setChave(dados.chave()); nota.setFornecedor(dados.fornecedor());
         nota.setDocumentoFornecedor(dados.documentoFornecedor()); nota.setNumero(dados.numero());
@@ -60,8 +70,18 @@ public class NotaFiscalService {
             associador.sugerir(item,dados.documentoFornecedor(),ativos);
             nota.getItens().add(item);
         }
+        sugerirCategorias(nota);
         repository.saveAndFlush(nota);
         return adapter.toDto(nota);
+    }
+
+    private void sugerirCategorias(NotaFiscalModel nota) {
+        var ativos = catalogo.findAllByAtivoTrue();
+        var disponiveis = categorias.findAllByAtivoTrue();
+        for (var item : nota.getItens()) {
+            if (item.getProdutoId()==null && item.getCategoriaId()==null)
+                item.setCategoriaId(associadorCategoria.sugerir(item.getNomeProduto(),ativos,disponiveis));
+        }
     }
 
     public NotaFiscalDTO buscar(Long id) { return adapter.toDto(encontrar(id)); }
@@ -87,6 +107,8 @@ public class NotaFiscalService {
         }).filter(Objects::nonNull).reduce(BigDecimal.ZERO,BigDecimal::add);
         if (totalRevisado.compareTo(nota.getValorTotal())!=0)
             throw new FieldValidationException("valorEntrada","A soma dos custos revisados deve fechar o total da nota, incluindo itens desmarcados.");
+        if (dto.itens().stream().anyMatch(i -> i.selecionado() && i.produtoId()==null && i.categoriaId()==null))
+            categoriaAutomatica.prepararConfirmacao();
         var novosNaNota = new HashMap<String,Long>();
         for (var item : nota.getItens()) {
             var escolha = decisoes.get(item.getId());
@@ -96,13 +118,15 @@ public class NotaFiscalService {
             validation.validarItem(escolha);
             Long produtoId = escolha.produtoId();
             if (produtoId==null) {
-                var chaveProduto = AssociadorProdutoNota.normalizar(escolha.nomeProduto()) + "|" + escolha.unidadeEstoque() + "|" + escolha.categoriaId();
+                Long categoriaId = escolha.categoriaId()!=null ? escolha.categoriaId()
+                    : categoriaAutomatica.resolver(escolha.nomeProduto(),catalogo.findAllByAtivoTrue());
+                var chaveProduto = AssociadorProdutoNota.normalizar(escolha.nomeProduto()) + "|" + escolha.unidadeEstoque() + "|" + categoriaId;
                 produtoId = novosNaNota.get(chaveProduto);
                 if (produtoId==null) {
                     var iguais = catalogo.findAllByAtivoTrue().stream().filter(p -> AssociadorProdutoNota.normalizar(p.getNome())
                             .equals(AssociadorProdutoNota.normalizar(escolha.nomeProduto())) && p.getUnidadeMedida()==escolha.unidadeEstoque()).toList();
                     if (!iguais.isEmpty()) throw new ConflictException("Já existe um produto com esse nome e unidade. Selecione-o na revisão.");
-                    var novo = new ProdutoDTO(); novo.setNome(escolha.nomeProduto()); novo.setCategoriaId(escolha.categoriaId());
+                    var novo = new ProdutoDTO(); novo.setNome(escolha.nomeProduto()); novo.setCategoriaId(categoriaId);
                     novo.setUnidadeMedida(escolha.unidadeEstoque()); novo.setCodigoBarras(item.getCodigoBarras());
                     produtoId = produtos.criar(novo).getId(); novosNaNota.put(chaveProduto,produtoId);
                 }

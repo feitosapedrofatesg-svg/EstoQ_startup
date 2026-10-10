@@ -46,8 +46,8 @@ public class NotaFiscalValidation {
 
     public void validarItem(ConfirmarNotaDTO.Item item) {
         if (item.unidadeEstoque()==null) erro("Escolha a unidade do estoque.");
-        if (item.produtoId()==null && (item.nomeProduto()==null || item.nomeProduto().isBlank() || item.categoriaId()==null))
-            erro("Produtos novos precisam de nome e categoria.");
+        if (item.produtoId()==null && (item.nomeProduto()==null || item.nomeProduto().isBlank()))
+            erro("Produtos novos precisam de nome.");
         dinheiro(item.valorEntrada());
         quantidade(item);
     }

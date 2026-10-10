@@ -138,7 +138,7 @@ export function Dashboard() {
             </Card>
 
             {canSeeAlerts && (
-              <Card title="Precisa de atenção">
+              <Card collapsible title="Precisa de atenção">
                 {alerts && alerts.length > 0 ? (
                   <ul className="alert-list">
                     {alerts.slice(0, 8).map((a) => (

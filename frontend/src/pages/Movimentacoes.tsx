@@ -132,6 +132,7 @@ export function Movimentacoes() {
       </div>
 
       <Card
+        collapsible
         title="Histórico"
         actions={
           <div className="filters">

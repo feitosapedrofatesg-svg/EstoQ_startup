@@ -70,6 +70,7 @@ export function Estoque() {
       />
 
       <Card
+        collapsible
         title="Produtos e saldos"
         actions={
           <div className="filterbar">
@@ -217,7 +218,7 @@ function ProdutoDetalhe({
         </LinkButton>
       </div>
 
-      <h3 className="section-title">Lotes</h3>
+      <Card collapsible title="Lotes">
       {loading && <p className="muted">Carregando lotes…</p>}
       {lotes && lotes.length === 0 && (
         <EmptyState title="Sem lotes" text="Registre uma entrada para criar o primeiro lote deste produto." />
@@ -261,6 +262,7 @@ function ProdutoDetalhe({
       <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
         Atualizar lotes
       </Button>
+      </Card>
     </Modal>
   );
 }

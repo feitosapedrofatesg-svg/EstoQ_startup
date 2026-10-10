@@ -106,7 +106,7 @@ export function Desperdicio() {
     <>
       <PageHeader title="Desperdício" subtitle="Vencidos para descarte e todas as perdas da cozinha, incluindo diferenças negativas do balanço." />
 
-      <Card title="Itens para excluir do estoque" actions={
+      <Card collapsible title="Itens para excluir do estoque" actions={
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshLotes()}>Atualizar</Button>
       }>
         <div className="form-grid-2">
@@ -149,7 +149,7 @@ export function Desperdicio() {
         }} />
       </Card>
 
-      <Card title="Histórico geral de desperdício" actions={
+      <Card collapsible title="Histórico geral de desperdício" actions={
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshRegistros()}>Atualizar</Button>
       }>
         <div className="form-grid-2">
@@ -195,7 +195,7 @@ export function Desperdicio() {
         ))}
       </Card>
 
-      <Card title="Embalagens abertas">
+      <Card collapsible title="Embalagens abertas">
         {erroAbertos && <AlertBanner tone="bad">{erroAbertos}</AlertBanner>}
         {loadingAbertos && !abertos ? <p className="muted">Carregando…</p> : !abertos?.length ? (
           <EmptyState title="Nenhuma embalagem aberta" text="Não há sobras de embalagens para descartar." icon="box-open" />

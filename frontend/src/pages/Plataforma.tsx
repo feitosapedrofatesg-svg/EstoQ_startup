@@ -51,7 +51,7 @@ export function Plataforma() {
         subtitle="Cozinhas cadastradas na plataforma. Suspender bloqueia o acesso de toda a equipe na hora."
       />
 
-      <Card title="Cozinhas">
+      <Card collapsible title="Cozinhas">
         {error && <div className="alertbanner alertbanner--bad">{error}</div>}
         {loading && !data && <p className="muted">Carregando…</p>}
         {!loading && restaurantes.length === 0 ? (

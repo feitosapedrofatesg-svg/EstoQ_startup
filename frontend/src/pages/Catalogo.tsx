@@ -115,6 +115,8 @@ export function Catalogo() {
       />
 
       <Card
+        collapsible
+        collapseLabel={tab === "produtos" ? "Produtos" : "Categorias"}
         title={
           <Tabs
             items={[

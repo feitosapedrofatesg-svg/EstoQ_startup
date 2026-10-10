@@ -63,8 +63,22 @@ O problema do botão **OK** foi localizado na estrutura da tabela de contagem: a
 
 Para telas touch híbridas, foi considerada a diferença entre `pointer: coarse` e `any-pointer: coarse`. O primeiro só identifica o tipo de ponteiro principal; o segundo também reconhece touch quando há mouse ou trackpad. Os alvos maiores usam `any-pointer: coarse` para contemplar essa combinação.
 
+## Listas recolhidas por padrão
+
+As listas de estoque, lotes, consumo, desperdício, catálogo, movimentações,
+equipe, backups, cozinhas, balanços, alertas e relatórios começam minimizadas.
+O cabeçalho mantém o título e um botão explícito **Maximizar lista**. Ao abrir,
+o botão passa a **Minimizar lista**, e os filtros e ações ficam disponíveis.
+Os filtros já escolhidos são preservados ao minimizar e maximizar.
+
+O botão tem contraste de cor, texto, ícone e altura mínima de 44 px. No celular,
+ocupa a largura do cabeçalho. Os itens de cada balanço também começam recolhidos,
+com um botão **Maximizar balanço**. Formulários e indicadores continuam acessíveis.
+
 ## Validação
 
+- Recolhimento e expansão exercitados no Chrome com API simulada nas telas operacionais, dashboard, relatórios e plataforma; filtros preservados e modal de lotes verificado.
+- Botões de balanço e ausência de overflow da página verificados em 320, 390 e 900 px.
 - Build de produção do frontend executado com `npm --prefix frontend run build`.
 - Layout mobile exercitado em viewports de `320 px` e `390 px`.
 - Contagem do balanço exercitada também em `900 px`, para conferir o formato em colunas.

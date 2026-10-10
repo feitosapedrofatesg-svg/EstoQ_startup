@@ -81,7 +81,7 @@ export function Consumo() {
         />
       </Card>
 
-      <Card title="Embalagens abertas">
+      <Card collapsible title="Embalagens abertas">
         {erroAbertos && <div className="alertbanner alertbanner--bad">{erroAbertos}</div>}
         {loadingAbertos && !abertos ? (
           <p className="muted">Carregando…</p>
@@ -134,6 +134,7 @@ export function Consumo() {
       </Card>
 
       <Card
+        collapsible
         title="Consumo de hoje"
         actions={
           <div className="filters">

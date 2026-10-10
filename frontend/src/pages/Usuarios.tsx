@@ -104,6 +104,7 @@ export function Usuarios() {
       />
 
       <Card
+        collapsible
         title="Equipe"
         actions={
           <Input

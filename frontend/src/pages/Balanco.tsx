@@ -6,6 +6,7 @@ import {
   PageHeader,
   Card,
   Button,
+  ListToggle,
   Modal,
   Field,
   Select,
@@ -110,7 +111,7 @@ export function Balanco() {
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
   const [busyLabel, setBusyLabel] = useState("");
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const doAction = async (id: number, label: string, fn: () => Promise<BalancoDTO>) => {
     setBusy(id);
@@ -188,7 +189,7 @@ export function Balanco() {
         <ConfigBalanco config={configs[0] ?? null} onDone={() => void refreshConfig()} />
       )}
 
-      <Card title="Balanços">
+      <Card collapsible title="Balanços">
         {loading && !data ? (
           <p className="muted">Carregando…</p>
         ) : data && data.length === 0 ? (
@@ -215,28 +216,25 @@ export function Balanco() {
                 b.status === "EM_ANDAMENTO" && isAdmin && counted === total && total > 0;
               const canAjustar = b.status === "CONCLUIDO" && isAdmin && b.itens.some((i) => !i.ajusteAplicado);
               return (
-                <article key={b.id} className={`balanco ${collapsed.has(b.id) ? "balanco--collapsed" : ""}`}>
+                <article key={b.id} className={`balanco ${!expanded.has(b.id) ? "balanco--collapsed" : ""}`}>
                   <header className="balanco__head">
                     <div className="balanco__head-main">
-                      <button
-                        type="button"
-                        className="balanco__toggle"
-                        aria-label={collapsed.has(b.id) ? "Expandir balanço" : "Minimizar balanço"}
-                        onClick={() =>
-                          setCollapsed((prev) => {
-                            const next = new Set(prev);
-                            next.has(b.id) ? next.delete(b.id) : next.add(b.id);
-                            return next;
-                          })
-                        }
-                      >
-                        <span className={`balanco__chevron${collapsed.has(b.id) ? "" : " balanco__chevron--open"}`} aria-hidden="true">▸</span>
-                      </button>
+                      <ListToggle
+                        expanded={expanded.has(b.id)}
+                        controls={`balanco-itens-${b.id}`}
+                        label={`balanço #${b.id}`}
+                        subject="balanço"
+                        onToggle={() => setExpanded((prev) => {
+                          const next = new Set(prev);
+                          next.has(b.id) ? next.delete(b.id) : next.add(b.id);
+                          return next;
+                        })}
+                      />
                       <div>
                         <h3 className="balanco__title">
                           Balanço #{b.id}
                           <StatusBadge tone={STATUS_TONE[b.status]}>{STATUS_LABEL[b.status]}</StatusBadge>
-                          {collapsed.has(b.id) && (
+                          {!expanded.has(b.id) && (
                             <span className="balanco__summary">
                               {counted}/{total} itens contados
                             </span>
@@ -307,8 +305,8 @@ export function Balanco() {
                     </div>
                   </header>
 
-                  {!collapsed.has(b.id) && total > 0 && (
-                    <>
+                  {total > 0 && (
+                    <div id={`balanco-itens-${b.id}`} hidden={!expanded.has(b.id)}>
                       <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${pct}% dos itens contados`}>
                         <div className="progress__fill" style={{ width: `${pct}%` }} />
                       </div>
@@ -354,7 +352,7 @@ export function Balanco() {
                           ))}
                         </DataTable>
                       )}
-                    </>
+                    </div>
                   )}
                 </article>
               );

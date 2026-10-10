@@ -729,6 +729,48 @@ a:hover {
   padding: 18px 22px 22px;
 }
 
+.card__body[hidden] {
+  display: none;
+}
+
+.card--collapsed .card__head {
+  padding-bottom: 18px;
+}
+
+.list-toggle {
+  min-height: 44px;
+  border-width: 2px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+}
+
+.list-toggle__icon {
+  display: inline-flex;
+  transition: transform 180ms ease;
+}
+
+.list-toggle__icon--open {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 720px) {
+  .card--collapsible > .card__head > .card__actions > .list-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .balanco__head-main {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .balanco__head-main > .list-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .card__actions .tabs {
   margin-bottom: 0;
 }

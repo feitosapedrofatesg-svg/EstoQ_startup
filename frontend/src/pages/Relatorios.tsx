@@ -60,9 +60,9 @@ export function Relatorios() {
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children, collapsible = false }: { title: string; children: ReactNode; collapsible?: boolean }) {
   return (
-    <Card title={title}>
+    <Card title={title} collapsible={collapsible}>
       {children}
     </Card>
   );
@@ -255,7 +255,7 @@ function CmvMensal() {
   );
 
   return (
-    <Section title="CMV mês a mês">
+    <Section collapsible title="CMV mês a mês">
       {loading ? (
         <p className="muted">Carregando…</p>
       ) : data && data.length === 0 ? (
@@ -313,7 +313,7 @@ function Desperdicio() {
   }, [agreg]);
 
   return (
-    <Section title="Desperdício">
+    <Section collapsible title="Desperdício">
       <div className="filters">
         <div className="filters__dates">
           <Field label="De" htmlFor="des-inicio">
@@ -377,7 +377,7 @@ function ConsumoMedio() {
   const maxIdx = bars.reduce((a, b, i) => (b.value > bars[a].value ? i : a), 0);
 
   return (
-    <Section title="Consumo médio">
+    <Section collapsible title="Consumo médio">
       <div className="filters">
         <Field label="Janela (dias)" htmlFor="cons-dias">
           <Input id="cons-dias" type="number" min={1} max={365} value={dias} onChange={(e) => setDias(parseInt(e.target.value || "30", 10))} />
@@ -417,24 +417,13 @@ function ConsumoMedio() {
 function Reposicao() {
   const { data, loading } = useFetch<ReposicaoSugeridaDTO[]>("/api/relatorios/reposicao-sugerida?dias=7");
   const total = useMemo(() => (data ?? []).length, [data]);
-  const [minimizada, setMinimizada] = useState(false);
 
   return (
     <Card
       title={`Reposição sugerida${total ? ` (${total})` : ""}`}
-      actions={(
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={minimizada ? "chevron-down" : "chevron-right"}
-          aria-expanded={!minimizada}
-          aria-label={minimizada ? "Expandir reposição sugerida" : "Minimizar reposição sugerida"}
-          onClick={() => setMinimizada((atual) => !atual)}
-        />
-      )}
+      collapsible
     >
-      {!minimizada && (
-        loading ? (
+      {loading ? (
           <p className="muted">Carregando…</p>
         ) : data && data.length === 0 ? (
           <EmptyState
@@ -467,8 +456,7 @@ function Reposicao() {
               </tr>
             ))}
           </DataTable>
-        )
-      )}
+        )}
     </Card>
   );
 }
@@ -500,7 +488,7 @@ function Pdfs({ toast }: { toast: ReturnType<typeof useToast> }) {
   };
 
   return (
-    <Section title="Exportar em PDF">
+    <Section collapsible title="Exportar em PDF">
       <div className="pdf-grid">
         {docs.map((d) => (
           <Button

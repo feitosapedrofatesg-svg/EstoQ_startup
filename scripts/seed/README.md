@@ -41,15 +41,15 @@ real de produção, e não só simula a requisição.
 Todo arquivo começa com dois blocos `DO $$` que abortam **antes de gravar**:
 
 1. **Schema** — confere se as colunas que o seed usa existem. O schema de
-   produção não veio das migrations (V1–V3 estão quebradas e a V4 não existe),
-   então as migrations não servem de referência; só a introspecção do banco
-   serve.
+   produção foi formado durante a evolução do aplicativo legado. Bancos novos
+   agora usam `B4__schema_completo.sql`, mas a carga continua conferindo o schema
+   real antes de gravar.
 2. **Tenant** — resolve o `restaurante_id` pelo e-mail de `EMAIL_ALVO` e aborta
    se o usuário não existir, não tiver loja, ou for `PLATAFORMA`.
 
 O guard de tenant não é paranoia. O `TenantEntity` usa `@TenantId`, e linha com
-`restaurante_id` nulo **não é filtrada por tenant** — ela aparece para todos os
-restaurantes. O `admin@estoq.com` do `bootstrap-producao.sql` é exatamente
+`restaurante_id` nulo não identifica uma loja válida. O perfil PLATAFORMA opera como tenant raiz
+e não deve receber a carga de estoque. O `admin@estoq.com` do `bootstrap-producao.sql` é exatamente
 esse caso. Se o seed rodasse com ele, os 182 produtos ficariam visíveis para a
 plataforma inteira.
 

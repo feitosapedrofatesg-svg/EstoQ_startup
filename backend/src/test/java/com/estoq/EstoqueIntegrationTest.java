@@ -91,7 +91,8 @@ class EstoqueIntegrationTest {
         u.setSenha("hash");
         u.setPerfil(Perfil.ADMIN);
         users.saveAndFlush(u);
-        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(u.getEmail(), null, List.of()));
+        SecurityContextHolder.getContext()
+                .setAuthentication(UsernamePasswordAuthenticationToken.authenticated(u.getEmail(), null, List.of()));
         var c = new CategoriaModel();
         c.setNome("Teste");
         categorias.saveAndFlush(c);
@@ -108,7 +109,25 @@ class EstoqueIntegrationTest {
     }
 
     Long entrada(String qtd, String valor, LocalDate validade) {
-        return entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n(qtd), n(valor), UnidadeMedida.KG, validade, null, false)).movimentacoes().getFirst().loteId();
+        return entradas
+                .registrarEntrada(
+                        new EntradaRequestDTO(produtoId, n(qtd), n(valor), UnidadeMedida.KG, validade, null, false))
+                .movimentacoes().getFirst().loteId();
+    }
+
+    @Test
+    void listaEstoqueSeparaSaldoFisicoDeSaldoConsumivel() {
+        entrada("5", "200", LocalDate.now().minusDays(1));
+        entrada("2", "80", LocalDate.now());
+        entrada("3", "120", null);
+
+        var item = estoque.listar(false, false).stream()
+                .filter(p -> p.produtoId().equals(produtoId))
+                .findFirst()
+                .orElseThrow();
+
+        igual("10", item.saldoAtual());
+        igual("5", item.saldoDisponivelConsumo());
     }
 
     @Test
@@ -121,53 +140,72 @@ class EstoqueIntegrationTest {
         a = abertos.consumirProdutoAberto(a.id(), new ConsumirProdutoAbertoRequestDTO(n("0.7"), null, null, null));
         igual("3.8", a.saldoAtual());
         igual("0.8", a.quantidadeRestante());
-        a = abertos.desperdicarProdutoAberto(a.id(), new DesperdicarProdutoAbertoRequestDTO(n("0.8"), null, null, null));
+        a = abertos.desperdicarProdutoAberto(a.id(),
+                new DesperdicarProdutoAbertoRequestDTO(n("0.8"), null, null, null));
         igual("3", a.quantidadeLoteAtual());
         assertTrue(a.finalizado());
-        var perdas = movimentos.findAll().stream().filter(DesperdicioModel.class::isInstance).map(DesperdicioModel.class::cast).toList();
+        var perdas = movimentos.findAll().stream().filter(DesperdicioModel.class::isInstance)
+                .map(DesperdicioModel.class::cast).toList();
         igual("32", perdas.getFirst().getValorPrejuizo());
         assertEquals(MotivoDesperdicio.SOBRA_NAO_APROVEITADA, perdas.getFirst().getMotivo());
-        igual("48", movimentos.findAll().stream().filter(ConsumoModel.class::isInstance).map(m -> ((ConsumoModel) m).getCustoConsumo()).reduce(BigDecimal.ZERO, BigDecimal::add));
+        igual("48", movimentos.findAll().stream().filter(ConsumoModel.class::isInstance)
+                .map(m -> ((ConsumoModel) m).getCustoConsumo()).reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     @Test
     void aberturaSemUsoNaoCriaConsumoNemBaixa() {
         Long loteId = entrada("5", "50", LocalDate.now().plusDays(3));
         long antes = movimentos.count();
-        var a = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("3"), BigDecimal.ZERO, null, null));
+        var a = abertos
+                .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("3"), BigDecimal.ZERO, null, null));
         igual("5", a.saldoAtual());
         igual("3", a.quantidadeRestante());
         assertEquals(antes, movimentos.count());
-        assertThrows(ConflictException.class, () -> abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("3"), BigDecimal.ZERO, null, null)));
+        assertThrows(ConflictException.class, () -> abertos
+                .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("3"), BigDecimal.ZERO, null, null)));
     }
 
     @Test
     void fifoPorValidadeConsomeAbertoSemDesalinharRastreio() {
         Long tardio = entrada("5", "50", LocalDate.now().plusDays(10));
         Long cedo = entrada("3", "60", LocalDate.now().plusDays(1));
-        var a = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, cedo, n("2"), BigDecimal.ZERO, null, null));
+        var a = abertos
+                .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, cedo, n("2"), BigDecimal.ZERO, null, null));
         var result = consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("4"), null, null));
         igual("0", lotes.findById(cedo).orElseThrow().getQuantidadeAtual());
         igual("4", lotes.findById(tardio).orElseThrow().getQuantidadeAtual());
         assertTrue(abertos.buscar(a.id()).finalizado());
-        igual("70", result.movimentacoes().stream().map(MovimentacaoDTO::custoConsumo).reduce(BigDecimal.ZERO, BigDecimal::add));
+        igual("70", result.movimentacoes().stream().map(MovimentacaoDTO::custoConsumo).reduce(BigDecimal.ZERO,
+                BigDecimal::add));
     }
 
     @Test
     void rejeitaConsumoVencidoIncluindoItemAberto() {
         Long loteId = entrada("5", "50", LocalDate.now().plusDays(1));
-        var a = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("2"), BigDecimal.ZERO, null, null));
+        var a = abertos
+                .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("2"), BigDecimal.ZERO, null, null));
         lotes.findById(loteId).orElseThrow().setDataValidade(LocalDate.now().minusDays(1));
         lotes.flush();
-        assertThrows(ConflictException.class, () -> abertos.consumirProdutoAberto(a.id(), new ConsumirProdutoAbertoRequestDTO(n("1"), null, null, null)));
+        assertThrows(ConflictException.class, () -> abertos.consumirProdutoAberto(a.id(),
+                new ConsumirProdutoAbertoRequestDTO(n("1"), null, null, null)));
     }
 
     @Test
     void rejeitaDesperdicioAcimaDoRestante() {
         Long loteId = entrada("5", "50", LocalDate.now().plusDays(1));
         var a = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("2"), n("1"), null, null));
-        assertThrows(ConflictException.class, () -> abertos.desperdicarProdutoAberto(a.id(), new DesperdicarProdutoAbertoRequestDTO(n("2"), null, null, null)));
+        assertThrows(ConflictException.class, () -> abertos.desperdicarProdutoAberto(a.id(),
+                new DesperdicarProdutoAbertoRequestDTO(n("2"), null, null, null)));
         igual("4", estoque.obterSaldo(produtoId));
+    }
+
+    @Test
+    void rejeitaDesperdicioMaiorQueEstoqueDisponivelComMensagemExplicita() {
+        entrada("9", "50", LocalDate.now().plusDays(1));
+        var ex = assertThrows(ConflictException.class,
+                () -> desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, n("10"),
+                        MotivoDesperdicio.VENCIMENTO, null, null, null)));
+        assertTrue(ex.getMessage().contains("9"));
     }
 
     @Test
@@ -175,7 +213,8 @@ class EstoqueIntegrationTest {
         Long loteId = entrada("5", "50", LocalDate.now().plusDays(1));
         Long version = lotes.findById(loteId).orElseThrow().getVersion();
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, loteId, n("1"), version, null));
-        assertThrows(ConflictException.class, () -> consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, loteId, n("1"), version, null)));
+        assertThrows(ConflictException.class,
+                () -> consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, loteId, n("1"), version, null)));
     }
 
     @Test
@@ -191,11 +230,14 @@ class EstoqueIntegrationTest {
     @Test
     void entradaCustoZeroExigeFlagSemCusto() {
         assertThrows(FieldValidationException.class,
-                () -> entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), BigDecimal.ZERO, UnidadeMedida.KG, LocalDate.now().plusDays(3), null, false)));
-        var mov = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), BigDecimal.ZERO, UnidadeMedida.KG, LocalDate.now().plusDays(3), null, true)).movimentacoes().getFirst();
+                () -> entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), BigDecimal.ZERO,
+                        UnidadeMedida.KG, LocalDate.now().plusDays(3), null, false)));
+        var mov = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), BigDecimal.ZERO, UnidadeMedida.KG,
+                LocalDate.now().plusDays(3), null, true)).movimentacoes().getFirst();
         igual("5", estoque.obterSaldo(produtoId));
         igual("0", lotes.findById(mov.loteId()).orElseThrow().getPrecoUnitario());
         assertThrows(FieldValidationException.class,
-                () -> entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), n("50"), UnidadeMedida.KG, LocalDate.now().plusDays(3), null, true)));
+                () -> entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), n("50"), UnidadeMedida.KG,
+                        LocalDate.now().plusDays(3), null, true)));
     }
 }

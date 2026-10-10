@@ -34,11 +34,15 @@ public class EstoqueService {
     }
 
     public Map<Long, ILoteRepository.PosicaoProduto> posicoes() {
-        return lotes.posicoes().stream().collect(Collectors.toMap(ILoteRepository.PosicaoProduto::getProdutoId, Function.identity()));
+        return lotes.posicoes().stream()
+                .collect(Collectors.toMap(ILoteRepository.PosicaoProduto::getProdutoId, Function.identity()));
     }
 
     public List<EstoqueDTO> listar(boolean somenteAbertos, boolean somenteBaixo) {
         var saldos = posicoes();
+        var disponiveis = lotes.posicoesDisponiveis(java.time.LocalDate.now()).stream()
+                .collect(Collectors.toMap(ILoteRepository.PosicaoProduto::getProdutoId,
+                        ILoteRepository.PosicaoProduto::getSaldo));
         var idsAbertos = new HashSet<>(abertos.produtosComAbertos());
         return produtos.findAllByAtivoTrue().stream().map(p -> {
             var pos = saldos.get(p.getId());
@@ -49,7 +53,9 @@ public class EstoqueService {
             BigDecimal maximo = par == null ? null : par.getEstoqueMaximo();
             boolean abaixo = par != null && minimo != null && saldo.compareTo(minimo) < 0;
             return new EstoqueDTO(p.getId(), p.getNome(), p.getCategoria().getNome(), p.getUnidadeMedida(), saldo,
-                    money(pos == null ? null : pos.getValor()), minimo, medio, maximo, abaixo, idsAbertos.contains(p.getId()));
+                    disponiveis.getOrDefault(p.getId(), BigDecimal.ZERO),
+                    money(pos == null ? null : pos.getValor()), minimo, medio, maximo, abaixo,
+                    idsAbertos.contains(p.getId()));
         }).filter(d -> !somenteAbertos || d.possuiItensAbertos()).filter(d -> !somenteBaixo || d.abaixoDoMinimo())
                 .sorted(Comparator.comparing(EstoqueDTO::produtoNome, String.CASE_INSENSITIVE_ORDER)).toList();
     }

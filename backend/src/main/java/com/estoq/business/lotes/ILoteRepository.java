@@ -4,6 +4,7 @@ import com.estoq.core.repositories.IGenericRepository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,6 +40,12 @@ public interface ILoteRepository extends IGenericRepository<LoteModel> {
         @Query("select l.produto.id as produtoId, sum(l.quantidadeAtual) as saldo, "
                         + "sum(l.quantidadeAtual*l.precoUnitario) as valor from LoteModel l where l.ativo=true group by l.produto.id")
         List<PosicaoProduto> posicoes();
+
+        @Query("select l.produto.id as produtoId, sum(l.quantidadeAtual) as saldo, "
+                        + "sum(l.quantidadeAtual*l.precoUnitario) as valor from LoteModel l where l.ativo=true "
+                        + "and l.quantidadeAtual>0 and (l.dataValidade is null or l.dataValidade>=:hoje) "
+                        + "group by l.produto.id")
+        List<PosicaoProduto> posicoesDisponiveis(@Param("hoje") LocalDate hoje);
 
         interface PosicaoProduto {
                 Long getProdutoId();

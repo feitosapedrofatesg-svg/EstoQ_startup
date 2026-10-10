@@ -125,6 +125,7 @@ export interface EstoqueDTO {
   categoriaNome: string;
   unidadeMedida: UnidadeMedida;
   saldoAtual: number;
+  saldoDisponivelConsumo: number;
   valorEstoque: number;
   estoqueMinimo: number | null;
   estoqueMedio: number | null;

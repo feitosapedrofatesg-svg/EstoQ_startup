@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -88,6 +89,20 @@ class SecurityIntegrationTest {
         u.setAtivo(false);
         users.flush();
         mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void salvaERecuperaReceitaBaseCmvPeloPeriodo() throws Exception {
+        var admin = login("admin@test.local", "Teste@12345", 200);
+        var body = "{\"inicio\":\"2026-09-01\",\"fim\":\"2026-09-30\",\"receitaBase\":\"12500.50\"}";
+
+        mvc.perform(put("/api/relatorios/cmv/receita-base").session(admin).with(csrf())
+                .contentType("application/json").content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.receitaBase").value(12500.50));
+        mvc.perform(get("/api/relatorios/cmv/receita-base?inicio=2026-09-01&fim=2026-09-30").session(admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.receitaBase").value(12500.50));
     }
 
     @Test

@@ -195,7 +195,7 @@ function ProdutoDetalhe({
     >
       <div className="detail-summary">
         <div>
-          <span className="detail-summary__label">Saldo disponível</span>
+          <span className="detail-summary__label">Saldo físico</span>
           <strong>{saldo(produto.saldoAtual, produto.unidadeMedida)}</strong>
         </div>
         <div>
@@ -209,6 +209,12 @@ function ProdutoDetalhe({
             {saldo(produto.estoqueMaximo, produto.unidadeMedida)}
           </strong>
         </div>
+      </div>
+
+      <div className="form-actions" style={{ justifyContent: "flex-end", marginTop: 0 }}>
+        <LinkButton to={`/desperdicio?produto=${produto.produtoId}`} icon="trash">
+          Registrar desperdício
+        </LinkButton>
       </div>
 
       <h3 className="section-title">Lotes</h3>

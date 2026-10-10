@@ -39,6 +39,13 @@ public class DesperdicioService {
         List<LoteModel> candidatos = d.loteId() == null
                 ? repository.findTodosBaixa(d.produtoId())
                 : List.of(lotes.encontrar(d.loteId()));
+        var disponivel = candidatos.stream().map(LoteModel::getQuantidadeAtual)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        if (d.quantidade().compareTo(disponivel) > 0) {
+            throw new ConflictException("Desperdício maior que o estoque existente. Disponível: "
+                    + disponivel.stripTrailingZeros().toPlainString() + ", solicitado: "
+                    + d.quantidade().stripTrailingZeros().toPlainString() + ".");
+        }
         var usuario = usuarioAtual.obter();
         var restante = d.quantidade();
         var movs = new ArrayList<DesperdicioModel>();
@@ -58,7 +65,8 @@ public class DesperdicioService {
                 var m = new DesperdicioModel();
                 m.setMotivo(d.motivo());
                 m.setDescricaoMotivo(d.descricaoMotivo());
-                m.registrar(lote, usuario, parcela.quantidade(), parcela.anterior(), parcela.posterior(), d.observacao(), parcela.aberto());
+                m.registrar(lote, usuario, parcela.quantidade(), parcela.anterior(), parcela.posterior(),
+                        d.observacao(), parcela.aberto());
                 registros.salvar(m);
                 movs.add(m);
             }

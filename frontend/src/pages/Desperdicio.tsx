@@ -229,6 +229,7 @@ function FormularioDesperdicio({
       })),
     [estoque]
   );
+  const estoqueSelecionado = (estoque ?? []).find((p) => String(p.produtoId) === produtoId);
 
   const { data: lotes } = useFetch<LoteDTO[]>(produtoId && manualLote ? `/api/lotes?produtoId=${produtoId}` : null);
   const { data: detalheProduto } = useFetch<ProdutoDTO>(produtoId ? `/api/produtos/${produtoId}` : null);
@@ -236,10 +237,22 @@ function FormularioDesperdicio({
   // No desperdício vale todos os lotes, inclusive vencidos: boa parte da perda
   // é exatamente o que já passou da validade.
   const lotesDisponiveis = useMemo(() => lotes ?? [], [lotes]);
+  const loteSelecionado = lotesDisponiveis.find((l) => String(l.id) === loteId);
+  const saldoDisponivel = estoqueSelecionado?.saldoAtual ?? 0;
 
   const submit = async () => {
     if (!produtoId) return setError("Escolha o produto.");
     if (!quantidade || quantidade <= 0) return setError("Informe uma quantidade maior que zero.");
+    if (manualLote && loteSelecionado && quantidade > (loteSelecionado.quantidadeAtual ?? 0)) {
+      return setError(
+        `No lote selecionado há apenas ${fmtNum(loteSelecionado.quantidadeAtual ?? 0)} ${loteSelecionado.unidadeMedida.toLowerCase()} disponíveis.`
+      );
+    }
+    if (!manualLote && estoqueSelecionado && quantidade > saldoDisponivel) {
+      return setError(
+        `O saldo disponível é ${fmtNum(saldoDisponivel)} ${estoqueSelecionado.unidadeMedida.toLowerCase()}. Informe até ${fmtNum(saldoDisponivel)}.`
+      );
+    }
     if (motivo === "OUTRO" && !descricaoMotivo.trim())
       return setError("Explique o motivo do desperdício quando o motivo for Outro.");
     if (manualLote && !loteId) return setError("Escolha o lote descartado.");

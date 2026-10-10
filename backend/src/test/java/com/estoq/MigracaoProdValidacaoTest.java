@@ -6,11 +6,14 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import com.estoq.business.registro.RegistroRequestDTO;
+import com.estoq.business.registro.RegistroService;
+import com.estoq.business.usuarios.IUsuarioRepository;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Valida as migrações V1-V3 num PostgreSQL real embutido (Zonky) em dois cenários:
+ * Valida as migrações V1-V4 num PostgreSQL real embutido (Zonky) em dois cenários:
  * 1) banco legado "limpo" (sem nenhuma coluna de tenant);
  * 2) estado real de produção de 2026-09-24 (ddl-auto=update já criou restaurante_id
  *    em 9 das 17 tabelas e também a tabela restaurantes — que o deploy "drop+recreate"
@@ -66,6 +69,31 @@ class MigracaoProdValidacaoTest {
         criarLegado("s2", ARMADAS_COM_COLUNA);
         rodarMigracoes("s2");
         validarResultado("s2");
+    }
+
+    @Test
+    void bancoNovoIniciaEmProducaoECadastraRestaurante() throws Exception {
+        try (var context = new SpringApplicationBuilder(EstoqApplication.class).profiles("prod").run(
+                "--server.port=0",
+                "--spring.datasource.url=" + jdbcUrl + "&currentSchema=novo",
+                "--spring.datasource.username=postgres",
+                "--spring.datasource.password=postgres",
+                "--spring.flyway.schemas=novo",
+                "--spring.jpa.hibernate.ddl-auto=validate",
+                "--spring.flyway.enabled=true")) {
+            var flyway = context.getBean(Flyway.class);
+            assertEquals("4", flyway.info().current().getVersion().toString());
+            assertEquals(0, flyway.migrate().migrationsExecuted);
+            context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
+                    "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
+            assertTrue(context.getBean(IUsuarioRepository.class).existsByEmailIgnoreCase("novo@teste.com"));
+        }
+        try (Connection conn = DriverManager.getConnection(jdbcUrl);
+             Statement st = conn.createStatement()) {
+            // O bootstrap da plataforma continua aceitando usuário sem restaurante.
+            st.execute("insert into novo.usuarios (ativo, data_hora_criacao, version, nome, email, senha, perfil) "
+                    + "values (true, now(), 0, 'Plataforma', 'plataforma@teste.com', 'hash', 'PLATAFORMA')");
+        }
     }
 
     private void criarLegado(String schema, List<String> tabelasArmadas) throws Exception {
@@ -117,7 +145,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(3, resultado.migrationsExecuted, "V1+V2+V3 devem executar");
+        assertEquals(4, resultado.migrationsExecuted, "V1 até V4 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {
@@ -148,7 +176,7 @@ class MigracaoProdValidacaoTest {
             try (ResultSet rs = st.executeQuery("select count(*) from pg_constraint "
                     + "where contype = 'f' and confrelid = 'restaurantes'::regclass")) {
                 rs.next();
-                assertEquals(17, rs.getInt(1));
+                assertEquals(18, rs.getInt(1));
             }
             try (ResultSet rs = st.executeQuery("insert into restaurantes (nome, ativo, data_hora_criacao, version) "
                     + "values ('Loja Nova', true, now(), 0) returning id")) {

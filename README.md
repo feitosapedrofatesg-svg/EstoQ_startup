@@ -1,6 +1,6 @@
 # EstoQ — Controle de Estoque e CMV para Restaurantes
 
-Backend do **EstoQ**, um sistema para gestão de estoque, lotes/validade, consumo,
+Aplicação web **EstoQ**, um sistema para gestão de estoque, lotes/validade, consumo,
 desperdício, balanço físico e custo da mercadoria vendida (CMV) em restaurantes.
 
 Projeto Integrador · SENAI FATESG · ADS · 2026
@@ -39,7 +39,7 @@ EstoQ_Startup/
 │   ├── pom.xml
 │   └── src/main/java/com/estoq/
 │       ├── core/                  # genérico (sem import de business)
-│       ├── config/security/       # SecurityConfig, filtros, handlers
+│       ├── config/                # segurança e seed de desenvolvimento
 │       ├── business/              # módulos de negócio
 │       │   ├── auth/ usuarios/ categorias/ produtos/ lotes/
 │       │   ├── entradas/ consumos/ desperdicios/ ajustes/
@@ -155,11 +155,26 @@ As variáveis `ESTOQ_BACKUP_*` são opcionais: quando ausentes, o backup usa os 
 
 Nunca committar o arquivo `.env`. Use `.env.example` como referência.
 
+## Banco novo e atualização do banco legado
+
+O Flyway aplica `B4__schema_completo.sql` em um schema vazio. Esse baseline cria
+as tabelas, índices e relacionamentos na versão 4, sem dados de demonstração.
+O cadastro público cria o restaurante e seu ADMIN. O perfil dev pode criar os
+usuários de demonstração pelo seed.
+
+Em bancos existentes, o Flyway preserva o histórico e aplica V1–V4 quando pendentes.
+Não editar migrações já aplicadas nem limpar o banco de produção. A versão B4 é
+ignorada quando já há histórico de migrações. Alterações futuras usam V5 em diante.
+
+O estoque informa saldo físico (inclui lotes vencidos) e saldo disponível para
+consumo (lotes ativos com quantidade positiva, sem vencimento ou ainda válidos).
+Desperdícios podem baixar lotes vencidos.
+
 ## Testes
 
 ```bash
 cd backend
-mvn test          # 40 testes verdes
+mvn test          # testes de domínio, integração e migrações PostgreSQL
 mvn -o test       # offline (dependências já no .m2)
 ```
 

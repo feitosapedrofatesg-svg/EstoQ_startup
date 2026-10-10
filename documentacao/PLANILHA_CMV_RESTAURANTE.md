@@ -1,11 +1,12 @@
 # Catálogo de produtos a partir da planilha de CMV Real
 
-> **Status:** análise concluída, implementação pendente.
+> **Status:** catálogo e carga de estoque implementados em SQL. O histórico de consumos não é importado.
+> Atualização: 10/10/2026; instruções atuais em [scripts/seed/README.md](../scripts/seed/README.md).
 > Data da análise: 28/09/2026.
 > Origem dos dados: `Downloads/Planilha de cálculo de CMV Real DEZEMBRO 22.xls`
 
 Este documento registra o que tem na planilha, o que ela **não** tem, e as
-decisões que precisam ser tomadas antes de popular o EstoQ. Os dados já
+decisões da análise original. O gerador atual implementa o cenário de carga de catálogo e entradas; as alternativas de histórico abaixo são referências, não tarefas já autorizadas. Os dados já
 extraídos e normalizados estão em
 [`catalogo-cmv-dezembro-2023.csv`](./catalogo-cmv-dezembro-2023.csv), e a
 extração é reproduzível por [`scripts/extrair_catalogo_cmv.py`](../scripts/extrair_catalogo_cmv.py).
@@ -189,9 +190,9 @@ que confere com a planilha — que é exatamente o que o projeto promete.
 
 ---
 
-## 8. Decisões pendentes
+## 8. Decisões registradas na análise original
 
-Nenhuma delas pode ser inventada pelo script — todas mudam o resultado.
+O gerador atual define categorias, unidades, validade por categoria e o e-mail alvo. Consulte `scripts/gerar_seed_sql.py` e revise essas escolhas antes de uma nova carga. As perguntas abaixo preservam o contexto da análise original.
 
 **Qual cenário (1, 2 ou 3)?**
 
@@ -236,11 +237,10 @@ GET  /api/auth/csrf
 POST /api/categorias
 POST /api/produtos
 POST /api/parametros-estoque
-POST /api/entradas            (nunca INSERT direto no banco)
+POST /api/entradas            (alternativa pela API)
 ```
 
-O script precisa ser **re-executável** (não duplicar dados) e ter `--dry-run`
-para revisar antes de gravar em produção.
+A implementação escolhida usa SQL com guards de schema e tenant, idempotência e `--dry-run` com ROLLBACK. O fluxo pela API acima é uma alternativa à carga atual.
 
 ---
 
@@ -264,14 +264,10 @@ O `.xls` original **não** é versionado (é documento do cliente, 300 KB, e nã
 
 ---
 
-## 11. Pendências que não são deste assunto
+## 11. Correções de manutenção (10/10/2026)
 
-Anotadas aqui para não se perderem:
+- Bancos novos usam `B4__schema_completo.sql`; bancos legados preservam V1–V4. A V4 existente cria receita base por período, não o schema inteiro.
+- O seed de desenvolvimento foi movido de `core/conf/seed` para `config/seed`, preservando a independência do núcleo em relação ao negócio.
+- O fluxo Git usa somente `dev` e `main` e está documentado em `COMMITS_E_FLUXO_DE_TRABALHO.md`.
 
-- `V4__schema_completo.sql` não existe — rodar V1→V3 em Postgres vazio falha
-  com `relation "ajustes" does not exist`. O app **não sobe em banco novo**.
-  É bloqueador de deploy.
-- `README.md:30` afirma "O `core` nunca importa `business`", mas
-  `core/conf/seed/SeedDataConfig.java:3-12` tem 10 imports de `business/`.
-- `documentacao/COMMITS_E_FLUXO_DE_TRABALHO.md` ainda descreve a branch
-  `master`, que foi deletada.
+O histórico de consumos da planilha continua fora da carga implementada. Sua inclusão exige escolher um período e uma estratégia de reconstrução; a carga atual não reproduz o CMV histórico.

@@ -38,6 +38,13 @@ public class ConsumoService {
         List<LoteModel> candidatos = d.loteId() == null
                 ? repository.findDisponiveisBaixa(d.produtoId(), LocalDate.now())
                 : List.of(lotes.encontrar(d.loteId()));
+        var disponivel = candidatos.stream().map(LoteModel::getQuantidadeAtual)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        if (d.quantidade().compareTo(disponivel) > 0) {
+            throw new ConflictException("Estoque disponível insuficiente para o consumo solicitado. Disponível: "
+                    + disponivel.stripTrailingZeros().toPlainString() + ", solicitado: "
+                    + d.quantidade().stripTrailingZeros().toPlainString() + ".");
+        }
         var usuario = usuarioAtual.obter();
         var restante = d.quantidade();
         var movs = new ArrayList<ConsumoModel>();
@@ -55,7 +62,8 @@ public class ConsumoService {
             var qtd = restante.min(lote.getQuantidadeAtual());
             for (var parcela : baixa.baixar(lote, qtd)) {
                 var c = new ConsumoModel();
-                c.registrar(lote, usuario, parcela.quantidade(), parcela.anterior(), parcela.posterior(), d.observacao(), parcela.aberto());
+                c.registrar(lote, usuario, parcela.quantidade(), parcela.anterior(), parcela.posterior(),
+                        d.observacao(), parcela.aberto());
                 registros.salvar(c);
                 movs.add(c);
             }

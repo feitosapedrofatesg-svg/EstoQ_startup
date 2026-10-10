@@ -214,18 +214,20 @@ function FormularioConsumo({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: estoque } = useFetch<EstoqueDTO[]>("/api/estoque");
+  const { data: estoque, refresh: refreshEstoque } = useFetch<EstoqueDTO[]>("/api/estoque");
   const produtoOpts = useMemo(
     () =>
       (estoque ?? []).map((p) => ({
         value: String(p.produtoId),
         label: p.produtoNome,
-        sub: `${p.categoriaNome} · ${p.unidadeMedida}`,
+        sub: `${p.categoriaNome} · consumível: ${fmtNum(p.saldoDisponivelConsumo ?? 0)} ${p.unidadeMedida.toLowerCase()}`,
       })),
     [estoque]
   );
+  const estoqueSelecionado = (estoque ?? []).find((p) => String(p.produtoId) === produtoId);
+  const saldoDisponivel = estoqueSelecionado?.saldoDisponivelConsumo ?? 0;
 
-  const { data: lotes } = useFetch<LoteDTO[]>(produtoId && manualLote ? `/api/lotes?produtoId=${produtoId}` : null);
+  const { data: lotes, refresh: refreshLotes } = useFetch<LoteDTO[]>(produtoId && manualLote ? `/api/lotes?produtoId=${produtoId}` : null);
   const { data: detalheProduto } = useFetch<ProdutoDTO>(produtoId ? `/api/produtos/${produtoId}` : null);
 
   const lotesDisponiveis = useMemo(
@@ -233,10 +235,16 @@ function FormularioConsumo({
     [lotes]
   );
 
+  const loteSelecionado = lotesDisponiveis.find((l) => String(l.id) === loteId);
+  const limiteQuantidade = manualLote ? (loteSelecionado?.quantidadeAtual ?? 0) : saldoDisponivel;
+
   const submit = async () => {
     if (!produtoId) return setError("Escolha o produto.");
     if (!quantidade || quantidade <= 0) return setError("Informe uma quantidade maior que zero.");
-    if (manualLote && !loteId) return setError("Escolha o lote consumido.");
+    if (manualLote && !loteSelecionado) return setError("Escolha um lote disponível.");
+    if (quantidade > limiteQuantidade) {
+      return setError(`A quantidade disponível é ${fmtNum(limiteQuantidade)} ${estoqueSelecionado?.unidadeMedida.toLowerCase() ?? "un"}.`);
+    }
     setSubmitting(true);
     setError(null);
     const lote = lotesDisponiveis.find((l) => String(l.id) === loteId);
@@ -248,6 +256,7 @@ function FormularioConsumo({
         quantidade,
         observacao: observacao || null,
       });
+      await Promise.all([refreshEstoque(), refreshLotes()]);
       setQuantidade(null);
       setObservacao("");
       onDone();
@@ -278,10 +287,14 @@ function FormularioConsumo({
         value={produtoId}
         onValue={(v) => {
           setProdutoId(v);
+          setQuantidade(null);
           setLoteId("");
           setError(null);
         }}
         placeholder="Buscar produto…"
+        hint={produtoId
+          ? `Disponível no estoque: ${fmtNum(saldoDisponivel)} ${estoqueSelecionado?.unidadeMedida.toLowerCase() ?? "UN"}`
+          : "Selecione um produto para ver o saldo disponível."}
         required
       />
 
@@ -291,8 +304,12 @@ function FormularioConsumo({
           value={quantidade}
           onValue={setQuantidade}
           min={0}
-          placeholder="Ex.: 2"
+          max={limiteQuantidade}
+          placeholder={produtoId ? "Ex.: até " + fmtNum(limiteQuantidade) : "Selecione o produto"}
           suffix={detalheProduto?.unidadeMedida ?? "UN"}
+          hint={produtoId
+            ? `Até ${fmtNum(limiteQuantidade)} ${detalheProduto?.unidadeMedida.toLowerCase() ?? "UN"} disponíveis.`
+            : "O limite será preenchido após escolher o produto."}
           required
         />
         <Field label="Observação (opcional)" htmlFor="consumo-obs">
@@ -304,6 +321,12 @@ function FormularioConsumo({
           />
         </Field>
       </div>
+
+      {produtoId && saldoDisponivel === 0 && (
+        <AlertBanner tone="warn">
+          Este produto não tem estoque disponível para consumir.
+        </AlertBanner>
+      )}
 
       <Checkbox
         checked={manualLote}
@@ -338,7 +361,12 @@ function FormularioConsumo({
       )}
 
       <div className="form-actions">
-        <Button type="submit" loading={submitting} icon="check">
+        <Button
+          type="submit"
+          loading={submitting}
+          icon="check"
+          disabled={!produtoId || limiteQuantidade <= 0}
+        >
           Registrar consumo
         </Button>
       </div>

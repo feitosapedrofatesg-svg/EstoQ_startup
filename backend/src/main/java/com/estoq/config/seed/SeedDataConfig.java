@@ -1,4 +1,4 @@
-package com.estoq.core.conf.seed;
+package com.estoq.config.seed;
 
 import com.estoq.business.configuracoesBalanco.ConfiguracaoBalancoModel;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;

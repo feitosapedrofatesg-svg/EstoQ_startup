@@ -19,6 +19,29 @@ As próximas compras reconhecem o código do fornecedor e o fator de embalagem
 confirmado. Mudança de descrição ou unidade pede nova conferência. Pacotes e
 garrafas não são convertidos para peso/volume sem confirmação.
 
+## JPG, PNG e câmera
+
+Envie até dez fotos da mesma nota, somando no máximo 4 MB. A câmera do celular
+permite acrescentar páginas. Use os botões Antes/Depois para ordenar e clique na
+foto para abri-la em outra aba durante a revisão. Trocar ou reordenar arquivos
+exige uma nova leitura, para não confirmar uma revisão de outro documento.
+
+O backend executa Tesseract em português, com posições e confiança das palavras.
+A orientação EXIF é aplicada e a imagem é convertida para tons de cinza.
+Cada foto admite até 20 megapixels. A nota tem prazo de 30 segundos e apenas uma
+leitura de imagem roda por instância; outra tentativa recebe aviso para aguardar.
+
+Todos os itens de OCR exigem conferência com a imagem. A soma das linhas precisa
+fechar o total dos produtos; texto incompleto e páginas ausentes não geram uma
+entrada parcial. Fotos de notas diferentes não podem ser combinadas.
+
+Os arquivos temporários são removidos em sucesso, erro ou timeout. Não há serviço
+externo de OCR nem armazenamento permanente de fotografias. Ao retomar um
+rascunho pelo endereço, reabra as fotos locais para conferir os dados.
+
+Para desenvolvimento local, instale Tesseract com idioma `por` ou configure
+`estoq.notas.ocr.executavel`. A imagem Docker já instala os pacotes necessários.
+
 ## Custos e quantidades
 
 A quantidade de entrada é **quantidade na nota × conteúdo da embalagem**, na

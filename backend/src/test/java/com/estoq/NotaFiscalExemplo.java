@@ -9,8 +9,8 @@ final class NotaFiscalExemplo {
             <ide><mod>55</mod><finNFe>1</finNFe><tpNF>1</tpNF><nNF>1</nNF><serie>1</serie><dhEmi>2026-09-02T10:00:00-03:00</dhEmi></ide>
             <emit><CNPJ>12345678000195</CNPJ><xNome>Fornecedor de Teste</xNome></emit>
             <det nItem="1"><prod><cProd>%s</cProd><xProd>%s</xProd><uCom>%s</uCom><qCom>%s</qCom><vProd>%s</vProd><vDesc>0.00</vDesc></prod></det>
-            <total><ICMSTot><vNF>%s</vNF></ICMSTot></total>
+            <total><ICMSTot><vProd>%s</vProd><vNF>%s</vNF></ICMSTot></total>
             </infNFe></NFe></nfeProc>
-            """.formatted(chave,codigo,descricao,unidade,quantidade,valor,valor);
+            """.formatted(chave,codigo,descricao,unidade,quantidade,valor,valor,valor);
     }
 }

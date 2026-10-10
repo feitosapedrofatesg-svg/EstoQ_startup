@@ -17,9 +17,13 @@ public class LeitorTextoNota {
     private static final Pattern VALOR = Pattern.compile(DINHEIRO);
 
     public DadosNota ler(String texto, boolean imagem) {
-        var chaveEncontrada = Pattern.compile("(?:\\d{4}\\s+){10}\\d{4}|\\b\\d{44}\\b").matcher(texto);
+        var chaveEncontrada = Pattern.compile("(?:\\d{4}[ \t]+){10}\\d{4}|\\b\\d{44}\\b").matcher(texto);
         if (!chaveEncontrada.find()) throw erro("Não foi possível ler a chave de acesso. Use o XML ou uma imagem mais nítida.");
         var chave = chaveEncontrada.group().replaceAll("\\s", "");
+        while (chaveEncontrada.find()) {
+            if (!chave.equals(chaveEncontrada.group().replaceAll("\\s", "")))
+                throw erro("Todos os documentos enviados devem pertencer à mesma nota fiscal.");
+        }
         if (!chave.substring(20,22).equals("55")) throw erro("Envie uma NF-e de mercadorias (modelo 55).");
         var fornecedorEncontrado = Pattern.compile("Recebemos de (.+?) os produtos", Pattern.CASE_INSENSITIVE).matcher(texto);
         if (!fornecedorEncontrado.find()) throw erro("Não foi possível identificar o fornecedor. Envie o XML da nota.");
@@ -29,18 +33,12 @@ public class LeitorTextoNota {
         var itens = new ArrayList<DadosNota.ItemLido>();
         var linhas = texto.split("\\R");
         BigDecimal total = null;
+        BigDecimal totalProdutos = null;
         boolean tabela = false;
         for (int i=0; i<linhas.length; i++) {
             String linha = linhas[i];
-            if (linha.contains("VALOR TOTAL DA NOTA")) {
-                // No DANFE os valores aparecem na linha seguinte ao cabeçalho.
-                for (int j=i+1; j<Math.min(i+5, linhas.length); j++) {
-                    var valores = VALOR.matcher(linhas[j]);
-                    BigDecimal ultimo = null;
-                    while (valores.find()) ultimo = decimal(valores.group());
-                    if (ultimo != null) { total = ultimo; break; }
-                }
-            }
+            if (linha.contains("VALOR TOTAL DA NOTA")) total = valorAbaixo(linhas,i);
+            if (linha.contains("VALOR TOTAL DOS PRODUTOS")) totalProdutos = valorAbaixo(linhas,i);
             if (linha.contains("DADOS DOS PRODUTOS")) tabela = true;
             if (linha.contains("DADOS ADICIONAIS")) tabela = false;
             if (!tabela) continue;
@@ -53,6 +51,9 @@ public class LeitorTextoNota {
             }
         }
         if (itens.isEmpty() || total == null) throw erro("Não foi possível ler todos os produtos e o total. Use o XML ou confira a qualidade do documento.");
+        var somaProdutos = itens.stream().map(DadosNota.ItemLido::valorBruto).reduce(BigDecimal.ZERO,BigDecimal::add);
+        if (totalProdutos==null || somaProdutos.compareTo(totalProdutos)!=0)
+            throw erro("Os itens lidos não fecham o total dos produtos. Confira se enviou todas as páginas ou use o XML.");
         var avisos = new ArrayList<String>();
         avisos.add("Confira quantidades e custos: o DANFE pode apresentar valores arredondados.");
         if (imagem) avisos.add("Leitura por imagem: confira cada item com a fotografia antes de confirmar.");
@@ -60,6 +61,15 @@ public class LeitorTextoNota {
                 chave.substring(22,25), emissao, total, itens, avisos);
     }
 
+    private BigDecimal valorAbaixo(String[] linhas, int cabecalho) {
+        for (int i=cabecalho+1; i<Math.min(cabecalho+5,linhas.length); i++) {
+            var valores=VALOR.matcher(linhas[i]);
+            BigDecimal ultimo=null;
+            while(valores.find()) ultimo=decimal(valores.group());
+            if(ultimo!=null) return ultimo;
+        }
+        return null;
+    }
     private BigDecimal decimal(String valor) { return new BigDecimal(valor.replace(".", "").replace(',', '.')); }
     private FieldValidationException erro(String mensagem) { return new FieldValidationException("arquivos", mensagem); }
 }

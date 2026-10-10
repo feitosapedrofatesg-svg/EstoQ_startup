@@ -1,0 +1,7 @@
+# Só os arquivos usados pelo build do backend entram no contexto Docker.
+**
+!backend/
+!backend/Dockerfile
+!backend/pom.xml
+!backend/src/
+!backend/src/**

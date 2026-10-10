@@ -6,8 +6,8 @@ COPY backend/src src
 RUN mvn clean package -DskipTests -B -q
 
 FROM eclipse-temurin:21-jre-alpine
-# pg_dump é necessário para o módulo de backup (POST /api/backups)
-RUN apk add --no-cache postgresql-client \
+# pg_dump mantém os backups; Tesseract lê fotos de notas em português.
+RUN apk add --no-cache postgresql-client tesseract-ocr tesseract-ocr-data-por \
     && adduser -D -h /app estoq
 USER estoq
 WORKDIR /app

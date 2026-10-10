@@ -22,7 +22,12 @@ public class LeitorXmlNota {
             fabrica.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
             fabrica.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
             fabrica.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-            var documento = fabrica.newDocumentBuilder().parse(new ByteArrayInputStream(arquivo));
+            var leitor = fabrica.newDocumentBuilder();
+            leitor.setErrorHandler(new org.xml.sax.helpers.DefaultHandler() {
+                @Override public void fatalError(org.xml.sax.SAXParseException e) throws org.xml.sax.SAXException { throw e; }
+                @Override public void error(org.xml.sax.SAXParseException e) throws org.xml.sax.SAXException { throw e; }
+            });
+            var documento = leitor.parse(new ByteArrayInputStream(arquivo));
             var notas = documento.getElementsByTagNameNS("http://www.portalfiscal.inf.br/nfe", "infNFe");
             if (notas.getLength()!=1) throw erro("Envie um XML com uma única NF-e.");
             var nota = (Element)notas.item(0);
@@ -35,17 +40,25 @@ public class LeitorXmlNota {
             for (int i=0; i<detalhes.getLength(); i++) {
                 var detalhe = (Element)detalhes.item(i);
                 var produto = elemento(detalhe, "prod");
+                var validades = produto.getElementsByTagNameNS("*", "dVal");
+                var datas = new java.util.HashSet<String>();
+                for(int j=0;j<validades.getLength();j++) datas.add(validades.item(j).getTextContent().strip());
+                if(datas.size()>1) throw erro("Um produto tem lotes com validades diferentes. Registre esses lotes pela entrada manual.");
                 var validade = texto(produto, "dVal");
                 itens.add(new DadosNota.ItemLido(Integer.parseInt(detalhe.getAttribute("nItem")), texto(produto,"cProd"),
                         texto(produto,"xProd"), texto(produto,"cEAN"), texto(produto,"uCom"),
                         numero(produto,"qCom"), numero(produto,"vProd"), numero(produto,"vDesc"),
                         validade.isBlank() ? null : LocalDate.parse(validade), false));
             }
+            var totais = elemento(nota,"ICMSTot");
+            var somaProdutos = itens.stream().map(DadosNota.ItemLido::valorBruto).reduce(BigDecimal.ZERO,BigDecimal::add);
+            if (somaProdutos.compareTo(numero(totais,"vProd"))!=0)
+                throw erro("Os produtos não fecham o total informado no XML.");
             var data = texto(ide, "dhEmi");
             if (data.isBlank()) data = texto(ide,"dEmi");
             return new DadosNota(nota.getAttribute("Id").replaceFirst("^NFe", ""), texto(emitente,"xNome"),
                     texto(emitente,"CNPJ"), texto(ide,"nNF"), texto(ide,"serie"), LocalDate.parse(data.substring(0,10)),
-                    numero(elemento(nota,"ICMSTot"),"vNF"), itens, List.of());
+                    numero(totais,"vNF"), itens, List.of());
         } catch (FieldValidationException e) { throw e; }
         catch (Exception e) { throw erro("XML inválido ou incompleto. Envie o arquivo original da NF-e."); }
     }

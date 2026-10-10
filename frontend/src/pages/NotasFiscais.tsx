@@ -21,6 +21,7 @@ export function NotasFiscais() {
   const [nota, setNota] = useState<NotaFiscalDTO | null>(null);
   const [itens, setItens] = useState<ItemRevisao[]>([]);
   const [arquivos, setArquivos] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<{ nome: string; url: string; indice: number }[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [custosConferidos, setCustosConferidos] = useState(false);
@@ -28,6 +29,21 @@ export function NotasFiscais() {
   const { data: categorias } = useFetch<Page<CategoriaDTO>>("/api/categorias?size=2000");
   const toast = useToast();
   const notaId = params.get("id");
+  useEffect(() => {
+    const imagens = arquivos.flatMap((arquivo, indice) => /\.(jpe?g|png)$/i.test(arquivo.name)
+      ? [{ nome: arquivo.name, indice, url: URL.createObjectURL(arquivo) }] : []);
+    setPreviews(imagens);
+    return () => imagens.forEach(imagem => URL.revokeObjectURL(imagem.url));
+  }, [arquivos]);
+  const selecionarArquivos = (novos: File[]) => {
+    setArquivos(novos); setNota(null); setItens([]); setCustosConferidos(false);
+    setErro(null); setParams({}, { replace: true });
+  };
+  const ordenar = (indice: number, deslocamento: number) => {
+    const copia = [...arquivos]; const destino = indice + deslocamento;
+    [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
+    selecionarArquivos(copia);
+  };
 
   const carregarCatalogo = async () => {
     const lista: ProdutoDTO[] = [];
@@ -62,8 +78,8 @@ export function NotasFiscais() {
   };
   const analisar = async () => {
     setErro(null);
-    if (!arquivos.length || arquivos.reduce((s, a) => s + a.size, 0) > 4 * 1024 * 1024) {
-      setErro("Selecione um documento de até 4 MB."); return;
+    if (!arquivos.length || arquivos.length > 10 || arquivos.reduce((s, a) => s + a.size, 0) > 4 * 1024 * 1024) {
+      setErro("Selecione um documento ou até dez imagens, somando no máximo 4 MB."); return;
     }
     setOcupado(true);
     try {
@@ -78,7 +94,10 @@ export function NotasFiscais() {
     setErro(null); setOcupado(true);
     try {
       const resultado = await api.post<NotaFiscalDTO>(`/api/notas-fiscais/${nota.id}/confirmar`, {
-        version: nota.version, custosConferidos, itens,
+        version: nota.version, custosConferidos,
+        itens: itens.map(({ id, selecionado, produtoId, nomeProduto, categoriaId, unidadeEstoque, quantidadeNota,
+          fator, valorEntrada, validade, embalagemConfirmada, leituraConferida }) => ({ id, selecionado, produtoId,
+          nomeProduto, categoriaId, unidadeEstoque, quantidadeNota, fator, valorEntrada, validade, embalagemConfirmada, leituraConferida })),
       });
       mostrar(resultado);
       invalidarCache(["/api/produtos", "/api/estoque", "/api/lotes", "/api/movimentacoes", "/api/dashboard", "/api/alertas"]);
@@ -97,11 +116,29 @@ export function NotasFiscais() {
       actions={<LinkButton to="/movimentacoes" variant="outline">Voltar às movimentações</LinkButton>} />
     {erro && <AlertBanner tone="bad">{erro}</AlertBanner>}
     <Card title="Documento da compra">
-      <Field label="Nota fiscal em PDF ou XML" htmlFor="nota-arquivos">
-        <Input id="nota-arquivos" type="file" accept=".pdf,.xml,application/pdf,application/xml,text/xml"
-          disabled={ocupado} onChange={e => { setArquivos(Array.from(e.target.files ?? [])); setErro(null); }} />
+      <Field label="Nota fiscal em PDF, XML, JPG ou PNG" htmlFor="nota-arquivos">
+        <Input id="nota-arquivos" type="file" multiple accept=".pdf,.xml,.jpg,.jpeg,.png,application/pdf,application/xml,text/xml,image/jpeg,image/png"
+          disabled={ocupado} onChange={e => { selecionarArquivos(Array.from(e.target.files ?? [])); }} />
       </Field>
-      <p className="muted">Até 4 MB. O estoque só será alterado depois da revisão e confirmação.</p>
+      <Field label="Fotografar a nota pelo celular" htmlFor="nota-camera">
+        <Input id="nota-camera" type="file" accept="image/jpeg,image/png" capture="environment" disabled={ocupado}
+          onChange={e => { const foto = e.target.files?.[0]; if (foto) selecionarArquivos([...arquivos.filter(a => /\.(jpe?g|png)$/i.test(a.name)), foto]); e.target.value = ""; }} />
+      </Field>
+      <p className="muted">Um PDF/XML ou até dez fotos da mesma nota, na ordem das páginas. Até 4 MB no total. O estoque só muda após a confirmação.</p>
+      {previews.length > 0 && <div className="nota-fotos">
+        {previews.map(imagem => <figure key={imagem.url}>
+          <a href={imagem.url} target="_blank" rel="noreferrer" aria-label={`Abrir imagem da página ${imagem.indice + 1}`}>
+            <img src={imagem.url} alt={`Página ${imagem.indice + 1} da nota fiscal`} />
+          </a>
+          <figcaption>Página {imagem.indice + 1} · {imagem.nome}</figcaption>
+          <div className="form-actions">
+            <Button size="sm" variant="outline" disabled={ocupado || imagem.indice === 0} aria-label={`Mover página ${imagem.indice + 1} para antes`} onClick={() => ordenar(imagem.indice, -1)}>Antes</Button>
+            <Button size="sm" variant="outline" disabled={ocupado || imagem.indice === arquivos.length - 1} aria-label={`Mover página ${imagem.indice + 1} para depois`} onClick={() => ordenar(imagem.indice, 1)}>Depois</Button>
+            <Button size="sm" variant="danger" disabled={ocupado} aria-label={`Remover página ${imagem.indice + 1}`} onClick={() => selecionarArquivos(arquivos.filter((_, indice) => indice !== imagem.indice))}>Remover</Button>
+          </div>
+        </figure>)}
+      </div>}
+      {previews.length > 0 && <p className="muted">Clique na imagem para conferir em outra aba enquanto revisa os itens.</p>}
       <Button loading={ocupado} disabled={!arquivos.length} onClick={() => void analisar()}>Ler nota fiscal</Button>
     </Card>
     {nota && <>
@@ -118,7 +155,7 @@ export function NotasFiscais() {
             }}><option value="">Escolher categoria…</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
-      {itens.map(item => <Card key={`${nota.id}-${item.id}`} title={`${item.numero}. ${item.descricao}`}>
+      {itens.map(item => <Card key={`${nota.id}-${item.id}`} className={item.incerto && !nota.confirmada ? "nota-item--ocr" : ""} title={`${item.numero}. ${item.descricao}`}>
         <p className="muted">Código {item.codigo} · Nota: {fmtNum(item.quantidadeNota)} {item.unidadeNota} · Bruto: {fmtMoney(item.valorBruto)} · Desconto: {fmtMoney(item.desconto)} · Ajuste rateado: {fmtMoney(item.valorRateado)}</p>
         {!nota.confirmada && <Checkbox checked={item.selecionado} onChange={selecionado => alterar(item.id, { selecionado })} label="Incluir este item no estoque" />}
         {item.selecionado && <fieldset disabled={ocupado || nota.confirmada} style={{ border: 0, padding: 0, minWidth: 0 }}>

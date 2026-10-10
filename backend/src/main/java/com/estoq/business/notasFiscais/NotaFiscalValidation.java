@@ -18,6 +18,7 @@ public class NotaFiscalValidation {
             erro("Identificação da nota inválida.");
         if (nota.valorTotal()==null || nota.valorTotal().signum()<0 || nota.valorTotal().precision()>18)
             erro("Total da nota inválido.");
+        dinheiro(nota.valorTotal());
         if (nota.itens().isEmpty() || nota.itens().size()>1000) erro("A nota deve conter de 1 a 1000 itens.");
         var numeros = new HashSet<Integer>();
         for (var item : nota.itens()) {

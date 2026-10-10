@@ -2,6 +2,7 @@ package com.estoq.business.relatorios;
 
 import com.estoq.business.consumos.ConsumoModel;
 import com.estoq.business.desperdicios.DesperdicioModel;
+import com.estoq.business.desperdicios.DesperdicioClassificacao;
 import com.estoq.business.entradas.EntradaModel;
 import com.estoq.business.lotes.ILoteRepository;
 import com.estoq.business.lotes.LoteDTO;
@@ -72,9 +73,9 @@ public class RelatorioService {
     public List<DesperdicioDTO> desperdicio(LocalDateTime inicio, LocalDateTime fim) {
         return movimentos.desperdiciosAntesDe(fim).stream()
                 .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
-                .map(d -> new DesperdicioDTO(d.getDataHora(), d.getMotivo(), d.getDescricaoMotivo(),
-                        d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), d.getQuantidade(),
-                        d.getValorPrejuizo()))
+                .map(d -> new DesperdicioDTO(d.getDataHora(), DesperdicioClassificacao.motivo(d), DesperdicioClassificacao.descricao(d),
+                        d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), DesperdicioClassificacao.quantidade(d),
+                        DesperdicioClassificacao.valor(d)))
                 .toList();
     }
 
@@ -83,16 +84,16 @@ public class RelatorioService {
         movimentos.desperdiciosAntesDe(fim).stream()
                 .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
                 .forEach(d -> {
-                    var chave = d.getProduto().getId() + ":" + d.getMotivo().name();
+                    var chave = d.getProduto().getId() + ":" + DesperdicioClassificacao.motivo(d).name();
                     var atual = agregado.get(chave);
                     if (atual == null) {
                         agregado.put(chave, new DesperdicioAgregadoDTO(d.getProduto().getId(), d.getProduto().getNome(),
-                                d.getMotivo(), d.getQuantidade(), d.getValorPrejuizo()));
+                                DesperdicioClassificacao.motivo(d), DesperdicioClassificacao.quantidade(d), DesperdicioClassificacao.valor(d)));
                     } else {
                         agregado.put(chave,
                                 new DesperdicioAgregadoDTO(atual.produtoId(), atual.produtoNome(), atual.motivo(),
-                                        atual.quantidade().add(d.getQuantidade()),
-                                        atual.valorPrejuizo().add(d.getValorPrejuizo())));
+                                        atual.quantidade().add(DesperdicioClassificacao.quantidade(d)),
+                                        atual.valorPrejuizo().add(DesperdicioClassificacao.valor(d))));
                     }
                 });
         return agregado.values().stream()
@@ -141,8 +142,8 @@ public class RelatorioService {
     }
 
     /**
-     * JOINED polimórfico custa 1 SELECT por linha nas subclasses; cada subtipo
-     * carrega em consulta homogênea.
+     * Entradas e consumos usam consultas por subtipo. A consulta de perdas inclui
+     * desperdícios e ajustes negativos de balanço, cada movimentação uma vez.
      */
     private List<MovimentacaoEstoqueModel> movimentacoesEntre(LocalDateTime inicio, LocalDateTime fim) {
         var lista = new ArrayList<MovimentacaoEstoqueModel>();
@@ -175,8 +176,8 @@ public class RelatorioService {
                 compras = compras.add(money(e.getValorTotalPago()));
             } else if (m instanceof ConsumoModel c) {
                 consumido = consumido.add(c.getCustoConsumo());
-            } else if (m instanceof DesperdicioModel d) {
-                desperdicio = desperdicio.add(d.getValorPrejuizo());
+            } else if (m instanceof DesperdicioModel || DesperdicioClassificacao.perdaBalanco(m)) {
+                desperdicio = desperdicio.add(DesperdicioClassificacao.valor(m));
             }
         }
         compras = money(compras);
@@ -241,8 +242,8 @@ public class RelatorioService {
             }
             if (m instanceof EntradaModel e) {
                 comprasMes[k] = comprasMes[k].add(money(e.getValorTotalPago()));
-            } else if (m instanceof DesperdicioModel d) {
-                desperdicioMes[k] = desperdicioMes[k].add(d.getValorPrejuizo());
+            } else if (m instanceof DesperdicioModel || DesperdicioClassificacao.perdaBalanco(m)) {
+                desperdicioMes[k] = desperdicioMes[k].add(DesperdicioClassificacao.valor(m));
             }
         }
         var estoqueInicialMes = new BigDecimal[n];

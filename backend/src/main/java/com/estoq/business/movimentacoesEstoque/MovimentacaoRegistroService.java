@@ -2,6 +2,7 @@ package com.estoq.business.movimentacoesEstoque;
 
 import com.estoq.business.auditoria.AuditService;
 import com.estoq.business.produtos.EstoqueService;
+import com.estoq.business.desperdicios.DesperdicioClassificacao;
 
 import jakarta.persistence.EntityManager;
 
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 /** Persistência da trilha e resposta do estado já confirmado pelo flush otimista. */
 @Service
@@ -43,6 +46,14 @@ public class MovimentacaoRegistroService {
     @Transactional(readOnly = true)
     public List<MovimentacaoDTO> consultar(Long produtoId, Long loteId, Long usuarioId, TipoMovimentacao tipo,
             LocalDateTime inicio, LocalDateTime fim) {
-        return repository.consultar(produtoId, loteId, usuarioId, tipo, inicio, fim).stream().map(adapter::toDto).toList();
+        var movimentos = new ArrayList<>(repository.consultar(produtoId, loteId, usuarioId, tipo, inicio, fim));
+        if (tipo == TipoMovimentacao.DESPERDICIO) {
+            repository.consultar(produtoId, loteId, usuarioId, TipoMovimentacao.AJUSTE, inicio, fim).stream()
+                    .filter(DesperdicioClassificacao::perdaBalanco).forEach(movimentos::add);
+        }
+        return movimentos.stream()
+                .sorted(Comparator.comparing(MovimentacaoEstoqueModel::getDataHora)
+                        .thenComparing(MovimentacaoEstoqueModel::getId))
+                .map(adapter::toDto).toList();
     }
 }

@@ -1,7 +1,6 @@
 package com.estoq.business.movimentacoesEstoque;
 
 import com.estoq.business.consumos.ConsumoModel;
-import com.estoq.business.desperdicios.DesperdicioModel;
 import com.estoq.business.entradas.EntradaModel;
 import com.estoq.core.repositories.IGenericRepository;
 
@@ -22,8 +21,12 @@ public interface IMovimentacaoEstoqueRepository extends IGenericRepository<Movim
         List<ConsumoModel> consumosAntesDe(LocalDateTime corte);
 
         @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
-        @Query("select d from DesperdicioModel d where d.dataHora < :corte order by d.dataHora, d.id")
-        List<DesperdicioModel> desperdiciosAntesDe(LocalDateTime corte);
+        @Query("select m from MovimentacaoEstoqueModel m where "
+                        + "(m.tipo=com.estoq.business.movimentacoesEstoque.TipoMovimentacao.DESPERDICIO or "
+                        + "(m.tipo=com.estoq.business.movimentacoesEstoque.TipoMovimentacao.AJUSTE "
+                        + "and m.itemBalanco is not null and m.quantidadePosterior<m.quantidadeAnterior)) "
+                        + "and m.dataHora < :corte order by m.dataHora, m.id")
+        List<MovimentacaoEstoqueModel> desperdiciosAntesDe(LocalDateTime corte);
 
         @EntityGraph(attributePaths = { "lote" })
         @Query("select e from EntradaModel e where e.dataHora >= :inicio and e.dataHora < :fim")
@@ -34,8 +37,12 @@ public interface IMovimentacaoEstoqueRepository extends IGenericRepository<Movim
         List<ConsumoModel> consumosEntre(LocalDateTime inicio, LocalDateTime fim);
 
         @EntityGraph(attributePaths = { "lote" })
-        @Query("select d from DesperdicioModel d where d.dataHora >= :inicio and d.dataHora < :fim")
-        List<DesperdicioModel> desperdiciosEntre(LocalDateTime inicio, LocalDateTime fim);
+        @Query("select m from MovimentacaoEstoqueModel m where "
+                        + "(m.tipo=com.estoq.business.movimentacoesEstoque.TipoMovimentacao.DESPERDICIO or "
+                        + "(m.tipo=com.estoq.business.movimentacoesEstoque.TipoMovimentacao.AJUSTE "
+                        + "and m.itemBalanco is not null and m.quantidadePosterior<m.quantidadeAnterior)) "
+                        + "and m.dataHora >= :inicio and m.dataHora < :fim")
+        List<MovimentacaoEstoqueModel> desperdiciosEntre(LocalDateTime inicio, LocalDateTime fim);
 
         @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
         @Query("select m from MovimentacaoEstoqueModel m "

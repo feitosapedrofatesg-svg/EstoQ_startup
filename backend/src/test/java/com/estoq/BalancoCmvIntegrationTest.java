@@ -26,6 +26,7 @@ import com.estoq.business.entradas.EntradaService;
 import com.estoq.business.lotes.ILoteRepository;
 import com.estoq.business.movimentacoesEstoque.IMovimentacaoEstoqueRepository;
 import com.estoq.business.movimentacoesEstoque.TipoMovimentacao;
+import com.estoq.business.movimentacoesEstoque.MovimentacaoConsultaService;
 import com.estoq.business.parametrosCmv.ParametroCmvDTO;
 import com.estoq.business.parametrosCmv.ParametroCmvService;
 import com.estoq.business.produtos.ProdutoDTO;
@@ -85,6 +86,8 @@ class BalancoCmvIntegrationTest {
     ILoteRepository lotes;
     @Autowired
     IMovimentacaoEstoqueRepository movimentos;
+    @Autowired
+    MovimentacaoConsultaService consultas;
     @Autowired
     RelatorioService relatorios;
     @Autowired
@@ -148,6 +151,25 @@ class BalancoCmvIntegrationTest {
         var ajustes = movimentos.findAll().stream().filter(m -> m.getTipo() == TipoMovimentacao.AJUSTE).toList();
         assertEquals(1, ajustes.size());
         assertEquals(0, new BigDecimal("2").compareTo(ajustes.getFirst().getDelta().abs()));
+        // Reaplicar o balanço não baixa outra vez nem duplica a perda.
+        balancos.gerarAjustes(confirmado.id());
+        assertEquals(0, new BigDecimal("8").compareTo(lotes.saldo(produtoId)));
+        var fim = LocalDateTime.now().plusDays(1);
+        var inicio = fim.minusDays(30);
+        var perdas = consultas.listar(produtoId, null, null, TipoMovimentacao.DESPERDICIO, inicio, fim);
+        assertEquals(1, perdas.size());
+        assertEquals("Diferença negativa de balanço", perdas.getFirst().descricaoMotivo());
+        assertEquals(0, new BigDecimal("40").compareTo(perdas.getFirst().valorPrejuizo()));
+        assertEquals(0, new BigDecimal("2").compareTo(relatorios.desperdicio(inicio, fim).getFirst().quantidade()));
+        assertEquals(0, new BigDecimal("40").compareTo(relatorios.desperdicioAgregado(inicio, fim).getFirst().valorPrejuizo()));
+        var cmv = relatorios.calcularCmv(inicio, fim, null);
+        assertEquals(0, new BigDecimal("40").compareTo(cmv.valorDesperdicio()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(cmv.valorPerdasNaoExplicadas()));
+        assertEquals(0, new BigDecimal("40").compareTo(dashboard.resumo(inicio, fim, null).valorDesperdicioPeriodo()));
+        var perdaMensal = relatorios.cmvPorMes(inicio, fim).stream()
+                .map(CmvMensalDTO::valorDesperdicio).reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertEquals(0, new BigDecimal("40").compareTo(perdaMensal));
+        assertTrue(consultas.listar(-1L, null, null, TipoMovimentacao.DESPERDICIO, inicio, fim).isEmpty());
     }
 
     @Test
@@ -159,6 +181,10 @@ class BalancoCmvIntegrationTest {
         var confirmado = balancos.confirmar(iniciado.id());
         balancos.gerarAjustes(confirmado.id());
         assertEquals(0, new BigDecimal("12").compareTo(lotes.saldo(produtoId)));
+        var fim = LocalDateTime.now().plusDays(1);
+        assertTrue(consultas.listar(produtoId, null, null, TipoMovimentacao.DESPERDICIO,
+                fim.minusDays(30), fim).isEmpty());
+        assertTrue(relatorios.desperdicio(fim.minusDays(30), fim).isEmpty());
         var ajustes = movimentos.findAll().stream().filter(m -> m.getTipo() == TipoMovimentacao.AJUSTE).toList();
         assertEquals(1, ajustes.size());
         assertEquals(0, new BigDecimal("2").compareTo(ajustes.getFirst().getDelta().abs()));

@@ -168,7 +168,12 @@ ignorada quando já há histórico de migrações. Alterações futuras usam V5 
 
 O estoque informa saldo físico (inclui lotes vencidos) e saldo disponível para
 consumo (lotes ativos com quantidade positiva, sem vencimento ou ainda válidos).
-Desperdícios podem baixar lotes vencidos.
+Desperdícios podem baixar lotes vencidos. Na tela de Desperdício, a lista de lotes
+vencidos permite registrar a exclusão total ou parcial; outros lotes podem ser
+selecionados para perdas por deterioração ou outros motivos. O histórico geral
+inclui ajustes negativos de balanço já aplicados como desperdício, sem nova baixa
+e preservando a movimentação original de ajuste. Esses déficits também compõem
+os relatórios de desperdício, o CMV e o dashboard.
 
 ## Testes
 

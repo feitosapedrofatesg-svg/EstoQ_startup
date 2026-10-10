@@ -105,3 +105,10 @@ export function useDebounced<T>(value: T, ms = 300): T {
   }, [value, ms]);
   return debounced;
 }
+
+/** Invalida telas afetadas por uma entrada em lote, para que consultem os novos saldos. */
+export function invalidarCache(prefixos: string[]): void {
+  for (const caminho of cache.keys()) {
+    if (prefixos.some(prefixo => caminho.startsWith(prefixo))) cache.delete(caminho);
+  }
+}

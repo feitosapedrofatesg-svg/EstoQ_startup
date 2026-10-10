@@ -74,15 +74,18 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
 
-  let payload: string | undefined;
-  if (body !== undefined) {
+  let payload: BodyInit | undefined;
+  if (body instanceof FormData) {
+    payload = body; // O navegador inclui o boundary do multipart.
+  } else if (body !== undefined) {
     payload = JSON.stringify(body);
     headers["Content-Type"] = "application/json";
   }
 
   if (method !== "GET") {
     try {
-      headers[csrfHeader] = await fetchCsrf();
+      const token = await fetchCsrf();
+      headers[csrfHeader] = token;
     } catch (e) {
       throw e;
     }

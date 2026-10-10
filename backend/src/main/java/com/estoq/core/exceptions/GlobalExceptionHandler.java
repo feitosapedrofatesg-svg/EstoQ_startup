@@ -52,6 +52,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.error("Dados inválidos. Confira campos, unidades, datas e identificadores."));
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> arquivoGrande(Exception ex) {
+        return ResponseEntity.status(413).body(ErrorResponse.error("Os arquivos devem somar no máximo 4 MB."));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> arquivoAusente(Exception ex) {
+        return ResponseEntity.badRequest().body(ErrorResponse.error("Selecione um documento para importar."));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> inexistente(Exception ex) {
         return ResponseEntity.status(404).body(ErrorResponse.error("Recurso não encontrado."));

@@ -1,0 +1,75 @@
+-- As notas pertencem à cozinha autenticada; o arquivo original não é armazenado.
+alter table produtos add constraint uk_produtos_nota_tenant unique (restaurante_id,id);
+alter table categorias add constraint uk_categorias_nota_tenant unique (restaurante_id,id);
+alter table movimentacoes add constraint uk_movimentacoes_nota_tenant unique (restaurante_id,id);
+alter table usuarios add constraint uk_usuarios_nota_tenant unique (restaurante_id,id);
+create table notas_fiscais (
+    id bigserial primary key,
+    data_hora_criacao timestamp not null,
+    ativo boolean not null default true,
+    version bigint not null default 0,
+    restaurante_id bigint not null references restaurantes(id),
+    chave varchar(44) not null,
+    fornecedor varchar(160) not null,
+    documento_fornecedor varchar(20) not null,
+    numero varchar(20) not null,
+    serie varchar(10) not null,
+    emissao date,
+    valor_total numeric(18,2) not null,
+    confirmada boolean not null default false,
+    usuario_id bigint,
+    avisos varchar(2000),
+    constraint uk_nota_tenant_chave unique (restaurante_id,chave),
+    constraint uk_nota_tenant_id unique (restaurante_id,id),
+    foreign key (restaurante_id,usuario_id) references usuarios(restaurante_id,id)
+);
+create table itens_nota_fiscal (
+    id bigserial primary key,
+    data_hora_criacao timestamp not null,
+    ativo boolean not null default true,
+    version bigint not null default 0,
+    restaurante_id bigint not null references restaurantes(id),
+    nota_id bigint not null references notas_fiscais(id),
+    numero integer not null,
+    codigo varchar(60) not null,
+    descricao varchar(300) not null,
+    codigo_barras varchar(40),
+    unidade_nota varchar(20) not null,
+    quantidade_nota numeric(18,6) not null,
+    valor_bruto numeric(18,2) not null,
+    desconto numeric(18,2) not null,
+    valor_rateado numeric(18,2) not null,
+    valor_entrada numeric(18,2) not null,
+    produto_id bigint,
+    categoria_id bigint,
+    nome_produto varchar(120),
+    unidade_estoque varchar(10),
+    fator numeric(18,6),
+    quantidade_entrada numeric(18,3),
+    validade date,
+    selecionado boolean not null default true,
+    embalagem_confirmada boolean not null default false,
+    incerto boolean not null default false,
+    movimentacao_id bigint,
+    unique (nota_id,numero),
+    foreign key (restaurante_id,nota_id) references notas_fiscais(restaurante_id,id),
+    foreign key (restaurante_id,produto_id) references produtos(restaurante_id,id),
+    foreign key (restaurante_id,categoria_id) references categorias(restaurante_id,id),
+    foreign key (restaurante_id,movimentacao_id) references movimentacoes(restaurante_id,id)
+);
+create table vinculos_fornecedor (
+    id bigserial primary key,
+    data_hora_criacao timestamp not null,
+    ativo boolean not null default true,
+    version bigint not null default 0,
+    restaurante_id bigint not null references restaurantes(id),
+    documento_fornecedor varchar(20) not null,
+    codigo varchar(60) not null,
+    descricao varchar(300) not null,
+    unidade_nota varchar(20) not null,
+    produto_id bigint not null,
+    unidade_estoque varchar(10) not null,
+    fator numeric(18,6) not null,
+    unique (restaurante_id,documento_fornecedor,codigo),
+    foreign key (restaurante_id,produto_id) references produtos(restaurante_id,id)
+);

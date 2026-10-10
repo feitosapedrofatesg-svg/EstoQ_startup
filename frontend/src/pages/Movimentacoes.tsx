@@ -5,6 +5,7 @@ import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
 import {
   PageHeader,
+  LinkButton,
   Card,
   Button,
   Modal,
@@ -107,9 +108,10 @@ export function Movimentacoes() {
           // Entrada é exclusiva do ADMIN (SecurityConfig). Consumo e desperdício
           // têm telas próprias.
           isAdmin && (
-            <Button icon="plus" onClick={() => setShowRegister(true)}>
-              Registrar entrada
-            </Button>
+            <>
+              <LinkButton to="/notas-fiscais" variant="outline" icon="arrows">Importar nota fiscal</LinkButton>
+              <Button icon="plus" onClick={() => setShowRegister(true)}>Registrar entrada</Button>
+            </>
           )
         }
       />

@@ -1,3 +1,4 @@
+import { NotasFiscais } from "./pages/NotasFiscais";
 import { BrowserRouter, Navigate, Route, Routes, Link } from "react-router-dom";
 import { AuthProvider, useAuth } from "./store/auth";
 import { ToastProvider } from "./store/toast";
@@ -121,6 +122,7 @@ function AppRoutes() {
             </Guarded>
           }
         />
+        <Route path="/notas-fiscais" element={<Guarded allow={isAdmin}><NotasFiscais /></Guarded>} />
         <Route
           path="/consumo"
           element={

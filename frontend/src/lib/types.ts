@@ -333,3 +333,16 @@ export interface ParametroCmvDTO {
   version: number;
   percentualIdeal: number;
 }
+
+export interface ItemNotaFiscalDTO {
+  id: number; numero: number; codigo: string; descricao: string; unidadeNota: string;
+  quantidadeNota: number; valorBruto: number; desconto: number; valorRateado: number; valorEntrada: number;
+  produtoId: number | null; categoriaId: number | null; nomeProduto: string; unidadeEstoque: UnidadeMedida;
+  fator: number; quantidadeEntrada: number | null; validade: string | null;
+  selecionado: boolean; embalagemConfirmada: boolean; incerto: boolean; movimentacaoId: number | null;
+}
+export interface NotaFiscalDTO {
+  id: number; version: number; chave: string; fornecedor: string; documentoFornecedor: string;
+  numero: string; serie: string; emissao: string | null; valorTotal: number; confirmada: boolean;
+  avisos: string[]; itens: ItemNotaFiscalDTO[];
+}

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Valida as migrações V1-V4 num PostgreSQL real embutido (Zonky) em dois cenários:
+ * Valida as migrações V1-V5 num PostgreSQL real embutido (Zonky) em dois cenários:
  * 1) banco legado "limpo" (sem nenhuma coluna de tenant);
  * 2) estado real de produção de 2026-09-24 (ddl-auto=update já criou restaurante_id
  *    em 9 das 17 tabelas e também a tabela restaurantes — que o deploy "drop+recreate"
@@ -82,7 +82,7 @@ class MigracaoProdValidacaoTest {
                 "--spring.jpa.hibernate.ddl-auto=validate",
                 "--spring.flyway.enabled=true")) {
             var flyway = context.getBean(Flyway.class);
-            assertEquals("4", flyway.info().current().getVersion().toString());
+            assertEquals("5", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -145,7 +145,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(4, resultado.migrationsExecuted, "V1 até V4 devem executar no banco legado");
+        assertEquals(5, resultado.migrationsExecuted, "V1 até V5 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {
@@ -176,7 +176,7 @@ class MigracaoProdValidacaoTest {
             try (ResultSet rs = st.executeQuery("select count(*) from pg_constraint "
                     + "where contype = 'f' and confrelid = 'restaurantes'::regclass")) {
                 rs.next();
-                assertEquals(18, rs.getInt(1));
+                assertEquals(21, rs.getInt(1));
             }
             try (ResultSet rs = st.executeQuery("insert into restaurantes (nome, ativo, data_hora_criacao, version) "
                     + "values ('Loja Nova', true, now(), 0) returning id")) {

@@ -11,7 +11,7 @@ function CampoDecimal({ id, label, value, onValue }: { id: string; label: string
   const [texto, setTexto] = useState(String(value).replace(".", ","));
   useEffect(() => { setTexto(String(value).replace(".", ",")); }, [value]);
   return <Field label={label} htmlFor={id}><Input id={id} inputMode="decimal" value={texto}
-    onChange={e => setTexto(e.target.value)} onBlur={() => onValue(parseDecimal(texto) ?? NaN)} /></Field>;
+    onChange={e => setTexto(e.target.value)} onBlur={() => { const novoValor = parseDecimal(texto) ?? NaN; if (!Object.is(novoValor, value)) onValue(novoValor); }} /></Field>;
 }
 const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
 
@@ -99,6 +99,10 @@ export function NotasFiscais() {
   };
   const confirmar = async () => {
     if (!nota) return;
+    if (pendencias.length) {
+      setErro("Ajuste as pendências indicadas abaixo antes de confirmar a entrada.");
+      return;
+    }
     setErro(null); setOcupado(true);
     try {
       const resultado = await api.post<NotaFiscalDTO>(`/api/notas-fiscais/${nota.id}/confirmar`, {
@@ -119,6 +123,19 @@ export function NotasFiscais() {
   const totalSelecionado = selecionados.reduce((s, i) => s + (i.valorEntrada ?? 0), 0);
   const totalRevisado = itens.reduce((s, i) => s + (i.selecionado ? i.valorEntrada ?? 0 : nota?.itens.find(o => o.id === i.id)?.valorEntrada ?? 0), 0);
   const totalFecha = !!nota && Math.abs(totalRevisado - nota.valorTotal) < 0.005;
+  // O botão não esconde a causa do bloqueio: cada pendência aparece junto da confirmação.
+  const pendencias: string[] = [];
+  if (!selecionados.length) pendencias.push("Selecione pelo menos um item para entrar no estoque.");
+  if (!totalFecha) pendencias.push("A soma dos custos precisa fechar o total da nota.");
+  for (const item of selecionados) {
+    const linha = `Item ${item.numero} (${item.descricao})`;
+    if (!item.produtoId && !item.categoriaId) pendencias.push(`${linha}: escolha uma categoria. Você pode aplicar uma categoria a todos os produtos novos no início da lista.`);
+    if (!item.produtoId && !item.nomeProduto?.trim()) pendencias.push(`${linha}: informe o nome do produto.`);
+    if (!Number.isFinite(item.quantidadeNota * item.fator) || item.quantidadeNota <= 0 || item.fator <= 0)
+      pendencias.push(`${linha}: informe quantidade e conteúdo da embalagem maiores que zero.`);
+    if (!Number.isFinite(item.valorEntrada) || item.valorEntrada < 0)
+      pendencias.push(`${linha}: informe um custo válido, igual ou maior que zero.`);
+  }
 
   return <>
     <PageHeader title="Importar nota fiscal" subtitle="Leia a nota, confira os itens e confirme a entrada no estoque."
@@ -205,7 +222,12 @@ export function NotasFiscais() {
         {!totalFecha && <AlertBanner tone="warn">Os custos precisam fechar o total da nota, considerando também as linhas desmarcadas.</AlertBanner>}
         <p className="muted">A conferência abaixo vale para todos os itens, incluindo os dados da imagem, as unidades e o conteúdo das embalagens.</p>
         <Checkbox checked={custosConferidos} onChange={setCustosConferidos} label="Conferi os itens, os descontos e os custos rateados" />
-        <Button loading={ocupado} disabled={!custosConferidos || !totalFecha || !selecionados.length || selecionados.some(i => !Number.isFinite(i.quantidadeNota * i.fator) || i.quantidadeNota <= 0 || i.fator <= 0 || !Number.isFinite(i.valorEntrada) || i.valorEntrada < 0 || (!i.produtoId && (!i.categoriaId || !i.nomeProduto.trim())))} onClick={() => void confirmar()}>Confirmar entrada no estoque</Button>
+        {custosConferidos && pendencias.length > 0 && <AlertBanner tone="warn">
+          <strong>Pendências para confirmar a entrada:</strong>
+          <ul>{pendencias.map((pendencia, indice) => <li key={indice}>{pendencia}</li>)}</ul>
+        </AlertBanner>}
+        {erro && <AlertBanner tone="bad">{erro}</AlertBanner>}
+        <Button loading={ocupado} disabled={!custosConferidos} onClick={() => void confirmar()}>Confirmar entrada no estoque</Button>
       </Card>}
     </>}
   </>;

@@ -133,6 +133,7 @@ Documento gerado a partir do código (controllers + `SecurityConfig.java`). Base
 | Método | Rota | Corpo / notas |
 |--------|------|---------------|
 | GET | `/api/balancos` | lista `BalancoDTO` |
+| GET | `/api/balancos/proximo` | Agendamento da cozinha atual; leitura para ADMIN, COZINHA e NUTRICIONISTA |
 | GET | `/api/balancos/{id}` | → inclui `itens[]` |
 | POST | `/api/balancos` | `{ tipo?: GERAL|PARCIAL }` (sem corpo = GERAL) → 201 |
 | POST | `/api/balancos/{id}/iniciar` | gera itens de contagem |
@@ -149,6 +150,10 @@ Documento gerado a partir do código (controllers + `SecurityConfig.java`). Base
 | POST | `/api/configuracoes-balanco` | `{ periodicidade, diaExecucao, proximaExecucao }` |
 | PUT | `/api/configuracoes-balanco/{id}` | mesmo corpo + `version` |
 | DELETE | `/api/configuracoes-balanco/{id}` | → 204 |
+
+O agendamento aparece na visão geral e na tela de balanços. No dia marcado ou
+em atraso, a consulta à central gera um aviso para ADMIN e COZINHA, sem duplicar
+nem reabrir avisos já vistos. A data avança após a confirmação do balanço.
 
 ### Alertas (`ADM/COZ`)
 | Método | Rota | Corpo / notas |

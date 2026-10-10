@@ -17,7 +17,6 @@ import com.estoq.core.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,24 +75,53 @@ public class AlertaService {
 
     @Transactional
     public void reavaliarBalancoPendente(ConfiguracaoBalancoModel configuracao) {
-        if (configuracao == null || !configuracao.isAtivo()) {
+        if (configuracao == null || !configuracao.isAtivo() || !configuracoes.estaVencida(configuracao)) {
             return;
         }
-        if (configuracao.getProximaExecucao() != null && !configuracao.getProximaExecucao().isAfter(LocalDate.now())) {
-            gerar(TipoAlerta.BALANCO_PENDENTE, null, null, configuracao.getPeriodicidade());
+        var mensagem = AlertaAdapter.mensagemDe(TipoAlerta.BALANCO_PENDENTE, null, null,
+                configuracao.getProximaExecucao().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        var existentes = repository.findAllByAtivoTrueOrderByDataGeracaoDesc();
+        for (var perfil : AlertaAdapter.destinos(TipoAlerta.BALANCO_PENDENTE)) {
+            if (existentes.stream().anyMatch(a -> a.getTipo() == TipoAlerta.BALANCO_PENDENTE
+                    && a.getPerfilDestino() == perfil && mensagem.equals(a.getMensagem()))) {
+                continue;
+            }
+            var alerta = new AlertaModel();
+            alerta.setTipo(TipoAlerta.BALANCO_PENDENTE);
+            alerta.setPerfilDestino(perfil);
+            alerta.setMensagem(mensagem);
+            alerta.setDataGeracao(LocalDateTime.now());
+            repository.save(alerta);
         }
     }
 
-    @Scheduled(cron = "0 0 6 * * *")
+    // Avaliado nas requisições autenticadas, dentro do contexto da cozinha.
     @Transactional
     public void avaliarAgendamentos() {
+        var agendamentos = configuracoesBalanco.findAllByAtivoTrueOrderByIdAsc();
+        if (agendamentos.isEmpty()) return;
+        var mensagensAtuais = agendamentos.stream().filter(configuracoes::estaVencida)
+                .map(c -> AlertaAdapter.mensagemDe(TipoAlerta.BALANCO_PENDENTE, null, null,
+                        c.getProximaExecucao().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))))
+                .toList();
+        repository.findAllByAtivoTrueOrderByDataGeracaoDesc().stream()
+                .filter(a -> a.getTipo() == TipoAlerta.BALANCO_PENDENTE && !a.isVisualizado()
+                        && !mensagensAtuais.contains(a.getMensagem()))
+                .forEach(repository::delete);
+        for (var configuracao : agendamentos) {
+            reavaliarBalancoPendente(configuracao);
+        }
+    }
+
+    @Transactional
+    public void concluirAgendamento() {
         for (var configuracao : configuracoesBalanco.findAllByAtivoTrueOrderByIdAsc()) {
             if (configuracoes.estaVencida(configuracao)) {
-                gerar(TipoAlerta.BALANCO_PENDENTE, null, null, configuracao.getPeriodicidade());
                 configuracao.setProximaExecucao(configuracoes.calcularProxima(configuracao.getPeriodicidade(),
                         configuracao.getDiaExecucao(), LocalDate.now()));
             }
         }
+        repository.apagarAbertos(TipoAlerta.BALANCO_PENDENTE, null, null);
     }
 
     @Transactional
@@ -127,14 +155,18 @@ public class AlertaService {
         }
     }
 
+    @Transactional
     public List<AlertaDTO> listar(Boolean visualizado, Perfil perfil) {
+        avaliarAgendamentos();
         return repository.findAllByAtivoTrueOrderByDataGeracaoDesc().stream()
                 .filter(a -> visualizado == null || a.isVisualizado() == visualizado)
                 .filter(a -> a.getPerfilDestino() == perfil)
                 .map(adapter::toDto).toList();
     }
 
+    @Transactional
     public long contarAbertos(Perfil perfil) {
+        avaliarAgendamentos();
         return repository.countByAtivoTrueAndVisualizadoFalseAndPerfilDestino(perfil);
     }
 

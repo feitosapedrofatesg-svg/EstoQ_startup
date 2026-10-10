@@ -84,6 +84,8 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                                                 .requestMatchers("/api/plataforma/**").hasRole("PLATAFORMA")
+                                                .requestMatchers(HttpMethod.GET, "/api/balancos/proximo")
+                                                .hasAnyRole("ADMIN", "COZINHA", "NUTRICIONISTA")
                                                 .requestMatchers(HttpMethod.GET, "/api/categorias/**",
                                                                 "/api/produtos/**", "/api/lotes/**",
                                                                 "/api/estoque", "/api/produtos-abertos/**",

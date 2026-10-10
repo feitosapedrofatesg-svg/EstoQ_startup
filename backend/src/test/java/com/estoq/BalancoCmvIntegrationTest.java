@@ -295,18 +295,40 @@ class BalancoCmvIntegrationTest {
         guardado.setProximaExecucao(LocalDate.now());
         configRepository.flush();
         alertas.avaliarAgendamentos();
-        assertEquals(1, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
-        assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao()
-                .isAfter(LocalDate.now()));
+        assertEquals(2, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
+        assertEquals(LocalDate.now(), configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao());
+        alertas.avaliarAgendamentos();
+        assertEquals(2, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
+        assertEquals(1, alertas.listar(false, Perfil.COZINHA).stream()
+                .filter(a -> a.tipo() == TipoAlerta.BALANCO_PENDENTE).count());
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
         var iniciado = balancos.iniciar(criado.id());
         var item = iniciado.itens().getFirst();
         balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8")));
         var confirmado = balancos.confirmar(iniciado.id());
         assertEquals(0, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
+        assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao().isAfter(LocalDate.now()));
         assertEquals(1, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
         balancos.gerarAjustes(confirmado.id());
         assertEquals(0, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
+    }
+
+    @Test
+    void agendamentoAvisaNoDiaPelaCentralSemDuplicarOuReabrirAvisoVisto() {
+        var cfg = configuracoes.salvar(new ConfiguracaoBalancoDTO(null, null, PeriodicidadeBalanco.DIARIA, null, null));
+        assertEquals(0, alertas.contarAbertos(Perfil.ADMIN));
+        var guardado = configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow();
+        guardado.setProximaExecucao(LocalDate.now());
+        configRepository.flush();
+        var avisos = alertas.listar(false, Perfil.ADMIN);
+        assertEquals(1, avisos.size());
+        assertTrue(avisos.getFirst().mensagem().contains(LocalDate.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        assertEquals(1, alertas.contarAbertos(Perfil.ADMIN));
+        alertas.marcarVisualizado(avisos.getFirst().id());
+        assertEquals(0, alertas.contarAbertos(Perfil.ADMIN));
+        assertEquals(1, alertas.contarAbertos(Perfil.COZINHA));
+        assertEquals(LocalDate.now(), configuracoes.listar().getFirst().proximaExecucao());
     }
 
     @Test

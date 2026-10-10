@@ -61,6 +61,11 @@ public class BalancoController {
         return service.gerarAjustes(id);
     }
 
+    @GetMapping("/api/balancos/proximo")
+    public List<ConfiguracaoBalancoDTO> proximo() {
+        return configuracoes.listar();
+    }
+
     @GetMapping("/api/configuracoes-balanco")
     public List<ConfiguracaoBalancoDTO> listarConfiguracoes() {
         return configuracoes.listar();

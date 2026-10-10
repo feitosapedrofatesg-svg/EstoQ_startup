@@ -1,3 +1,4 @@
+import { ProximoBalanco } from "../components/ProximoBalanco";
 import { useAuth } from "../store/auth";
 import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
@@ -58,6 +59,8 @@ export function Dashboard() {
           </>
         }
       />
+
+      <ProximoBalanco />
 
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">

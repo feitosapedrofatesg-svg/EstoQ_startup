@@ -24,14 +24,15 @@ public class AlertaAdapter {
     public static List<Perfil> destinos(TipoAlerta tipo) {
         return switch (tipo) {
             case ESTOQUE_BAIXO, PROXIMO_VENCIMENTO, VENCIDO -> List.of(Perfil.ADMIN, Perfil.COZINHA);
-            case BALANCO_PENDENTE, DIFERENCA_ESTOQUE -> List.of(Perfil.ADMIN);
+            case BALANCO_PENDENTE -> List.of(Perfil.ADMIN, Perfil.COZINHA);
+            case DIFERENCA_ESTOQUE -> List.of(Perfil.ADMIN);
         };
     }
 
     public static String mensagemDe(TipoAlerta tipo, ProdutoModel produto, LoteModel lote, Object extra) {
         if (produto == null) {
             return switch (tipo) {
-                case BALANCO_PENDENTE -> "Configuração de balanço vencida — realize um novo balanço (" + extra + ").";
+                case BALANCO_PENDENTE -> "Balanço programado para " + extra + " — realize a contagem do estoque.";
                 default -> "Alerta de estoque.";
             };
         }

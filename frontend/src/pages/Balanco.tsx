@@ -1,3 +1,4 @@
+import { ProximoBalanco } from "../components/ProximoBalanco";
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
 import { useFetch, updateCache } from "../lib/hooks";
@@ -108,6 +109,7 @@ export function Balanco() {
   const { data: configs, refresh: refreshConfig } = useFetch<ConfiguracaoBalancoDTO[]>(
     isAdmin ? "/api/configuracoes-balanco" : null
   );
+  const [agendaRevision, setAgendaRevision] = useState(0);
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
   const [busyLabel, setBusyLabel] = useState("");
@@ -119,6 +121,8 @@ export function Balanco() {
     try {
       const atualizado = await fn();
       toast.success(label);
+      void refreshConfig();
+      setAgendaRevision(v => v + 1);
       // O backend devolve o balanço completo já atualizado: mescla na lista
       // (sem re-buscar /api/balancos inteiro a cada clique) e mantém o cache SWR coerente.
       const merge = (prev: BalancoDTO[]) => prev.map((b) => (b.id === atualizado.id ? atualizado : b));
@@ -183,10 +187,12 @@ export function Balanco() {
         }
       />
 
+      <ProximoBalanco revision={agendaRevision} />
+
       {error && <div className="alertbanner alertbanner--bad">{error}</div>}
 
       {isAdmin && configs && (
-        <ConfigBalanco config={configs[0] ?? null} onDone={() => void refreshConfig()} />
+        <ConfigBalanco config={configs[0] ?? null} onDone={() => { void refreshConfig(); setAgendaRevision(v => v + 1); }} />
       )}
 
       <Card title="Balanços">

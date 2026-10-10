@@ -135,7 +135,7 @@ public class BalancoService {
         }
         balanco.setStatus(StatusBalanco.CONCLUIDO);
         alertas.reavaliarDiferenca(balanco);
-        alertas.apagarAbertos(TipoAlerta.BALANCO_PENDENTE, null, null);
+        alertas.concluirAgendamento();
         repository.flush();
         return adapter.toDto(balanco);
     }

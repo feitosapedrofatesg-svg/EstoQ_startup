@@ -151,7 +151,7 @@ export function Desperdicio() {
         }} />
       </Card>
 
-      <Card collapsible title="Histórico geral de desperdício" actions={
+      <Card title="Histórico geral de desperdício" actions={
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshRegistros()}>Atualizar</Button>
       }>
         <div className="form-grid-2">
@@ -197,7 +197,7 @@ export function Desperdicio() {
         ))}
       </Card>
 
-      <Card collapsible title="Embalagens abertas">
+      <Card title="Embalagens abertas">
         {erroAbertos && <AlertBanner tone="bad">{erroAbertos}</AlertBanner>}
         {loadingAbertos && !abertos ? <p className="muted">Carregando…</p> : !abertos?.length ? (
           <EmptyState title="Nenhuma embalagem aberta" text="Não há sobras de embalagens para descartar." icon="box-open" />

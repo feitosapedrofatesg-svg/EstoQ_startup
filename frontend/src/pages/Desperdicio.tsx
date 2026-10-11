@@ -30,6 +30,7 @@ import type {
   ProdutoDTO,
 } from "../lib/types";
 import { useToast } from "../store/toast";
+import { useAuth } from "../store/auth";
 import { AcaoProdutoAbertoModal } from "../components/ProdutoAbertoModals";
 
 const MOTIVOS: MotivoDesperdicio[] = [
@@ -50,6 +51,7 @@ const MOTIVO_LABEL: Record<MotivoDesperdicio, string> = {
 
 /** Lotes para descarte e histórico de perdas, incluindo déficits de balanço. */
 export function Desperdicio() {
+  const { isAdmin } = useAuth();
   const toast = useToast();
   const [params] = useSearchParams();
   const produtoParam = params.get("produto") ?? "";
@@ -64,7 +66,7 @@ export function Desperdicio() {
   const [fim, setFim] = useState("");
 
   const { data: lotes, loading: loadingLotes, error: erroLotes, refresh: refreshLotes } =
-    useFetch<LoteDTO[]>("/api/lotes", [], true);
+    useFetch<LoteDTO[]>(isAdmin ? "/api/lotes" : null, [], true);
   const { data: abertos, loading: loadingAbertos, error: erroAbertos, refresh: refreshAbertos } =
     useFetch<ProdutoAbertoDTO[]>("/api/produtos-abertos?finalizado=false", [], true);
 
@@ -106,7 +108,7 @@ export function Desperdicio() {
     <>
       <PageHeader title="Desperdício" subtitle="Vencidos para descarte e todas as perdas da cozinha, incluindo diferenças negativas do balanço." />
 
-      <Card collapsible title="Itens para excluir do estoque" actions={
+      {isAdmin && <Card collapsible title="Itens para excluir do estoque" actions={
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshLotes()}>Atualizar</Button>
       }>
         <div className="form-grid-2">
@@ -140,7 +142,7 @@ export function Desperdicio() {
             ))}
           </DataTable>
         )}
-      </Card>
+      </Card>}
 
       <Card title="Registrar outra perda">
         <FormularioDesperdicio key={`${produtoParam}-${revisao}`} produtoInicial={produtoParam} onDone={() => {
@@ -207,14 +209,14 @@ export function Desperdicio() {
                 <td>Lote {p.loteCodigo} · vence {fmtDate(p.dataValidade)}</td>
                 <td>{fmtDateTime(p.dataAbertura)}</td>
                 <td>{fmtNum(p.quantidadeRestante)} {p.unidadeMedida.toLowerCase()}</td>
-                <td><Button size="sm" variant="danger" onClick={() => setAlvo(p)}>Excluir do estoque</Button></td>
+                <td><Button size="sm" variant="danger" onClick={() => setAlvo(p)}>Registrar desperdício</Button></td>
               </tr>
             ))}
           </DataTable>
         )}
       </Card>
 
-      {loteDescarte && (
+      {isAdmin && loteDescarte && (
         <Modal open title={`Excluir do estoque: ${loteDescarte.produtoNome}`} onClose={() => setLoteDescarte(null)}>
           <p>Confirme a quantidade e o motivo. O descarte será registrado como desperdício.</p>
           <FormularioDesperdicio produtoInicial={String(loteDescarte.produtoId)} loteInicial={loteDescarte} onDone={() => {

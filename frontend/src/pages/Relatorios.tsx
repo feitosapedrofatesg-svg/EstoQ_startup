@@ -35,6 +35,29 @@ import type {
 } from "../lib/types";
 import { useToast } from "../store/toast";
 
+/** Limita a altura às oito primeiras linhas, inclusive quando o texto quebra no celular. */
+function ListaComRolagem({ quantidade, children }: { quantidade: number; children: ReactNode }) {
+  const area = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const container = area.current?.querySelector<HTMLDivElement>(".table-wrap");
+    const tabela = container?.querySelector<HTMLTableElement>("table");
+    if (!container || !tabela) return;
+    const ajustarAltura = () => {
+      const oitavo = tabela.tBodies[0]?.rows[7];
+      if (quantidade <= 8 || !oitavo) { container.style.maxHeight = ""; return; }
+      const bordaEBarra = container.offsetHeight - container.clientHeight - container.clientTop;
+      const altura = oitavo.getBoundingClientRect().bottom - container.getBoundingClientRect().top
+        + container.scrollTop + bordaEBarra;
+      container.style.maxHeight = `${Math.ceil(altura)}px`;
+    };
+    ajustarAltura();
+    const observer = new ResizeObserver(ajustarAltura);
+    observer.observe(tabela);
+    return () => observer.disconnect();
+  }, [quantidade]);
+  return <div ref={area} className={quantidade > 8 ? "relatorio-lista-rolagem" : ""}>{children}</div>;
+}
+
 export function Relatorios() {
   const toast = useToast();
 
@@ -338,20 +361,22 @@ function Desperdicio() {
       {lista && lista.length > 0 && (
         <>
           <h3 className="section-title">Lançamentos</h3>
-          <DataTable caption="Lançamentos de desperdício" headers={["Quando", "Produto", "Lote", "Motivo", "Quantidade", "Prejuízo"]}>
-            {lista.map((d) => (
-              <tr key={`${d.dataHora}-${d.produtoId}-${d.loteCodigo ?? ""}`}>
-                <td className="muted-cell">{fmtDateTime(d.dataHora)}</td>
-                <td>
-                  <strong>{d.produtoNome}</strong>
-                </td>
-                <td className="muted-cell">{d.loteCodigo ?? "—"}</td>
-                <td>{d.motivo.replaceAll("_", " ")}</td>
-                <td>{fmtNum(d.quantidade)}</td>
-                <td className="text-bad">{fmtMoney(d.valorPrejuizo)}</td>
-              </tr>
-            ))}
-          </DataTable>
+          <ListaComRolagem quantidade={lista.length}>
+            <DataTable caption="Lançamentos de desperdício" headers={["Quando", "Produto", "Lote", "Motivo", "Quantidade", "Prejuízo"]}>
+              {lista.map((d) => (
+                <tr key={`${d.dataHora}-${d.produtoId}-${d.loteCodigo ?? ""}`}>
+                  <td className="muted-cell">{fmtDateTime(d.dataHora)}</td>
+                  <td>
+                    <strong>{d.produtoNome}</strong>
+                  </td>
+                  <td className="muted-cell">{d.loteCodigo ?? "—"}</td>
+                  <td>{d.motivo.replaceAll("_", " ")}</td>
+                  <td>{fmtNum(d.quantidade)}</td>
+                  <td className="text-bad">{fmtMoney(d.valorPrejuizo)}</td>
+                </tr>
+              ))}
+            </DataTable>
+          </ListaComRolagem>
         </>
       )}
     </Section>
@@ -393,21 +418,23 @@ function ConsumoMedio() {
             unit="média"
             ariaLabel="Consumo médio por dia da semana"
           />
-          <DataTable caption="Consumo médio diário por produto" headers={["Produto", "Total no período", "Média/dia"]}>
-            {consumo.slice(0, 20).map((c) => (
-              <tr key={c.produtoId}>
-                <td>
-                  <strong>{c.produtoNome}</strong>
-                </td>
-                <td>
-                  {fmtNum(c.totalConsumidoPeriodo)} {c.unidadeMedida.toLowerCase()}
-                </td>
-                <td>
-                  {fmtNum(c.consumoMedioDiario)} {c.unidadeMedida.toLowerCase()}
-                </td>
-              </tr>
-            ))}
-          </DataTable>
+          <ListaComRolagem quantidade={consumo.length}>
+            <DataTable caption="Consumo médio diário por produto" headers={["Produto", "Total no período", "Média/dia"]}>
+              {consumo.map((c) => (
+                <tr key={c.produtoId}>
+                  <td>
+                    <strong>{c.produtoNome}</strong>
+                  </td>
+                  <td>
+                    {fmtNum(c.totalConsumidoPeriodo)} {c.unidadeMedida.toLowerCase()}
+                  </td>
+                  <td>
+                    {fmtNum(c.consumoMedioDiario)} {c.unidadeMedida.toLowerCase()}
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </ListaComRolagem>
         </>
       )}
     </Section>

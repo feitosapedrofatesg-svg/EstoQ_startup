@@ -3208,3 +3208,7 @@ a:hover {
 /* Os atalhos continuam visíveis durante a conferência de notas longas. */
 .nota-navegacao { position: sticky; top: 72px; z-index: 10; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin-block: 16px; }
 .nota-lista-destino { scroll-margin-top: 200px; }
+
+/* Só as listas longas dos dois relatórios têm rolagem vertical. */
+.relatorio-lista-rolagem .table-wrap { overflow-y: auto; }
+.relatorio-lista-rolagem .table th { position: sticky; top: 0; z-index: 1; }

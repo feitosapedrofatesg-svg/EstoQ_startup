@@ -4,6 +4,21 @@ A opção **Importar nota fiscal** fica em **Movimentações**, para o administr
 Enviar o documento gera uma revisão; somente **Confirmar entrada no estoque**
 cria produtos, lotes e movimentações.
 
+## Categorias desde o cadastro
+
+Todo restaurante novo recebe 13 categorias na mesma transação do cadastro:
+Carnes, Peixes e frutos do mar, Laticínios, Grãos, Hortifruti, Massas, Temperos e
+condimentos, Óleos e molhos, Mercearia, Bebidas, Limpeza, Descartáveis e embalagens
+e Sem classificação. Nenhum produto ou estoque é criado nessa etapa.
+
+A primeira nota já pode associar os itens a essas categorias. O catálogo existente
+tem prioridade; depois são usadas as categorias padrão e equivalentes pelo nome.
+Você pode alterar a sugestão e escolher uma categoria manual antes de confirmar.
+
+A migração V6 adiciona a lista aos restaurantes ativos sem nenhuma categoria
+ativa. Restaurantes com categorias ativas, inclusive somente Sem classificação,
+não são alterados. Categorias inativas permanecem no histórico.
+
 ## PDF e XML
 
 Envie uma NF-e de mercadorias em PDF com texto ou XML. O limite é 4 MB.

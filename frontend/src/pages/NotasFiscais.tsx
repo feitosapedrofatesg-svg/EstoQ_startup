@@ -169,7 +169,7 @@ export function NotasFiscais() {
     </Card>
     {nota && <>
       <Card title={`NF-e ${nota.numero} · ${nota.fornecedor}`}>
-        {!nota.confirmada && <p className="muted">Categorias sugeridas pelo catálogo e pelo nome do item. Sem correspondência, o produto entra em “Sem classificação”. Você pode alterar as sugestões abaixo.</p>}
+        {!nota.confirmada && <p className="muted">Novos restaurantes já têm categorias padrão. Os itens são associados pelo catálogo e pelo nome do produto; os não reconhecidos entram em “Sem classificação”. Você pode alterar as sugestões abaixo.</p>}
         <p>Emissão: {fmtDate(nota.emissao)} · Total: <strong>{fmtMoney(nota.valorTotal)}</strong></p>
         <p className="muted" style={{ overflowWrap: "anywhere" }}>Chave: {nota.chave}</p>
         {nota.avisos.map((aviso, index) => <AlertBanner key={index} tone="warn">{aviso}</AlertBanner>)}

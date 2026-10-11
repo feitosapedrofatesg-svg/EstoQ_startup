@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Valida as migrações V1-V5 num PostgreSQL real embutido (Zonky) em dois cenários:
+ * Valida as migrações V1-V6 num PostgreSQL real embutido (Zonky) em dois cenários:
  * 1) banco legado "limpo" (sem nenhuma coluna de tenant);
  * 2) estado real de produção de 2026-09-24 (ddl-auto=update já criou restaurante_id
  *    em 9 das 17 tabelas e também a tabela restaurantes — que o deploy "drop+recreate"
@@ -82,17 +82,61 @@ class MigracaoProdValidacaoTest {
                 "--spring.jpa.hibernate.ddl-auto=validate",
                 "--spring.flyway.enabled=true")) {
             var flyway = context.getBean(Flyway.class);
-            assertEquals("5", flyway.info().current().getVersion().toString());
+            assertEquals("6", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
             assertTrue(context.getBean(IUsuarioRepository.class).existsByEmailIgnoreCase("novo@teste.com"));
+            var admin=context.getBean(IUsuarioRepository.class).findAll().stream()
+                .filter(u -> u.getEmail().equals("novo@teste.com")).findFirst().orElseThrow();
+            assertEquals(13,context.getBean(com.estoq.business.categorias.ICategoriaRepository.class)
+                .findAllByRestauranteIdAndAtivoTrue(admin.getRestauranteId()).size());
         }
         try (Connection conn = DriverManager.getConnection(jdbcUrl);
              Statement st = conn.createStatement()) {
             // O bootstrap da plataforma continua aceitando usuário sem restaurante.
             st.execute("insert into novo.usuarios (ativo, data_hora_criacao, version, nome, email, senha, perfil) "
                     + "values (true, now(), 0, 'Plataforma', 'plataforma@teste.com', 'hash', 'PLATAFORMA')");
+        }
+    }
+
+    @Test
+    void categoriasPadraoApenasParaRestaurantesAtivosSemCategoriasAtivas() throws Exception {
+        var configuracao=Flyway.configure().dataSource(jdbcUrl,"postgres","postgres")
+            .schemas("categorias_auto").locations("classpath:db/migration");
+        configuracao.target("5").load().migrate();
+        try(var conn=DriverManager.getConnection(jdbcUrl);var st=conn.createStatement()) {
+            st.execute("set search_path to categorias_auto");
+            st.execute("insert into restaurantes(id,nome,ativo,data_hora_criacao,version) values "
+                + "(1,'Vazio',true,now(),0),(2,'Personalizado',true,now(),0),(3,'Sem classificação',true,now(),0),"
+                + "(4,'Categorias inativas',true,now(),0),(5,'Restaurante inativo',false,now(),0)");
+            st.execute("insert into categorias(restaurante_id,nome,ativo,data_hora_criacao,version) values "
+                + "(2,'Organização própria',true,now(),0),(3,'Sem classificação',true,now(),0),(4,'Antiga',false,now(),0)");
+        }
+        var atual=Flyway.configure().dataSource(jdbcUrl,"postgres","postgres")
+            .schemas("categorias_auto").locations("classpath:db/migration").load();
+        assertEquals(1,atual.migrate().migrationsExecuted);
+        assertEquals(0,atual.migrate().migrationsExecuted);
+        try(var conn=DriverManager.getConnection(jdbcUrl);var st=conn.createStatement()) {
+            st.execute("set search_path to categorias_auto");
+            for(long loja:List.of(1L,4L)) {
+                try(var rs=st.executeQuery("select nome from categorias where ativo=true and restaurante_id="+loja)) {
+                    assertEquals(new java.util.HashSet<>(com.estoq.business.categorias.CategoriaPadraoService.NOMES),
+                        new java.util.HashSet<>(coletar(rs)));
+                }
+            }
+            try(var rs=st.executeQuery("select nome from categorias where restaurante_id=2")) {
+                assertEquals(List.of("Organização própria"),coletar(rs));
+            }
+            try(var rs=st.executeQuery("select nome from categorias where restaurante_id=3")) {
+                assertEquals(List.of("Sem classificação"),coletar(rs));
+            }
+            try(var rs=st.executeQuery("select count(*) from categorias where restaurante_id=5")) {
+                rs.next();assertEquals(0,rs.getInt(1));
+            }
+            try(var rs=st.executeQuery("select count(*) from categorias where restaurante_id=4 and ativo=false and nome='Antiga'")) {
+                rs.next();assertEquals(1,rs.getInt(1));
+            }
         }
     }
 
@@ -117,7 +161,11 @@ class MigracaoProdValidacaoTest {
                 if ("usuarios".equals(t)) {
                     continue;
                 }
-                if ("lotes".equals(t)) {
+                if ("categorias".equals(t)) {
+                    st.execute("create table " + prefixo + "categorias (id bigint generated by default as identity primary key, "
+                        + "nome varchar(120) not null, descricao varchar(500), ativo boolean not null, "
+                        + "data_hora_criacao timestamp(6) not null, version bigint not null default 0)");
+                } else if ("lotes".equals(t)) {
                     st.execute("create table " + prefixo + "lotes (id bigint generated by default as identity primary key, codigo varchar(60) not null)");
                 } else if ("parametros_estoque".equals(t)) {
                     st.execute("create table " + prefixo + "parametros_estoque (id bigint generated by default as identity primary key, produto_id bigint)");
@@ -145,7 +193,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(5, resultado.migrationsExecuted, "V1 até V5 devem executar no banco legado");
+        assertEquals(6, resultado.migrationsExecuted, "V1 até V6 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

@@ -1,5 +1,6 @@
 package com.estoq.business.registro;
 
+import com.estoq.business.categorias.CategoriaPadraoService;
 import com.estoq.business.configuracoesBalanco.ConfiguracaoBalancoModel;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
 import com.estoq.business.configuracoesBalanco.PeriodicidadeBalanco;
@@ -36,6 +37,7 @@ public class RegistroService {
     private final IParametroCmvRepository parametrosCmv;
     private final IConfiguracaoBalancoRepository configuracoesBalanco;
     private final PasswordEncoder encoder;
+    private final CategoriaPadraoService categoriasPadrao;
 
     @Transactional
     public void registrar(RegistroRequestDTO dto) {
@@ -56,6 +58,7 @@ public class RegistroService {
 
         criarParametroCmv(restaurante.getId());
         criarConfiguracaoBalanco(restaurante.getId());
+        categoriasPadrao.inicializar(restaurante.getId());
     }
 
     private void criarParametroCmv(Long restauranteId) {

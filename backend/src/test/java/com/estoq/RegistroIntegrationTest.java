@@ -15,13 +15,19 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Cadastro público de restaurante: cria loja + primeiro ADMIN + dados padrão. */
-@SpringBootTest
+@SpringBootTest(properties="spring.datasource.url=jdbc:h2:mem:estoq_registro_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class RegistroIntegrationTest {
 
     @Autowired
     MockMvc mvc;
+    @Autowired com.estoq.business.registro.RegistroService registro;
+    @Autowired com.estoq.business.categorias.CategoriaPadraoService categoriasPadrao;
+    @Autowired com.estoq.business.categorias.ICategoriaRepository categorias;
+    @Autowired com.estoq.business.usuarios.IUsuarioRepository usuarios;
+    @Autowired com.estoq.business.restaurantes.IRestauranteRepository restaurantes;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transacoes;
 
     private void registrar(String loja, String responsavel, String email, String senha, int status) throws Exception {
         String body = String.format(
@@ -49,6 +55,12 @@ class RegistroIntegrationTest {
         mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.perfil").value("ADMIN"));
         mvc.perform(get("/api/parametros-cmv").session(session)).andExpect(status().isOk());
+        mvc.perform(get("/api/categorias?size=100").session(session)).andExpect(jsonPath("$.totalElements").value(13));
+        mvc.perform(get("/api/produtos?size=100").session(session)).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/estoque").session(session)).andExpect(jsonPath("$.length()").value(0));
+        var loja=usuarios.findAll().stream().filter(u -> u.getEmail().equals("ze@cantina.com")).findFirst().orElseThrow();
+        categoriasPadrao.inicializar(loja.getRestauranteId());
+        org.junit.jupiter.api.Assertions.assertEquals(13,categorias.findAllByRestauranteIdAndAtivoTrue(loja.getRestauranteId()).size());
     }
 
     @Test
@@ -62,4 +74,17 @@ class RegistroIntegrationTest {
         registrar("Loja", "Dono", "dono@loja.com", "curta", 400);
         registrar("", "Dono", "dono@loja.com", "Senha@12345", 400);
     }
+    @Test void rollbackDoCadastroRemoveCategoriasEAdministrador() {
+        long lojasAntes=restaurantes.count(); long categoriasAntes=categorias.count();
+        var transacao=new org.springframework.transaction.support.TransactionTemplate(transacoes);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,() -> transacao.execute(status -> {
+            registro.registrar(new com.estoq.business.registro.RegistroRequestDTO(
+                "Cadastro desfeito","Responsável","rollback@teste.com","Senha@12345"));
+            throw new IllegalStateException("Falha após preparar os dados do cadastro");
+        }));
+        org.junit.jupiter.api.Assertions.assertEquals(lojasAntes,restaurantes.count());
+        org.junit.jupiter.api.Assertions.assertEquals(categoriasAntes,categorias.count());
+        org.junit.jupiter.api.Assertions.assertFalse(usuarios.existsByEmailIgnoreCase("rollback@teste.com"));
+    }
+
 }

@@ -25,6 +25,26 @@ class AssociadorCategoriaNotaTest {
         assertEquals(1L,associador.sugerir("ARROZ BRANCO 5KG",List.of(arroz),List.of(alimentos,graos)));
         var outro=new ProdutoModel();outro.setNome("Arroz branco");outro.setCategoria(graos);
         assertNull(associador.sugerir("ARROZ BRANCO 5KG",List.of(arroz,outro),List.of(alimentos,graos)));
-        assertNull(associador.sugerir("PICANHA BOVINA",List.of(),List.of(categoria(3,"Carnes"),categoria(4,"Proteínas"))));
+        assertEquals(3L,associador.sugerir("PICANHA BOVINA",List.of(),List.of(categoria(3,"Carnes"),categoria(4,"Proteínas"))));
+        assertNull(associador.sugerir("PICANHA BOVINA",List.of(),List.of(categoria(3,"Carnes bovinas"),categoria(4,"Proteínas"))));
     }
+    @Test void primeiraNotaReconheceTodosOsGruposPadraoSemConfundirAliases() {
+        var categorias=new java.util.ArrayList<CategoriaModel>();
+        for(int i=0;i<com.estoq.business.categorias.CategoriaPadraoService.NOMES.size();i++)
+            categorias.add(categoria(i+1,com.estoq.business.categorias.CategoriaPadraoService.NOMES.get(i)));
+        var casos=java.util.Map.ofEntries(
+            java.util.Map.entry("PICANHA BOVINA","Carnes"), java.util.Map.entry("TILAPIA","Peixes e frutos do mar"),
+            java.util.Map.entry("LEITE INTEGRAL","Laticínios"), java.util.Map.entry("ARROZ BRANCO 5KG","Grãos"),
+            java.util.Map.entry("TOMATE","Hortifruti"), java.util.Map.entry("MACARRAO PENNE","Massas"),
+            java.util.Map.entry("SAL REFINADO","Temperos e condimentos"), java.util.Map.entry("OLEO DE SOJA","Óleos e molhos"),
+            java.util.Map.entry("MOLHO DE TOMATE","Óleos e molhos"), java.util.Map.entry("ACUCAR CRISTAL","Mercearia"),
+            java.util.Map.entry("SUCO DE LARANJA","Bebidas"), java.util.Map.entry("DETERGENTE","Limpeza"),
+            java.util.Map.entry("GUARDANAPO","Descartáveis e embalagens"));
+        for(var caso:casos.entrySet()) {
+            var esperado=categorias.stream().filter(c -> c.getNome().equals(caso.getValue())).findFirst().orElseThrow();
+            assertEquals(esperado.getId(),associador.sugerir(caso.getKey(),List.of(),categorias),caso.getKey());
+        }
+        assertNull(associador.sugerir("ARTIGO SEM NOME CONHECIDO",List.of(),categorias));
+    }
+
 }

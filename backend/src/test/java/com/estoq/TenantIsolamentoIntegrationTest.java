@@ -87,7 +87,7 @@ class TenantIsolamentoIntegrationTest {
         var sessaoA = login("adm-a@teste.com", "LojaA@12345");
         var sessaoB = login("adm-b@teste.com", "LojaB@12345");
 
-        long categoriaA = criarCategoria(sessaoA, "Bebidas");
+        long categoriaA = criarCategoria(sessaoA, "Bebidas exclusivas A");
         mvc.perform(post("/api/produtos").session(sessaoA).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nome\":\"Refrigerante\",\"unidadeMedida\":\"UN\",\"categoriaId\":" + categoriaA + "}"))
                 .andExpect(status().isCreated());
@@ -98,7 +98,8 @@ class TenantIsolamentoIntegrationTest {
         mvc.perform(get("/api/produtos?size=100").session(sessaoB))
                 .andExpect(jsonPath("$.totalElements").value(0));
         mvc.perform(get("/api/categorias?size=100").session(sessaoB))
-                .andExpect(jsonPath("$.totalElements").value(0));
+                .andExpect(jsonPath("$.totalElements").value(13));
+        mvc.perform(get("/api/categorias/"+categoriaA).session(sessaoB)).andExpect(status().isNotFound());
         mvc.perform(get("/api/produtos/1").session(sessaoB)).andExpect(status().isNotFound());
         mvc.perform(get("/api/produtos/1").session(sessaoA)).andExpect(status().isOk());
 
@@ -143,7 +144,8 @@ class TenantIsolamentoIntegrationTest {
         var notaB = lerNota(b, documento);
         org.junit.jupiter.api.Assertions.assertNotEquals(notaA.id(),notaB.id());
         org.junit.jupiter.api.Assertions.assertNull(notaB.itens().getFirst().produtoId());
-        org.junit.jupiter.api.Assertions.assertNull(notaB.itens().getFirst().categoriaId());
+        org.junit.jupiter.api.Assertions.assertNotNull(notaB.itens().getFirst().categoriaId());
+        org.junit.jupiter.api.Assertions.assertNotEquals(categoriaA,notaB.itens().getFirst().categoriaId());
         mvc.perform(post("/api/notas-fiscais/" + notaB.id() + "/confirmar").session(b).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(notaB,categoriaA))).andExpect(status().isNotFound());
         mvc.perform(get("/api/produtos?size=100").session(b)).andExpect(jsonPath("$.totalElements").value(0));
@@ -173,7 +175,7 @@ class TenantIsolamentoIntegrationTest {
     }
 
     @Test
-    void notasDiferentesCriamUmaUnicaCategoriaAutomaticaConcorrentemente() throws Exception {
+    void notasDiferentesReutilizamCategoriaPadraoConcorrentemente() throws Exception {
         registrar("Categorias automáticas", "categoria-auto@teste.com", "LojaA@12345");
         var sessao=login("categoria-auto@teste.com", "LojaA@12345");
         var primeira=lerNota(sessao,NotaFiscalExemplo.xml(NotaFiscalExemplo.CHAVE,"ARTIGO UM","A1","KG","2","20.00"));
@@ -193,9 +195,30 @@ class TenantIsolamentoIntegrationTest {
             org.junit.jupiter.api.Assertions.assertEquals(200,a.get(20,java.util.concurrent.TimeUnit.SECONDS));
             org.junit.jupiter.api.Assertions.assertEquals(200,b.get(20,java.util.concurrent.TimeUnit.SECONDS));
         }
-        mvc.perform(get("/api/categorias?size=100").session(sessao)).andExpect(jsonPath("$.totalElements").value(1))
-            .andExpect(jsonPath("$.content[0].nome").value("Sem classificação"));
+        var resposta= mvc.perform(get("/api/categorias?size=100").session(sessao))
+            .andExpect(jsonPath("$.totalElements").value(13)).andReturn();
+        int semClassificacao=0;
+        for(var categoria:json.readTree(resposta.getResponse().getContentAsString()).get("content"))
+            if(categoria.get("nome").asText().equals("Sem classificação")) semClassificacao++;
+        org.junit.jupiter.api.Assertions.assertEquals(1,semClassificacao);
         mvc.perform(get("/api/produtos?size=100").session(sessao)).andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void restauranteVazioImportaPrimeiraNotaComCategoriaSemEscolhaManual() throws Exception {
+        registrar("Primeira compra", "primeira-compra@teste.com", "LojaA@12345");
+        var sessao=login("primeira-compra@teste.com", "LojaA@12345");
+        mvc.perform(get("/api/produtos?size=100").session(sessao)).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/estoque").session(sessao)).andExpect(jsonPath("$.length()").value(0));
+        var nota=lerNota(sessao,NotaFiscalExemplo.xml(NotaFiscalExemplo.CHAVE,"ARROZ 5KG","A1","KG","2","20.00"));
+        org.junit.jupiter.api.Assertions.assertNotNull(nota.itens().getFirst().categoriaId());
+        mvc.perform(get("/api/categorias/"+nota.itens().getFirst().categoriaId()).session(sessao))
+            .andExpect(jsonPath("$.nome").value("Grãos"));
+        mvc.perform(post("/api/notas-fiscais/"+nota.id()+"/confirmar").session(sessao).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(nota,null)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.confirmada").value(true));
+        mvc.perform(get("/api/produtos?size=100").session(sessao)).andExpect(jsonPath("$.content[0].categoriaNome").value("Grãos"));
+        mvc.perform(get("/api/estoque").session(sessao)).andExpect(jsonPath("$[0].saldoAtual").value(2));
     }
 
     @Test

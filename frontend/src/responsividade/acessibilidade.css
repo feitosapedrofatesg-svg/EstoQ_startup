@@ -1,0 +1,42 @@
+/* Preferências de movimento e áreas de toque, inclusive em aparelhos híbridos. */
+@media (prefers-reduced-motion: reduce) {
+  .login--page .login__video {
+    display: none;
+  }
+}
+
+@media (any-pointer: coarse) {
+  .btn--sm {
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  .sidebar__logout {
+    width: 44px;
+    height: 44px;
+  }
+
+  .searchselect__trigger {
+    min-height: 48px;
+  }
+
+  .searchselect__opt {
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .mini-cal__week button {
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,126 @@
+/* Adaptações existentes para telas intermediárias, preservadas na migração. */
+@media (max-width: 1180px) {
+  .stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login__side {
+    display: none;
+  }
+
+  .login--page {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(220px, 38dvh) 1fr;
+  }
+
+  .login--page .login__side {
+    display: grid;
+    grid-row: 1;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .login--page .login__message {
+    padding: 42px 22px 18px;
+  }
+
+  .login__message-title {
+    font-size: var(--t-4);
+  }
+
+  .login__message-copy {
+    max-width: 34ch;
+    font-size: var(--t-1);
+  }
+
+  .login__message-brand {
+    margin-top: 12px;
+  }
+
+  .login--page .login__panel {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 62dvh;
+    padding: 28px 22px 18px;
+    background: var(--surface);
+  }
+
+  .login--page .login__form {
+    max-width: 380px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 860px) {
+  .cmv-table-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .main__inner {
+    padding: 20px 18px 60px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .shell__scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(29, 39, 51, 0.4);
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 39;
+    transition: opacity 200ms ease;
+  }
+
+  .shell:has(.sidebar--open) .shell__scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 220ms ease;
+    box-shadow: var(--shadow-2);
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 0;
+  }
+
+  .topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .topbar__menu {
+    display: grid;
+  }
+
+  .bell__panel {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}

@@ -1,0 +1,63 @@
+/* A mesma tabela mantém seus campos e controles; só o arranjo visual muda.
+   Também atende tablets estreitos, onde muitas colunas não cabem lado a lado. */
+@media (max-width: 1024px) {
+  .table-wrap--responsiva {
+    overflow-x: visible;
+  }
+
+  .table-wrap--responsiva .table,
+  .table-wrap--responsiva tbody {
+    display: block;
+    width: 100%;
+  }
+
+  /* Preserva cabeçalhos e associações para leitores de tela. */
+  .table-wrap--responsiva thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .table-wrap--responsiva tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+
+  .table-wrap--responsiva tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table-wrap--responsiva .table td {
+    display: block;
+    min-width: 0;
+    border-bottom: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .table-wrap--responsiva td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: var(--t-1);
+  }
+
+  .table-wrap--responsiva td:first-child,
+  .table-wrap--responsiva td[data-colspan],
+  .table-wrap--responsiva td[data-label="Ações"],
+  .table-wrap--responsiva td[data-label="Ação"] {
+    grid-column: 1 / -1;
+  }
+
+  .table-wrap--responsiva .td-link {
+    min-height: 44px;
+    max-width: 100%;
+  }
+}

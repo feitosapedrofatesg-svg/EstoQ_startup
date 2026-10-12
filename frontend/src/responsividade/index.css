@@ -1,0 +1,9 @@
+/* Ordem: referência desktop, faixas menores e correções de encaixe. */
+@import "./desktop/layout.css";
+@import "./desktop/componentes.css";
+@import "./tablet/legado.css";
+@import "./celular/legado.css";
+@import "./acessibilidade.css";
+@import "./tablet/ajustes.css";
+@import "./celular/tabelas.css";
+@import "./celular/ajustes.css";

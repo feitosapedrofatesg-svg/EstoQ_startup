@@ -1,0 +1,19 @@
+/* Layout de referência do desktop; as faixas menores ajustam estas medidas. */
+.shell {
+  display: flex;
+  min-height: 100dvh;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 264px;
+  display: flex;
+  flex-direction: column;
+}
+
+.main__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 26px 28px 80px;
+}

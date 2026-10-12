@@ -1,0 +1,147 @@
+/* O tablet usa a largura útil inteira, sem reservar a coluna da sidebar. */
+@media (max-width: 1280px) {
+  .login__password-toggle {
+    width: 44px;
+    height: 44px;
+    right: 2px;
+  }
+  .main__inner {
+    width: 100%;
+    max-width: none;
+  }
+
+  .main__content,
+  .card,
+  .card__body,
+  .card__head > *,
+  .pagehead > *,
+  .field,
+  .form-grid-2 > *,
+  .form-grid-3 > *,
+  .stat-grid > *,
+  .grid-2 > *,
+  .cmv-table-cols > * {
+    min-width: 0;
+  }
+
+  .input,
+  .select,
+  .searchselect,
+  .input-group {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pagehead__title,
+  .card__title,
+  .modal__title,
+  .balanco__meta,
+  .td-link,
+  .table td,
+  .badge,
+  .stat__value,
+  .stat__label {
+    overflow-wrap: anywhere;
+  }
+
+  .badge,
+  .td-actions {
+    white-space: normal;
+  }
+
+  .td-actions {
+    flex-wrap: wrap;
+  }
+
+  .table th {
+    white-space: normal;
+  }
+
+  .card__head,
+  .pagehead,
+  .balanco__head,
+  .form-actions,
+  .cmv-row,
+  .hbar__head {
+    flex-wrap: wrap;
+  }
+
+  .cmv-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cmv-filters__refresh {
+    min-height: 44px;
+    min-width: 0;
+  }
+
+  .modal {
+    max-height: min(calc(100dvh - 40px), 860px);
+  }
+
+  .modal__body {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .modal__x {
+    flex: none;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .sidebar {
+    width: min(264px, calc(100vw - 44px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .topbar {
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .bell__panel {
+    top: calc(64px + env(safe-area-inset-top, 0px));
+  }
+
+  button,
+  a,
+  input,
+  select {
+    touch-action: manipulation;
+  }
+}
+
+/* No tablet, a mídia e a mensagem ocupam linhas próprias, sem sobreposição. */
+@media (min-width: 601px) and (max-width: 860px) {
+  .login--page {
+    grid-template-rows: auto 1fr;
+  }
+
+  .login--page .login__side {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(140px, 24dvh) auto;
+    gap: 12px;
+  }
+
+  .login--page .login__video {
+    width: 100%;
+    height: 100%;
+  }
+
+  .login--page .login__message {
+    position: static;
+    width: 100%;
+    padding: 12px 10px 6px;
+  }
+}
+
+/* Tabelas em tablets maiores continuam tabulares, com colunas que podem quebrar. */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .table {
+    table-layout: fixed;
+  }
+}

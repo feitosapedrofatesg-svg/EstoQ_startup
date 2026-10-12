@@ -11,7 +11,7 @@ Este documento explica as decisões de responsividade implementadas no estoQ e a
 - **Priorizar a tarefa:** campos, quantidades e ações frequentes continuam visíveis; no balanço, o botão de confirmação fica junto ao produto correspondente.
 - **Usar o espaço disponível:** larguras fixas são reduzidas ou substituídas por `min-width: 0`, colunas fluidas e quebra de linha quando a tela estreita.
 - **Reduzir a densidade gradualmente:** painéis e colunas passam a ocupar uma coluna ou cartões menores em vez de simplesmente encolher todo o conteúdo.
-- **Conter a rolagem:** a página não deve rolar horizontalmente. Quando uma tabela convencional é larga demais, a rolagem pode ficar restrita ao seu próprio quadro; a contagem do balanço usa cartões para evitar isso.
+- **Conter a rolagem:** a página não deve rolar horizontalmente. Até 1024 px, as tabelas gerais usam cartões com rótulos; até 1280 px, o conteúdo quebra dentro das colunas. A contagem do balanço conserva seus cartões próprios.
 - **Facilitar o toque:** controles importantes têm áreas de interação próximas de 44 px ou maiores em dispositivos que oferecem ponteiro touch.
 - **Preservar contexto:** nomes, rótulos e valores continuam identificáveis quando uma tabela muda para apresentação em cartões.
 
@@ -22,7 +22,7 @@ Os valores são limites CSS, não modelos rígidos de aparelho. Um tablet pode u
 | Limite | O que muda | Motivo |
 | --- | --- | --- |
 | `1280 px` | A sidebar fixa se transforma em navegação recolhida; aparece o botão de menu, o conteúdo deixa de reservar espaço para a sidebar e o fundo escurecido permite fechar o menu. | Dar prioridade ao conteúdo principal em tablets, inclusive alguns em paisagem, sem depender do tipo de ponteiro. |
-| `1024 px` | O espaçamento lateral do conteúdo principal diminui. | Recuperar área útil antes de chegar ao formato de celular. |
+| `1024 px` | O espaçamento lateral diminui e tabelas gerais passam a cartões com rótulos. | Recuperar área útil e manter todas as colunas acessíveis sem rolagem lateral. |
 | `960 px` | Blocos de dashboard que dividiam duas colunas passam a uma coluna. | Manter gráficos e indicadores legíveis sem comprimir cada painel. |
 | `860 px` | A tela de login e comparações de CMV empilham seus painéis. | Evitar duas colunas estreitas e manter o formulário utilizável. |
 | `720 px` | Filtros ocupam a largura disponível, resumos reduzem colunas, espaçamentos de cartões e modais diminuem e a contagem do balanço vira uma lista de cartões. | Adequar fluxos densos ao celular e reduzir bordas e margens acumuladas. |
@@ -51,7 +51,41 @@ Resumos que tinham três colunas passam a duas em celular, com conteúdo longo p
 
 ### Tabelas
 
-Tabelas gerais preservam sua estrutura tabular e podem rolar horizontalmente dentro do quadro da tabela quando têm muitas colunas. Essa rolagem localizada não deve aumentar a largura da página inteira. A contagem do balanço tem tratamento próprio porque o usuário precisa confirmar muitos itens rapidamente.
+Tabelas gerais preservam sua estrutura no DOM e apresentam linhas em cartões até
+1024 px. Cada célula recebe um rótulo correspondente ao cabeçalho; nomes, ações
+e células com múltiplas colunas podem ocupar a linha inteira. Os cabeçalhos ficam
+disponíveis para leitores de tela. Entre 1025 e 1280 px, colunas distribuem a
+largura e quebram texto. A contagem do balanço mantém seu tratamento específico.
+
+## Organização e validação da revisão de 12/10/2026
+
+O módulo `frontend/src/responsividade/` contém as pastas `desktop`, `celular` e
+`tablet`, com um ponto de entrada `index.css`. Layout e dimensões foram extraídos
+de `styles.css`; fontes, cores e aparência permanecem nesse arquivo. Os estilos
+anteriores de cada faixa estão em `legado.css`, e as correções em `ajustes.css`.
+Não há páginas duplicadas nem estados separados por tamanho de tela.
+
+O conteúdo usa toda a largura disponível até 1280 px. Nomes longos, filtros,
+abas, botões e valores quebram sem empurrar a página. Modais respeitam `100dvh`
+e áreas seguras; o cabeçalho e os atalhos de nota fiscal também consideram os
+recortes do aparelho. A mídia e a mensagem do login ficam separadas no tablet.
+
+A skill `mobile-converter` foi aplicada para investigar largura, toque e altura
+dinâmica. Sugestões de trocar navegação, fontes e cores não foram adotadas,
+conforme a restrição desta revisão. A auditoria estática passou com nota 85:
+restam três avisos de tabelas que a análise isolada não relaciona aos estilos
+externos (tabela geral, HTML de impressão e tabela simples de CMV). O teste
+renderizado verifica o encaixe real. A verificação visual também sinaliza o
+contraste dos links laranja já existentes; cores foram preservadas. Três alertas
+automáticos do banner de login atribuíram o fundo claro da página ao texto
+branco; a captura inspecionada mostra esse texto sobre o painel escuro existente.
+
+A suíte frontend tem 40 testes aprovados. A matriz responsiva cobre 320, 390,
+720, 768, 1024, 1180 e 1440 px, incluindo nomes e números extensos, modal de
+lotes, contagem de balanço, revisão de nota, login, cadastro e plataforma.
+A comparação do formulário desktop em 1440 px confirmou as mesmas dimensões,
+fontes e cores antes e depois da reorganização. O build TypeScript/Vite é
+verificado antes da entrega.
 
 ### Balanço físico
 

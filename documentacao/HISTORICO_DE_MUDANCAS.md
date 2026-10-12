@@ -1,8 +1,19 @@
 # Histórico de mudanças do EstoQ
 
 Revisão: **12/10/2026**. Registro das entregas recentes, conferido no Git.
-O último commit funcional de referência é `6bdddad`; esta revisão é documental.
+O commit `6bdddad` registra a correção de horários; a revisão atual acrescenta
+a reorganização e as correções de responsividade descritas abaixo.
 As decisões atuais prevalecem sobre descrições históricas de etapas anteriores.
+
+## 12/10/2026 — responsividade de celular e tablet
+
+- Criado `frontend/src/responsividade/`, dividido em `desktop`, `celular` e `tablet`.
+- Centralizados layout e regras de adaptação, mantendo fontes, cores e estilo.
+- Tabelas gerais em cartões com rótulos até 1024 px; textos e valores longos quebram dentro da tela.
+- Ajustados largura útil, filtros, ações, modais, áreas seguras e atalhos da nota fiscal.
+- Separados mídia e mensagem do login no tablet; ampliados controles de toque.
+- Preservada a rolagem dos relatórios após oito itens, medindo as linhas adaptadas.
+- Aplicada a skill `mobile-converter`; validação frontend com 40 testes e matriz de 320 a 1440 px.
 
 ## 10/10/2026 — entrada, agendamento e interface
 

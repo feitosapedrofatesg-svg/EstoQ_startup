@@ -11,6 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "./Icon";
 import { parseDecimal } from "../lib/format";
+import { rotularLinhas } from "../responsividade/celular/TabelaResponsiva";
 
 /* ------------------------------------------------------------------ Button */
 
@@ -632,7 +633,7 @@ export function DataTable({
   caption?: string;
 }) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap table-wrap--responsiva">
       <table className="table">
         {caption && <caption className="visually-hidden">{caption}</caption>}
         <thead>
@@ -644,7 +645,7 @@ export function DataTable({
             ))}
           </tr>
         </thead>
-        <tbody>{children}</tbody>
+        <tbody>{rotularLinhas(children, headers)}</tbody>
       </table>
     </div>
   );

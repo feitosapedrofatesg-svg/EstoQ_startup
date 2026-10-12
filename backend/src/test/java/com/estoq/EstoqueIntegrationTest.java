@@ -115,6 +115,28 @@ class EstoqueIntegrationTest {
                 .movimentacoes().getFirst().loteId();
     }
 
+    @Autowired com.estoq.business.movimentacoesEstoque.MovimentacaoRegistroService registros;
+
+    @Test void historicoMostraMovimentacaoMaisRecentePrimeiro() {
+        entrada("10", "100", LocalDate.now().plusDays(30));
+        var primeiro = consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("1"), null, null));
+        var ultimo = consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("2"), null, null));
+        var historico = registros.consultar(produtoId, null, null,
+                com.estoq.business.movimentacoesEstoque.TipoMovimentacao.CONSUMO,
+                java.time.LocalDateTime.now().minusDays(1), java.time.LocalDateTime.now().plusDays(1));
+        assertEquals(List.of(ultimo.movimentacoes().getFirst().id(), primeiro.movimentacoes().getFirst().id()),
+                historico.stream().map(MovimentacaoDTO::id).toList());
+    }
+
+    @Test void embalagemMovimentadaRecentementeSobeParaInicio() {
+        var lote = entrada("10", "100", LocalDate.now().plusDays(30));
+        var antiga = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, lote, n("2"), n("0"), null, null));
+        var nova = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, lote, n("2"), n("0"), null, null));
+        assertEquals(nova.id(), abertos.listar(produtoId, false).getFirst().id());
+        abertos.consumirProdutoAberto(antiga.id(), new ConsumirProdutoAbertoRequestDTO(n("1"), null, null, null));
+        assertEquals(antiga.id(), abertos.listar(produtoId, false).getFirst().id());
+    }
+
     @Test
     void listaEstoqueSeparaSaldoFisicoDeSaldoConsumivel() {
         entrada("5", "200", LocalDate.now().minusDays(1));

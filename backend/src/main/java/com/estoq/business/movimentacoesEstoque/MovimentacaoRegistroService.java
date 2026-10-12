@@ -58,7 +58,7 @@ public class MovimentacaoRegistroService {
         }
         return movimentos.stream()
                 .sorted(Comparator.comparing(MovimentacaoEstoqueModel::getDataHora)
-                        .thenComparing(MovimentacaoEstoqueModel::getId))
+                        .thenComparing(MovimentacaoEstoqueModel::getId).reversed())
                 .map(adapter::toDto).toList();
     }
 }

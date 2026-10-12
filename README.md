@@ -298,3 +298,9 @@ durante uma consulta aguardam seu término e pedem uma única leitura posterior,
 sem acumular consultas simultâneas. A primeira conexão SSE aproveita as leituras
 já abertas pela tela. O teste de desempenho usa 186 produtos e limita o número
 de consultas de listagem, início, conclusão e ajustes sem diferenças.
+
+Históricos de movimentação, consumo e desperdício exibem primeiro os registros
+mais recentes. Embalagens abertas usam a última movimentação, ou a abertura se
+não houver movimentação, como ordem de exibição. A central retira imediatamente
+o alerta marcado como visto, restaura-o se houver falha e bloqueia os botões
+durante a gravação e por 500 ms após a resposta para proteger cliques repetidos.

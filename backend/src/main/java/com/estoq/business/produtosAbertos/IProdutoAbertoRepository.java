@@ -14,9 +14,9 @@ public interface IProdutoAbertoRepository extends IGenericRepository<ProdutoAber
     @EntityGraph(attributePaths = {"lote", "lote.produto", "usuario"})
     Optional<ProdutoAbertoModel> findByIdAndAtivoTrue(Long id);
 
-    @Query("select a from ProdutoAbertoModel a join fetch a.lote l join fetch l.produto p left join fetch a.usuario "
+    @Query("select a from ProdutoAbertoModel a join fetch a.lote l join fetch l.produto p left join fetch p.parametro left join fetch a.usuario "
             + "where a.ativo=true and (:produtoId is null or p.id=:produtoId) and (:finalizado is null or a.finalizado=:finalizado) "
-            + "order by a.dataAbertura, a.id")
+            + "order by coalesce((select max(m.dataHora) from MovimentacaoEstoqueModel m where m.produtoAberto=a), a.dataAbertura) desc, a.id desc")
     List<ProdutoAbertoModel> listar(Long produtoId, Boolean finalizado);
 
     List<ProdutoAbertoModel> findByLote_IdAndAtivoTrueAndFinalizadoFalseOrderByDataAberturaAscIdAsc(Long loteId);

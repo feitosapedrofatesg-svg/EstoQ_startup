@@ -72,7 +72,7 @@ public class SecurityConfig {
                         SessaoValidaService sessoes) throws Exception {
                 return http
                                 // Identifica o protocolo publicado para conferir o backend antes do frontend.
-                                .headers(h -> h.addHeaderWriter(new StaticHeadersWriter("X-Estoq-Sincronizacao", "2")))
+                                .headers(h -> h.addHeaderWriter(new StaticHeadersWriter("X-Estoq-Sincronizacao", "3")))
                                 .cors(c -> c.configurationSource(cors))
                                 .csrf(c -> c.csrfTokenRepository(csrf)
                                                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))

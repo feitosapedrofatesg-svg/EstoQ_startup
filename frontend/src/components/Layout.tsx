@@ -6,7 +6,7 @@ import type { AlertaDTO, Perfil } from "../lib/types";
 import { Icon, type IconName } from "./Icon";
 import { fmtDateTime, diasAtrasISO, hojeISO } from "../lib/format";
 import { useToast } from "../store/toast";
-import { prefetchar, useFetch } from "../lib/hooks";
+import { prefetchar, useFetch, updateCache } from "../lib/hooks";
 import { assinarFalhasCache, possuiFalhasCache, tentarNovamenteCache } from "../lib/cache";
 import { Button } from "./UI";
 import { iniciarSincronizacao } from "../lib/sincronizacao";
@@ -105,9 +105,13 @@ function RoleLabel({ perfil }: { perfil: Perfil }) {
 function AlertBell() {
   const [open, setOpen] = useState(false);
   const { data: total } = useFetch<number>("/api/alertas/abertos");
-  const count = total ?? 0;
-  const { data: lista, loading } = useFetch<AlertaDTO[]>(open ? "/api/alertas?visualizado=false" : null);
-  const alerts = lista ?? [];
+  const { data: lista, loading, setData } = useFetch<AlertaDTO[]>(open ? "/api/alertas?visualizado=false" : null);
+  const [vistos, setVistos] = useState<Set<number>>(new Set());
+  const [marcando, setMarcando] = useState<number | null>(null);
+  const trava = useRef(false);
+  const liberar = useRef<number>();
+  const alerts = (lista ?? []).filter(a => !vistos.has(a.id));
+  const count = open && lista ? alerts.length : total ?? 0;
   const boxRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
 
@@ -122,12 +126,27 @@ function AlertBell() {
   }, []);
 
   const markSeen = async (id: number) => {
+    // A trava síncrona protege também dois cliques antes de o React atualizar o botão.
+    if (trava.current) return;
+    trava.current = true;
+    setMarcando(id);
+    // A leitura do alerta é reversível: retire já da tela e restaure se a gravação falhar.
+    setVistos(prev => new Set(prev).add(id));
     try {
       await api.put(`/api/alertas/${id}/visualizado`);
+      const remover = (dados: AlertaDTO[]) => dados.filter(a => a.id !== id);
+      setData(prev => prev ? remover(prev) : prev);
+      updateCache<AlertaDTO[]>("/api/alertas?visualizado=false", remover);
     } catch (e) {
+      setVistos(prev => { const atual = new Set(prev); atual.delete(id); return atual; });
       toast.error("Não foi possível atualizar", (e as Error).message);
+    } finally {
+      // A linha seguinte muda de posição: não deixe o segundo clique atingir outro alerta.
+      liberar.current = window.setTimeout(() => { trava.current = false; setMarcando(null); }, 500);
     }
   };
+
+  useEffect(() => () => window.clearTimeout(liberar.current), []);
 
   return (
     <div className="bell" ref={boxRef}>
@@ -147,6 +166,7 @@ function AlertBell() {
       {open && (
         <div className="bell__panel" role="dialog" aria-label="Central de alertas">
           <p className="bell__title">Central de alertas</p>
+          {marcando !== null && <p className="muted" role="status">Marcando alerta como visto…</p>}
           {loading ? (
             <p className="muted" style={{ padding: "12px 0" }}>
               Carregando…
@@ -163,8 +183,8 @@ function AlertBell() {
                     <p className="bell__msg">{a.mensagem}</p>
                     <p className="bell__time">{fmtDateTime(a.dataGeracao)}</p>
                   </div>
-                  <button className="bell__seen" onClick={() => markSeen(a.id)}>
-                    Marcar como visto
+                  <button className="bell__seen" disabled={marcando !== null} onClick={() => markSeen(a.id)}>
+                    {marcando === a.id ? "Marcando…" : "Marcar como visto"}
                   </button>
                 </li>
               ))}

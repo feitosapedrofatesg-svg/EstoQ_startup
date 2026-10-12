@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -24,8 +25,8 @@ public class UsuarioController {
     private final UsuarioService service;
 
     @GetMapping
-    public Page<UsuarioResponseDTO> listar(Pageable p) {
-        return service.listar(p);
+    public Page<UsuarioResponseDTO> listar(Pageable p, @RequestParam(required = false) String q) {
+        return service.listar(p, q);
     }
 
     @GetMapping("/{id}")

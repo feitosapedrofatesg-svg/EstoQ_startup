@@ -3212,3 +3212,5 @@ a:hover {
 /* Só as listas longas dos dois relatórios têm rolagem vertical. */
 .relatorio-lista-rolagem .table-wrap { overflow-y: auto; }
 .relatorio-lista-rolagem .table th { position: sticky; top: 0; z-index: 1; }
+
+.paginacao { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }

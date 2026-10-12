@@ -21,6 +21,13 @@ public class ParametroEstoqueService extends GenericService<ParametroEstoqueMode
         this.parametros = r;
     }
 
+    public ParametroEstoqueDTO buscarPorProduto(Long produtoId) {
+        produtos.findByIdAndAtivoTrue(produtoId)
+                .orElseThrow(() -> new BusinessException("Produto não encontrado.", HttpStatus.NOT_FOUND));
+        return adapter.toDto(parametros.findByProduto_Id(produtoId)
+                .orElseThrow(() -> new BusinessException("Parâmetros não encontrados.", HttpStatus.NOT_FOUND)));
+    }
+
     @Override
     protected void beforeSave(ParametroEstoqueModel p, ParametroEstoqueDTO d) {
         if (p.getProduto() != null && !p.getProduto().getId().equals(d.getProdutoId())) {

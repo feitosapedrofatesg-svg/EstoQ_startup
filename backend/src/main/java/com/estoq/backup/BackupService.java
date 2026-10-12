@@ -1,5 +1,11 @@
 package com.estoq.backup;
 
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
+
 import com.estoq.core.exceptions.BusinessException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -21,53 +27,78 @@ import java.util.regex.Pattern;
 public class BackupService {
 
     private static final DateTimeFormatter NOME = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final Pattern ARQUIVO = Pattern.compile("^estoq-\\d{8}-\\d{6}\\.dump$");
+    private static final Pattern ARQUIVO = Pattern.compile("^estoq-\\d{8}-\\d{6}(?:-[a-f0-9-]{36})?\\.dump$");
 
     private final BackupConfig config;
+    private final ReentrantLock geracao = new ReentrantLock();
 
     public BackupService(BackupConfig config) {
         this.config = config;
     }
 
     public BackupDTO gerar() {
-        var arquivo = config.diretorio().resolve("estoq-" + LocalDateTime.now().format(NOME) + ".dump");
+        if (!geracao.tryLock()) {
+            throw new BusinessException("Já existe um backup em geração. Aguarde a conclusão.", HttpStatus.CONFLICT);
+        }
+        Path parcial = null;
+        Process execucao = null;
         try {
             Files.createDirectories(config.diretorio());
-        } catch (IOException e) {
-            throw new BusinessException("Não foi possível criar o diretório de backups.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        var comando = new java.util.ArrayList<String>(List.of("pg_dump",
-                "--host", config.host(),
-                "--port", Integer.toString(config.porta()),
-                "--username", config.usuario(),
-                "--format", "custom",
-                "--file", arquivo.toString()));
-        if (!config.schema().isBlank()) {
-            comando.add("--schema");
-            comando.add(config.schema());
-        }
-        comando.add(config.database());
-        var processo = new ProcessBuilder(comando);
-        processo.environment().put("PGPASSWORD", config.senha());
-        try {
-            var execucao = processo.start();
-            var saida = new String(execucao.getInputStream().readAllBytes());
-            var erro = new String(execucao.getErrorStream().readAllBytes());
-            int codigo = execucao.waitFor();
-            if (codigo != 0) {
-                throw new BusinessException("Falha ao gerar backup (pg_dump). " + erro.strip(), HttpStatus.INTERNAL_SERVER_ERROR);
+            var nome = "estoq-" + LocalDateTime.now().format(NOME) + "-" + UUID.randomUUID() + ".dump";
+            var arquivo = config.diretorio().resolve(nome);
+            parcial = config.diretorio().resolve(nome + ".partial");
+            var comando = new java.util.ArrayList<String>(List.of("pg_dump",
+                    "--host", config.host(), "--port", Integer.toString(config.porta()),
+                    "--username", config.usuario(), "--format", "custom", "--file", parcial.toString()));
+            if (!config.schema().isBlank()) {
+                comando.add("--schema");
+                comando.add(config.schema());
             }
-            if (saida != null && !saida.isBlank()) {
-                log.debug("pg_dump: {}", saida.strip());
+            comando.add(config.database());
+            var processo = new ProcessBuilder(comando);
+            processo.environment().put("PGPASSWORD", config.senha());
+            // Descartar as saídas evita bloquear o processo ou expor credenciais em erros.
+            processo.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            processo.redirectError(ProcessBuilder.Redirect.DISCARD);
+            execucao = iniciar(processo);
+            if (!aguardar(execucao)) {
+                throw new BusinessException("O backup excedeu o tempo permitido. Tente novamente.", HttpStatus.GATEWAY_TIMEOUT);
             }
+            if (execucao.exitValue() != 0 || !Files.isRegularFile(parcial) || Files.size(parcial) == 0) {
+                throw new BusinessException("Não foi possível gerar o backup. Verifique a configuração do banco.", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            try {
+                Files.move(parcial, arquivo, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(parcial, arquivo);
+            }
+            limparAntigos();
+            return BackupDTO.of(arquivo);
         } catch (IOException e) {
-            throw new BusinessException("pg_dump não encontrado ou sem permissão. Verifique a instalação do PostgreSQL.", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new BusinessException("Não foi possível gerar o backup. Verifique o diretório e a instalação do PostgreSQL.", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BusinessException("Backup interrompido.", HttpStatus.INTERNAL_SERVER_ERROR);
+        } finally {
+            if (execucao != null && execucao.isAlive()) {
+                execucao.destroyForcibly();
+                try { execucao.waitFor(10, TimeUnit.SECONDS); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            }
+            if (parcial != null) {
+                try { Files.deleteIfExists(parcial); }
+                catch (IOException e) { log.warn("Não foi possível remover arquivo parcial de backup."); }
+            }
+            geracao.unlock();
         }
-        limparAntigos();
-        return BackupDTO.of(arquivo);
+    }
+
+    protected Process iniciar(ProcessBuilder processo) throws IOException {
+        return processo.start();
+    }
+
+    protected boolean aguardar(Process processo) throws InterruptedException {
+        return processo.waitFor(5, TimeUnit.MINUTES);
     }
 
     public List<BackupDTO> listar() {
@@ -90,20 +121,10 @@ public class BackupService {
             throw new BusinessException("Backup não encontrado.", HttpStatus.NOT_FOUND);
         }
         var arquivo = config.diretorio().resolve(nome).normalize();
-        if (Files.notExists(arquivo)) {
+        if (!Files.isRegularFile(arquivo)) {
             throw new BusinessException("Backup não encontrado.", HttpStatus.NOT_FOUND);
         }
         return arquivo;
-    }
-
-    /** Lê os bytes de um backup recém-gerado para download imediato na resposta do POST. */
-    public byte[] ler(String nome) {
-        var arquivo = baixar(nome);
-        try {
-            return Files.readAllBytes(arquivo);
-        } catch (IOException e) {
-            throw new BusinessException("Não foi possível ler o backup gerado.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
 
     public void limparAntigos() {

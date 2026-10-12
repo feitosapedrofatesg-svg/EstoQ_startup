@@ -81,6 +81,9 @@ class MigracaoProdValidacaoTest {
                 "--spring.flyway.schemas=novo",
                 "--spring.jpa.hibernate.ddl-auto=validate",
                 "--spring.flyway.enabled=true")) {
+            // Exercita a consulta histórica também no PostgreSQL real, não só no H2.
+            assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
+                    .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
             assertEquals("6", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);

@@ -37,3 +37,6 @@ keepalive/.wrangler/
 # Python
 __pycache__/
 *.pyc
+# Relatórios temporários dos testes de navegador
+frontend/test-results/
+frontend/playwright-report/

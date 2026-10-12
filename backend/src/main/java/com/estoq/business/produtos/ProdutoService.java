@@ -41,8 +41,15 @@ public class ProdutoService extends GenericService<ProdutoModel, ProdutoDTO> {
 
     @Override
     public Page<ProdutoDTO> listar(Pageable pageable) {
+        return listar(pageable, null);
+    }
+
+    @Override
+    public Page<ProdutoDTO> listar(Pageable pageable, String q) {
         var saldos = estoque.posicoes();
-        return repository.findAllByAtivoTrue(pageable).map(p -> ((ProdutoAdapter) adapter).toDto(p,
+        var pagina = q == null || q.isBlank() ? repository.findAllByAtivoTrue(pageable)
+                : ((IProdutoRepository) repository).pesquisar(q.trim(), pageable);
+        return pagina.map(p -> ((ProdutoAdapter) adapter).toDto(p,
                 saldos.containsKey(p.getId()) ? saldos.get(p.getId()).getSaldo() : BigDecimal.ZERO));
     }
 

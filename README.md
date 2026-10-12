@@ -12,8 +12,8 @@ consumo em preparações, abertura de embalagens, desperdício, balanço físico
 o custo de cada item que sai do cardápio. É voltado para restaurantes pequenos
 que precisam de CMV real — sem módulo de vendas, sem approximação.
 
-Três perfis operam simultaneamente: ADMIN (gestão), COZINHA (movimentações) e
-NUTRICIONISTA (CMV e relatórios).
+Os perfis dos restaurantes operam simultaneamente: ADMIN (gestão), COZINHA (movimentações) e
+NUTRICIONISTA (CMV e relatórios). O perfil PLATAFORMA administra restaurantes e tem acesso exclusivo ao backup completo.
 
 ## Stack
 
@@ -23,6 +23,7 @@ NUTRICIONISTA (CMV e relatórios).
 | Framework | Spring Boot 4.0.6, Spring Security, Spring Data JPA |
 | Banco | PostgreSQL 16 (Docker) |
 | Padrão arquitetônico | PIAds3 (core genérico + módulos business autocontidos) |
+| Frontend | React 18, TypeScript, Vite 7 e React Router 7 |
 | PDF | PDFBox 3.0.4 |
 | Build | Maven (offline-capable) |
 
@@ -111,11 +112,13 @@ POST /api/auth/logout      → 204, sessão invalidada
 
 ## Backup
 
-O módulo de backup gera dumps do PostgreSQL via `pg_dump` (formato custom).
+O módulo gera um dump completo de todos os restaurantes via `pg_dump` (formato custom), exclusivo de PLATAFORMA. Administradores de restaurantes não podem acessar nenhuma operação de backup. Não existe backup individual por restaurante nesta etapa.
+
+A geração é manual, limitada a uma por vez e a cinco minutos. Somente arquivos concluídos ficam disponíveis; falhas removem arquivos parciais. O download é transmitido sem carregar o dump inteiro na memória. O armazenamento do Render em `/tmp/estoq-backups` é temporário: preserve o arquivo baixado fora do servidor. Não são criados backups automáticos no computador.
 
 ```bash
-# Via API (requer perfil ADMIN)
-POST /api/backups          → gera dump, mantém os N últimos
+# Via API (requer perfil PLATAFORMA)
+POST /api/backups          → gera dump completo, baixa imediatamente, mantém os N últimos
 GET  /api/backups          → lista backups existentes
 GET  /api/backups/{nome}   → baixa o arquivo .dump
 ```
@@ -124,12 +127,12 @@ GET  /api/backups/{nome}   → baixa o arquivo .dump
 
 ```bash
 createdb estoq_restore
-psql estoq_restore -c "CREATE SCHEMA estoq_v2 AUTHORIZATION estoq;"
+psql estoq_restore -c "CREATE SCHEMA estoq_v2;"
 pg_restore --dbname estoq_restore --schema estoq_v2 --no-owner --no-privileges \
   dados/backups/estoq-YYYYMMDD-HHMMSS.dump
 ```
 
-> **Nota:** o schema `estoq_v2` precisa existir antes do `pg_restore`. O dump
+> **Nota:** restauração é uma operação da administração da plataforma, em banco separado; o dump contém todos os restaurantes e dados de autenticação. Nunca restaure sobre produção sem um procedimento próprio. O schema `estoq_v2` precisa existir antes do `pg_restore`. O dump
 > gerado via `--schema` não inclui o `CREATE SCHEMA`.
 
 ## Variáveis de ambiente
@@ -175,6 +178,17 @@ inclui ajustes negativos de balanço já aplicados como desperdício, sem nova b
 e preservando a movimentação original de ajuste. Esses déficits também compõem
 os relatórios de desperdício, o CMV e o dashboard.
 
+## Frontend
+
+Requer Node.js 24 e npm. O sistema é um site, sem requisito de PWA, executável ou operação offline.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+npm run build
+```
+
 ## Testes
 
 ```bash
@@ -209,6 +223,20 @@ que define a arquitetura, regras de negócio e escopo. As principais decisões:
 - Multi-tenant: cada restaurante é uma loja isolada (`@TenantId` + `restaurante_id`),
   com auto-cadastro aberto e perfil PLATAFORMA para governar as lojas (suspender,
   reativar, redefinir senha do admin)
+
+O cache do navegador é separado por restaurante, usuário e perfil e invalidado nas mudanças de sessão. Respostas antigas não atualizam uma nova sessão. Catálogo, categorias e usuários têm paginação de 50 registros e busca no servidor por `q`; seletores percorrem todas as páginas de categorias. Parâmetros de estoque são consultados por `GET /api/parametros-estoque/por-produto/{produtoId}` (ADMIN).
+
+O CMV reconstrói os saldos nos limites do período desfazendo todas as movimentações posteriores, inclusive ajustes e registros de lotes/produtos desativados. Os intervalos têm início inclusivo e término exclusivo; a data final informada inclui o dia inteiro. Quantidade e preço conservam sua precisão até os resultados monetários. ADMIN e NUTRICIONISTA configuram a meta de CMV.
+
+O GitHub Actions valida pushes e pull requests em `dev` e `main`. Para testar a interface com APIs fictícias:
+
+```bash
+cd frontend
+npx playwright install chromium
+npm test
+```
+
+Para usar um Chromium já instalado, defina `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Os testes de frontend não acessam produção. Testes opcionais com notas reais exigem `-Dnotas.reais=/caminho/das/notas`; OCR real exige também `-Dnotas.ocr.executavel=/caminho/do/tesseract`. Testes ignorados não representam validação desses arquivos.
 
 Detalhes completos em `documentacao/RESUMO_SESSAO_BACKEND.md`.
 

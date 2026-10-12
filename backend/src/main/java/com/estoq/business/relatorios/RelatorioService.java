@@ -4,7 +4,6 @@ import com.estoq.business.consumos.ConsumoModel;
 import com.estoq.business.desperdicios.DesperdicioModel;
 import com.estoq.business.desperdicios.DesperdicioClassificacao;
 import com.estoq.business.entradas.EntradaModel;
-import com.estoq.business.lotes.ILoteRepository;
 import com.estoq.business.lotes.LoteDTO;
 import com.estoq.business.lotes.LoteService;
 import com.estoq.business.movimentacoesEstoque.IMovimentacaoEstoqueRepository;
@@ -33,7 +32,6 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +46,7 @@ public class RelatorioService {
 
     private final EstoqueService estoque;
     private final LoteService lotes;
-    private final ILoteRepository loteRepository;
+    private final PosicaoHistoricaEstoqueService posicaoHistorica;
     private final ProdutoAbertoService abertos;
     private final IProdutoRepository produtos;
     private final IMovimentacaoEstoqueRepository movimentos;
@@ -71,6 +69,7 @@ public class RelatorioService {
     }
 
     public List<DesperdicioDTO> desperdicio(LocalDateTime inicio, LocalDateTime fim) {
+        posicaoHistorica.validarPeriodo(inicio, fim);
         return movimentos.desperdiciosAntesDe(fim).stream()
                 .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
                 .map(d -> new DesperdicioDTO(d.getDataHora(), DesperdicioClassificacao.motivo(d), DesperdicioClassificacao.descricao(d),
@@ -80,6 +79,7 @@ public class RelatorioService {
     }
 
     public List<DesperdicioAgregadoDTO> desperdicioAgregado(LocalDateTime inicio, LocalDateTime fim) {
+        posicaoHistorica.validarPeriodo(inicio, fim);
         var agregado = new HashMap<String, DesperdicioAgregadoDTO>();
         movimentos.desperdiciosAntesDe(fim).stream()
                 .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
@@ -102,6 +102,7 @@ public class RelatorioService {
     }
 
     public List<ConsumoMedioDTO> consumoMedio(LocalDateTime inicio, LocalDateTime fim) {
+        posicaoHistorica.validarPeriodo(inicio, fim);
         var dias = Math.max(1, ChronoUnit.DAYS.between(inicio, fim));
         var porProduto = new TreeMap<Long, BigDecimal>();
         movimentos.consumosAntesDe(fim).stream()
@@ -111,7 +112,7 @@ public class RelatorioService {
                 .collect(Collectors.toMap(EstoqueDTO::produtoId, Function.identity()));
         return porProduto.entrySet().stream().map(e -> {
             var dto = nomes.get(e.getKey());
-            var total = money(e.getValue());
+            var total = s(e.getValue());
             var nome = dto == null ? "?" : dto.produtoNome();
             var unidade = dto == null ? "" : dto.unidadeMedida().name();
             return new ConsumoMedioDTO(e.getKey(), nome, unidade, total, dias,
@@ -120,6 +121,7 @@ public class RelatorioService {
     }
 
     public List<ConsumoDiaSemanaDTO> consumoPorDiaSemana(LocalDateTime inicio, LocalDateTime fim) {
+        posicaoHistorica.validarPeriodo(inicio, fim);
         var totalPorDia = new HashMap<DayOfWeek, BigDecimal>();
         movimentos.consumosAntesDe(fim).stream()
                 .filter(m -> m.getDataHora().compareTo(inicio) >= 0)
@@ -153,25 +155,13 @@ public class RelatorioService {
         return lista;
     }
 
-    private List<MovimentacaoEstoqueModel> todasMovimentacoesAntesDe(LocalDateTime fim) {
-        var lista = new ArrayList<MovimentacaoEstoqueModel>();
-        lista.addAll(movimentos.entradasAntesDe(fim));
-        lista.addAll(movimentos.consumosAntesDe(fim));
-        lista.addAll(movimentos.desperdiciosAntesDe(fim));
-        return lista;
-    }
-
     public CmvResumoDTO calcularCmv(LocalDateTime inicio, LocalDateTime fim, BigDecimal receitaBase) {
+        var posicao = posicaoHistorica.obter(inicio, fim);
         var historico = movimentacoesEntre(inicio, fim);
-        var deltaPorLote = new HashMap<Long, BigDecimal>();
         var compras = zero();
         var consumido = zero();
         var desperdicio = zero();
         for (var m : historico) {
-            var loteId = m.getLote() == null ? null : m.getLote().getId();
-            if (loteId != null) {
-                deltaPorLote.merge(loteId, m.getDelta(), BigDecimal::add);
-            }
             if (m instanceof EntradaModel e) {
                 compras = compras.add(money(e.getValorTotalPago()));
             } else if (m instanceof ConsumoModel c) {
@@ -183,18 +173,8 @@ public class RelatorioService {
         compras = money(compras);
         consumido = money(consumido);
         desperdicio = money(desperdicio);
-        var estoqueFinal = zero();
-        var estoqueInicial = zero();
-        for (var lote : loteRepository.listarEstoqueCmv()) {
-            var preco = money(lote.getPrecoUnitario());
-            var atual = money(lote.getQuantidadeAtual());
-            estoqueFinal = estoqueFinal.add(atual.multiply(preco).setScale(2, RoundingMode.HALF_UP));
-            var delta = s(deltaPorLote.get(lote.getLoteId()));
-            var inicioQtd = atual.subtract(delta).max(BigDecimal.ZERO);
-            estoqueInicial = estoqueInicial.add(inicioQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
-        }
-        estoqueInicial = money(estoqueInicial);
-        estoqueFinal = money(estoqueFinal);
+        var estoqueInicial = posicao.inicial();
+        var estoqueFinal = posicao.finalPeriodo();
         var cmv = money(estoqueInicial.add(compras).subtract(estoqueFinal));
         BigDecimal cmvPercentual = receitaBase != null && receitaBase.signum() > 0
                 ? cmv.divide(receitaBase, 4, RoundingMode.HALF_UP).movePointRight(2)
@@ -212,63 +192,14 @@ public class RelatorioService {
     }
 
     public List<CmvMensalDTO> cmvPorMes(LocalDateTime inicio, LocalDateTime fim) {
-        var meses = new ArrayList<YearMonth>();
-        for (var ym = YearMonth.from(inicio); !ym.isAfter(YearMonth.from(fim)); ym = ym.plusMonths(1)) {
-            meses.add(ym);
-        }
-        var n = meses.size();
-        var indiceMes = new HashMap<YearMonth, Integer>();
-        for (int i = 0; i < n; i++) {
-            indiceMes.put(meses.get(i), i);
-        }
-        var deltaPorLote = new HashMap<Long, BigDecimal[]>();
-        var comprasMes = new BigDecimal[n];
-        var desperdicioMes = new BigDecimal[n];
-        Arrays.fill(comprasMes, zero());
-        Arrays.fill(desperdicioMes, zero());
-        for (var m : todasMovimentacoesAntesDe(fim)) {
-            if (m.getDataHora().compareTo(inicio) < 0) {
-                continue;
-            }
-            var k = indiceMes.get(YearMonth.from(m.getDataHora()));
-            var loteId = m.getLote() == null ? null : m.getLote().getId();
-            if (loteId != null) {
-                var deltas = deltaPorLote.computeIfAbsent(loteId, x -> {
-                    var arr = new BigDecimal[n];
-                    Arrays.fill(arr, zero());
-                    return arr;
-                });
-                deltas[k] = deltas[k].add(m.getDelta());
-            }
-            if (m instanceof EntradaModel e) {
-                comprasMes[k] = comprasMes[k].add(money(e.getValorTotalPago()));
-            } else if (m instanceof DesperdicioModel || DesperdicioClassificacao.perdaBalanco(m)) {
-                desperdicioMes[k] = desperdicioMes[k].add(DesperdicioClassificacao.valor(m));
-            }
-        }
-        var estoqueInicialMes = new BigDecimal[n];
-        var estoqueFinalMes = new BigDecimal[n];
-        Arrays.fill(estoqueInicialMes, zero());
-        Arrays.fill(estoqueFinalMes, zero());
-        for (var lote : loteRepository.listarEstoque()) {
-            var deltas = deltaPorLote.get(lote.getId());
-            var preco = money(lote.getPrecoUnitario());
-            var atual = money(lote.getQuantidadeAtual());
-            var devolvido = zero();
-            for (int k = n - 1; k >= 0; k--) {
-                var delta = deltas == null ? zero() : s(deltas[k]);
-                var fimQtd = atual.subtract(devolvido).max(BigDecimal.ZERO);
-                var iniQtd = fimQtd.subtract(delta).max(BigDecimal.ZERO);
-                estoqueFinalMes[k] = estoqueFinalMes[k].add(fimQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
-                estoqueInicialMes[k] = estoqueInicialMes[k]
-                        .add(iniQtd.multiply(preco).setScale(2, RoundingMode.HALF_UP));
-                devolvido = devolvido.add(delta);
-            }
-        }
+        posicaoHistorica.validarPeriodo(inicio, fim);
         var resultado = new ArrayList<CmvMensalDTO>();
-        for (int k = 0; k < n; k++) {
-            var cmv = money(money(estoqueInicialMes[k]).add(money(comprasMes[k])).subtract(money(estoqueFinalMes[k])));
-            resultado.add(new CmvMensalDTO(meses.get(k), cmv, money(comprasMes[k]), money(desperdicioMes[k])));
+        for (var mes = YearMonth.from(inicio); !mes.isAfter(YearMonth.from(fim.minusNanos(1))); mes = mes.plusMonths(1)) {
+            var inicioMes = mes.atDay(1).atStartOfDay();
+            var fimMes = mes.plusMonths(1).atDay(1).atStartOfDay();
+            var resumo = calcularCmv(inicio.isAfter(inicioMes) ? inicio : inicioMes,
+                    fim.isBefore(fimMes) ? fim : fimMes, null);
+            resultado.add(new CmvMensalDTO(mes, resumo.cmv(), resumo.valorCompras(), resumo.valorDesperdicio()));
         }
         return resultado;
     }

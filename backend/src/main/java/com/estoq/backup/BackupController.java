@@ -27,13 +27,14 @@ public class BackupController {
     }
 
     @PostMapping
-    public ResponseEntity<byte[]> gerar() {
+    public ResponseEntity<FileSystemResource> gerar() {
         var dto = backups.gerar();
-        var bytes = backups.ler(dto.nome());
+        var arquivo = backups.baixar(dto.nome());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dto.nome() + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(bytes);
+                .contentLength(dto.tamanhoBytes())
+                .body(new FileSystemResource(arquivo));
     }
 
     @GetMapping("/{nome}")

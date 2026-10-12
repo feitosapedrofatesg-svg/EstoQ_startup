@@ -47,8 +47,8 @@ export function Backup() {
   return (
     <>
       <PageHeader
-        title="Backup"
-        subtitle="Cópias de segurança do banco, geradas com o comando pg_dump."
+        title="Backup completo da plataforma"
+        subtitle="Cópia completa dos dados de todos os restaurantes, exclusiva da administração da plataforma."
         actions={
           <Button icon="download" loading={busy === "novo"} onClick={() => void gerar()}>
             Gerar backup agora
@@ -72,7 +72,7 @@ export function Backup() {
         ) : data && data.length === 0 ? (
           <EmptyState
             title="Nenhum backup ainda"
-            text="Gere o primeiro backup para proteger os dados da cozinha."
+            text="Gere uma cópia completa para proteger os dados da plataforma."
             icon="archive"
             action={
               <Button variant="outline" icon="download" onClick={() => void gerar()}>

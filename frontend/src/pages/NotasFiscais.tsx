@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
-import { useFetch, invalidarCache } from "../lib/hooks";
+import { useTodasPaginas, invalidarCache } from "../lib/hooks";
 import { fmtDate, fmtMoney, fmtNum, parseDecimal } from "../lib/format";
 import type { CategoriaDTO, ItemNotaFiscalDTO, NotaFiscalDTO, Page, ProdutoDTO, UnidadeMedida } from "../lib/types";
 import { PageHeader, Card, Button, LinkButton, Field, Input, Select, Checkbox, SearchSelect, AlertBanner } from "../components/UI";
@@ -34,7 +34,7 @@ export function NotasFiscais() {
   const [erro, setErro] = useState<string | null>(null);
   const [custosConferidos, setCustosConferidos] = useState(false);
   const [produtos, setProdutos] = useState<ProdutoDTO[]>([]);
-  const { data: categorias, refresh: atualizarCategorias } = useFetch<Page<CategoriaDTO>>("/api/categorias?size=2000");
+  const { data: categorias, refresh: atualizarCategorias } = useTodasPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc");
   const toast = useToast();
   const notaId = params.get("id");
   useEffect(() => {
@@ -179,7 +179,7 @@ export function NotasFiscais() {
             <Select id="nota-categoria-geral" defaultValue="" onChange={e => {
               const categoriaId = Number(e.target.value) || null;
               setItens(prev => prev.map(i => !i.produtoId ? { ...i, categoriaId } : i)); setCustosConferidos(false);
-            }}><option value="">Usar classificação automática</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
+            }}><option value="">Usar classificação automática</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
       <nav className="nota-navegacao" aria-label="Navegação dos itens da nota fiscal">
@@ -201,7 +201,7 @@ export function NotasFiscais() {
           {!item.produtoId && <div className="form-grid-2">
             <Field label="Nome do novo produto" htmlFor={`nota-nome-${item.id}`}><Input id={`nota-nome-${item.id}`} value={item.nomeProduto} maxLength={120} onChange={e => alterar(item.id, { nomeProduto: e.target.value })} /></Field>
             <Field label="Categoria" htmlFor={`nota-categoria-${item.id}`}><Select id={`nota-categoria-${item.id}`} value={item.categoriaId ?? ""} onChange={e => alterar(item.id, { categoriaId: Number(e.target.value) || null })}>
-              <option value="">Automática · Sem classificação se não reconhecido</option>{categorias?.content.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              <option value="">Automática · Sem classificação se não reconhecido</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </Select></Field>
           </div>}
           <div className="form-grid-2">

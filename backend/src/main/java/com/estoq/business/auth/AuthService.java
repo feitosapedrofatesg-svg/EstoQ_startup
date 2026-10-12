@@ -31,7 +31,7 @@ public class AuthService {
 
     public AuthenticatedUserDTO autenticar(LoginRequestDTO dto, HttpServletRequest request, HttpServletResponse response) {
         var ip = request.getRemoteAddr();
-        tentativas.verificar(dto.email(), ip);
+        tentativas.reservar(dto.email(), ip);
         var auth = autenticar(dto, ip);
         if (request.getSession(false) != null) {
             request.changeSessionId();
@@ -50,7 +50,6 @@ public class AuthService {
             tentativas.registrarSucesso(dto.email(), ip);
             return auth;
         } catch (AuthenticationException e) {
-            tentativas.registrarFalha(dto.email(), ip);
             throw e;
         }
     }

@@ -8,9 +8,9 @@ import com.estoq.business.usuarios.UsuarioModel;
  * operando — sem ele ninguém sabe qual restaurante está logado. É nulo para o
  * perfil PLATAFORMA, que não pertence a nenhuma loja.
  */
-public record AuthenticatedUserDTO(Long id, String nome, String email, Perfil perfil, String restauranteNome) {
+public record AuthenticatedUserDTO(Long id, String nome, String email, Perfil perfil, String restauranteNome, Long restauranteId) {
 
     public static AuthenticatedUserDTO of(UsuarioModel u, String restauranteNome) {
-        return new AuthenticatedUserDTO(u.getId(), u.getNome(), u.getEmail(), u.getPerfil(), restauranteNome);
+        return new AuthenticatedUserDTO(u.getId(), u.getNome(), u.getEmail(), u.getPerfil(), restauranteNome, u.getRestauranteId());
     }
 }

@@ -25,8 +25,8 @@ public class UsuarioService {
     private final UsuarioAdapter adapter;
     private final PasswordEncoder encoder;
 
-    public Page<UsuarioResponseDTO> listar(Pageable p) {
-        return repository.findAll(p).map(adapter::toDto);
+    public Page<UsuarioResponseDTO> listar(Pageable p, String q) {
+        return (q == null || q.isBlank() ? repository.findAll(p) : repository.pesquisar(q.trim(), p)).map(adapter::toDto);
     }
 
     public UsuarioResponseDTO buscar(Long id) {

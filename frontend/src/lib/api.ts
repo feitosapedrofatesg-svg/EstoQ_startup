@@ -1,3 +1,4 @@
+import { sessaoAtual } from "./sessao";
 import type { ErrorResponse } from "./types";
 
 export class ApiError extends Error {
@@ -21,10 +22,12 @@ let csrfToken: string | null = null;
 let csrfHeader = "X-CSRF-TOKEN";
 
 export async function fetchCsrf(force = false): Promise<string> {
+  const sessao = sessaoAtual();
   if (csrfToken && !force) return csrfToken;
   const res = await fetch(CSRF_PATH, { credentials: "include" });
   if (!res.ok) throw new ApiError(res.status, "Não foi possível iniciar a sessão segura.");
   const data = (await res.json()) as { token: string; headerName: string };
+  conferirSessao(sessao);
   csrfToken = data.token;
   csrfHeader = data.headerName;
   return csrfToken;
@@ -32,6 +35,10 @@ export async function fetchCsrf(force = false): Promise<string> {
 
 export function resetCsrf(): void {
   csrfToken = null;
+}
+
+function conferirSessao(sessao: string): void {
+  if (sessao !== sessaoAtual()) throw new ApiError(409, "Sua sessão mudou. Repita a operação na conta atual.");
 }
 
 function friendlyStatus(status: number): string {
@@ -72,6 +79,7 @@ async function request<T>(
   body?: unknown,
   retried = false
 ): Promise<T> {
+  const sessao = sessaoAtual();
   const headers: Record<string, string> = { Accept: "application/json" };
 
   let payload: BodyInit | undefined;
@@ -91,6 +99,7 @@ async function request<T>(
     }
   }
 
+  conferirSessao(sessao);
   let res: Response;
   try {
     res = await fetch(path, {
@@ -103,13 +112,15 @@ async function request<T>(
     throw new ApiError(0, "Não foi possível falar com o servidor. Verifique sua conexão.");
   }
 
+  conferirSessao(sessao);
   if (!retried && method !== "GET" && await isCsrfFailure(res)) {
     await fetchCsrf(true);
+    conferirSessao(sessao);
     return request<T>(method, path, body, true);
   }
 
   if (!res.ok) {
-    if (res.status === 401 && !path.startsWith("/api/auth/login")) {
+    if (sessao === sessaoAtual() && res.status === 401 && !path.startsWith("/api/auth/login")) {
       window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
     }
     throw await parseError(res);
@@ -118,7 +129,9 @@ async function request<T>(
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
-    return (await res.json()) as T;
+    const resultado = (await res.json()) as T;
+    conferirSessao(sessao);
+    return resultado;
   }
   return (await res.text()) as unknown as T;
 }
@@ -130,30 +143,41 @@ export const api = {
   del: <T>(path: string) => request<T>("DELETE", path),
 
   async blob(path: string): Promise<Blob> {
+    const sessao = sessaoAtual();
     const res = await fetch(path, { credentials: "include", headers: { Accept: "application/pdf" } });
+    conferirSessao(sessao);
+    if (res.status === 401) window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
     if (!res.ok) throw await parseError(res);
-    return res.blob();
+    const blob = await res.blob();
+    conferirSessao(sessao);
+    return blob;
   },
 
   /** POST que devolve um arquivo (bytes) como resposta — usado p/ baixar o backup na hora. */
   async blobPost(path: string): Promise<{ blob: Blob; filename: string }> {
+    const sessao = sessaoAtual();
     const headers: Record<string, string> = { Accept: "application/octet-stream" };
     headers[csrfHeader] = await fetchCsrf();
+    conferirSessao(sessao);
     let res: Response;
     try {
       res = await fetch(path, { method: "POST", headers, credentials: "include" });
     } catch {
       throw new ApiError(0, "Não foi possível falar com o servidor. Verifique sua conexão.");
     }
+    conferirSessao(sessao);
     if (await isCsrfFailure(res)) {
       headers[csrfHeader] = await fetchCsrf(true);
+      conferirSessao(sessao);
       res = await fetch(path, { method: "POST", headers, credentials: "include" });
     }
+    conferirSessao(sessao);
     if (!res.ok) {
       if (res.status === 401) window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
       throw await parseError(res);
     }
     const blob = await res.blob();
+    conferirSessao(sessao);
     const cd = res.headers.get("content-disposition") ?? "";
     const match = /filename="?([^";]+)"?/.exec(cd);
     const fallback = `estoq-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}.dump`;

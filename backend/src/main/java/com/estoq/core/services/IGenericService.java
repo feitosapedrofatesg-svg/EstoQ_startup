@@ -9,6 +9,9 @@ public interface IGenericService<D extends BaseDTO> {
 
     D buscar(Long id);
     Page<D> listar(Pageable pageable);
+    default Page<D> listar(Pageable pageable, String q) {
+        return listar(pageable);
+    }
     D criar(D dto);
     D atualizar(Long id, D dto);
     void excluir(Long id);

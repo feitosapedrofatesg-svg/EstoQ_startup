@@ -25,7 +25,8 @@ function buildNav(perfil: Perfil): NavGroup[] {
     return [
       {
         heading: "Plataforma",
-        items: [{ to: "/plataforma", label: "Restaurantes", icon: "store", end: true }],
+        items: [{ to: "/plataforma", label: "Restaurantes", icon: "store", end: true },
+          { to: "/backup", label: "Backup completo", icon: "archive" }],
       },
     ];
   }
@@ -67,7 +68,6 @@ function buildNav(perfil: Perfil): NavGroup[] {
       items: [
         { to: "/catalogo", label: "Catálogo", icon: "tags" },
         { to: "/usuarios", label: "Usuários", icon: "users" },
-        { to: "/backup", label: "Backup", icon: "archive" },
       ],
     });
   } else if (perfil === "COZINHA") {
@@ -210,7 +210,7 @@ export function Layout({ children }: { children: ReactNode }) {
   // NUTRICIONISTA, então a cozinha não gasta requisição com ele.
   useEffect(() => {
     if (!user) return;
-    if (!isCozinha) void prefetchar("/api/dashboard/resumo");
+    if (isAdmin || user.perfil === "NUTRICIONISTA") void prefetchar("/api/dashboard/resumo");
     if (isAdmin || isCozinha) {
       void prefetchar("/api/estoque");
       void prefetchar("/api/balancos");

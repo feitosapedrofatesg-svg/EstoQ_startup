@@ -83,6 +83,7 @@ public class SecurityConfig {
                                                                 "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()
                                                 .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+                                                .requestMatchers("/api/backups", "/api/backups/**").hasRole("PLATAFORMA")
                                                 .requestMatchers("/api/plataforma/**").hasRole("PLATAFORMA")
                                                 .requestMatchers(HttpMethod.GET, "/api/balancos/proximo")
                                                 .hasAnyRole("ADMIN", "COZINHA", "NUTRICIONISTA")

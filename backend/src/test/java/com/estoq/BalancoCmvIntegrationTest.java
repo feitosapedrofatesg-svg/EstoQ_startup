@@ -218,6 +218,67 @@ class BalancoCmvIntegrationTest {
     }
 
     @Test
+    void cmvHistoricoNaoMudaComConsumoPosteriorEProdutoDesativado() {
+        var inicio = LocalDateTime.of(2026, 1, 1, 0, 0);
+        var fim = inicio.plusMonths(1);
+        movimentos.findAll().forEach(m -> m.setDataHora(inicio));
+        consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
+        movimentos.findAll().stream().filter(m -> m instanceof com.estoq.business.consumos.ConsumoModel)
+                .forEach(m -> m.setDataHora(inicio.plusDays(10)));
+        movimentos.flush();
+        var antes = relatorios.calcularCmv(inicio, fim, null);
+        consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("8"), null, null));
+        movimentos.findAll().stream().filter(m -> m.getQuantidade().compareTo(new BigDecimal("8")) == 0)
+                .forEach(m -> m.setDataHora(fim.plusDays(10)));
+        produtos.excluir(produtoId);
+        movimentos.flush();
+        var depois = relatorios.calcularCmv(inicio, fim, null);
+        assertEquals(0, antes.cmv().compareTo(depois.cmv()));
+        assertEquals(0, new BigDecimal("40").compareTo(depois.cmv()));
+        assertEquals(0, new BigDecimal("160").compareTo(depois.valorEstoqueFinal()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(depois.valorEstoqueInicial()));
+        assertEquals(1, relatorios.cmvPorMes(inicio, fim).size());
+        assertEquals(0, depois.cmv().compareTo(relatorios.cmvPorMes(inicio, fim).getFirst().cmv()));
+    }
+
+    @Test
+    void cmvConservaPrecisaoDeQuantidadeEPreco() {
+        var lote = lotes.listarEstoque().getFirst();
+        lote.setQuantidadeAtual(new BigDecimal("0.001"));
+        lote.setPrecoUnitario(new BigDecimal("123.456789"));
+        movimentos.findAll().forEach(m -> {
+            m.setQuantidade(new BigDecimal("0.001"));
+            m.setQuantidadePosterior(new BigDecimal("0.001"));
+            m.setDataHora(LocalDateTime.of(2026, 1, 1, 0, 0));
+        });
+        movimentos.flush();
+        var resumo = relatorios.calcularCmv(LocalDateTime.of(2026, 2, 1, 0, 0), LocalDateTime.of(2026, 3, 1, 0, 0), null);
+        assertEquals(0, new BigDecimal("0.12").compareTo(resumo.valorEstoqueInicial()));
+        assertEquals(0, new BigDecimal("0.12").compareTo(resumo.valorEstoqueFinal()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(resumo.cmv()));
+    }
+
+    @Test
+    void cmvMensalRespeitaMesesIncompletosEAjustesPositivos() {
+        var inicio = LocalDateTime.of(2026, 1, 15, 0, 0);
+        movimentos.findAll().forEach(m -> m.setDataHora(inicio.minusDays(10)));
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var iniciado = balancos.iniciar(criado.id());
+        balancos.registrarContagem(iniciado.id(), iniciado.itens().getFirst().id(), new ContagemRequestDTO(new BigDecimal("12")));
+        balancos.confirmar(iniciado.id());
+        balancos.gerarAjustes(iniciado.id());
+        movimentos.findAll().stream().filter(m -> m instanceof com.estoq.business.ajustes.AjusteModel)
+                .forEach(m -> m.setDataHora(inicio.plusDays(2)));
+        movimentos.flush();
+        var fim = LocalDateTime.of(2026, 2, 1, 0, 0);
+        var mensal = relatorios.cmvPorMes(inicio, fim);
+        assertEquals(1, mensal.size());
+        assertEquals(0, BigDecimal.ZERO.compareTo(mensal.getFirst().valorCompras()));
+        assertEquals(0, new BigDecimal("-40").compareTo(mensal.getFirst().cmv()));
+        assertThrows(FieldValidationException.class, () -> relatorios.calcularCmv(fim, inicio, null));
+    }
+
+    @Test
     void parametroCmvRestringePercentual() {
         assertNull(parametrosCmv.obterAtual().percentualIdeal());
         var salvo = parametrosCmv.salvar(new ParametroCmvDTO(null, null, new BigDecimal("30")));

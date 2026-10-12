@@ -2,6 +2,7 @@ import { ProximoBalanco } from "../components/ProximoBalanco";
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
 import { useFetch, updateCache } from "../lib/hooks";
+import { carregarPaginas } from "../lib/hooks";
 import { api } from "../lib/api";
 import {
   PageHeader,
@@ -22,7 +23,6 @@ import type {
   CategoriaDTO,
   ConfiguracaoBalancoDTO,
   ItemBalancoDTO,
-  Page,
   PeriodicidadeBalanco,
   TipoBalanco,
 } from "../lib/types";
@@ -393,8 +393,8 @@ function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: (criado
 
   useEffect(() => {
     let mounted = true;
-    api.get<Page<CategoriaDTO>>("/api/categorias?size=100").then((r) => {
-      if (mounted) setCats(r.content);
+    carregarPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc").then((r) => {
+      if (mounted) setCats(r);
     }).catch(() => { });
     return () => { mounted = false; };
   }, []);

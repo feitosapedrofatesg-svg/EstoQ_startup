@@ -7,6 +7,8 @@ import {
   type SetStateAction,
 } from "react";
 import { api } from "./api";
+import type { Page } from "./types";
+import { mudarSessao, sessaoAtual } from "./sessao";
 
 interface FetchState<T> {
   data: T | null;
@@ -20,7 +22,16 @@ interface FetchState<T> {
 const cache = new Map<string, { data: unknown; ts: number }>();
 const TTL_MS = 60_000;
 
-export function useFetch<T>(path: string | null, deps: unknown[] = [], revalidateOnMount = false): FetchState<T> {
+export function reiniciarCache(identidade = "anonimo"): void {
+  mudarSessao(identidade);
+  cache.clear();
+}
+
+function chaveCache(path: string): string {
+  return `${sessaoAtual()}::${path}`;
+}
+
+export function useFetch<T>(path: string | null, deps: unknown[] = [], revalidateOnMount = false, carregar?: (path: string) => Promise<T>): FetchState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(!!path);
   const [error, setError] = useState<string | null>(null);
@@ -38,31 +49,36 @@ export function useFetch<T>(path: string | null, deps: unknown[] = [], revalidat
   const run = useCallback(
     async (force?: boolean) => {
       const sequence = ++requestSequence.current;
+      const sessao = sessaoAtual();
+      const vigente = () => mounted.current && sequence === requestSequence.current && sessao === sessaoAtual();
       if (!path) {
         setData(null);
         setLoading(false);
         return;
       }
-      const cached = cache.get(path) as { data: T; ts: number } | undefined;
+      const caminhoCache = carregar ? `${path}#todas` : path;
+      const cached = cache.get(chaveCache(caminhoCache)) as { data: T; ts: number } | undefined;
       const fresca = cached !== undefined && Date.now() - cached.ts < TTL_MS;
       if (cached) {
         setData(cached.data);
         setLoading(false);
         if (fresca && !force) return;
       } else {
+        setData(null);
         setLoading(true);
       }
       setError(null);
       try {
-        const result = await api.get<T>(path);
-        cache.set(path, { data: result, ts: Date.now() });
-        if (mounted.current && sequence === requestSequence.current) setData(result);
+        const result = await (carregar ? carregar(path) : api.get<T>(path));
+        if (sessao !== sessaoAtual()) return;
+        cache.set(chaveCache(caminhoCache), { data: result, ts: Date.now() });
+        if (vigente()) setData(result);
       } catch (e) {
-        if (mounted.current && sequence === requestSequence.current) {
+        if (vigente()) {
           setError((e as Error).message);
         }
       } finally {
-        if (mounted.current && sequence === requestSequence.current) setLoading(false);
+        if (vigente()) setLoading(false);
       }
     },
     [path]
@@ -80,10 +96,11 @@ export function useFetch<T>(path: string | null, deps: unknown[] = [], revalidat
 
 /** Pré-carrega um caminho no cache SWR (usado pelo Layout ao montar). */
 export async function prefetchar(path: string): Promise<void> {
-  if (cache.has(path)) return;
+  const sessao = sessaoAtual();
+  if (cache.has(chaveCache(path))) return;
   try {
     const data = await api.get<unknown>(path);
-    cache.set(path, { data, ts: Date.now() });
+    if (sessao === sessaoAtual()) cache.set(chaveCache(path), { data, ts: Date.now() });
   } catch {
     // sem rede ou sem permissão: deixa sem cache, a página busca normalmente
   }
@@ -91,9 +108,9 @@ export async function prefetchar(path: string): Promise<void> {
 
 /** Atualiza o cache SWR após uma gravação (ex.: mesclar um balanço respondido). */
 export function updateCache<T>(path: string, updater: (prev: T) => T): void {
-  const entry = cache.get(path);
+  const entry = cache.get(chaveCache(path));
   if (entry) {
-    cache.set(path, { data: updater(entry.data as T), ts: Date.now() });
+    cache.set(chaveCache(path), { data: updater(entry.data as T), ts: Date.now() });
   }
 }
 
@@ -109,6 +126,25 @@ export function useDebounced<T>(value: T, ms = 300): T {
 /** Invalida telas afetadas por uma entrada em lote, para que consultem os novos saldos. */
 export function invalidarCache(prefixos: string[]): void {
   for (const caminho of cache.keys()) {
-    if (prefixos.some(prefixo => caminho.startsWith(prefixo))) cache.delete(caminho);
+    if (prefixos.some(prefixo => caminho.startsWith(`${sessaoAtual()}::${prefixo}`))) cache.delete(caminho);
   }
+}
+
+/** Seletores percorrem todas as páginas, sem aumentar o limite seguro do servidor. */
+export async function carregarPaginas<T>(path: string): Promise<T[]> {
+  const lista: T[] = [];
+  const url = new URL(path, window.location.origin);
+  const sessao = sessaoAtual();
+  url.searchParams.set("size", "100");
+  for (let pagina = 0; ; pagina++) {
+    url.searchParams.set("page", String(pagina));
+    const resultado = await api.get<Page<T>>(url.pathname + url.search);
+    if (sessao !== sessaoAtual()) throw new Error("Sessão alterada durante o carregamento.");
+    lista.push(...resultado.content);
+    if (pagina + 1 >= resultado.totalPages) return lista;
+  }
+}
+
+export function useTodasPaginas<T>(path: string): FetchState<T[]> {
+  return useFetch<T[]>(path, [], false, carregarPaginas<T>);
 }

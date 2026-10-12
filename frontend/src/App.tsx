@@ -93,6 +93,7 @@ function AppRoutes() {
       <Layout>
         <Routes>
           <Route path="/plataforma" element={<Plataforma />} />
+          <Route path="/backup" element={<Backup />} />
           <Route path="*" element={<Navigate to="/plataforma" replace />} />
         </Routes>
       </Layout>
@@ -174,7 +175,7 @@ function AppRoutes() {
         <Route
           path="/backup"
           element={
-            <Guarded allow={isAdmin}>
+            <Guarded allow={isPlataforma}>
               <Backup />
             </Guarded>
           }

@@ -1,4 +1,5 @@
 import {
+  Fragment,
   createContext,
   useCallback,
   useContext,
@@ -9,6 +10,7 @@ import {
 } from "react";
 import { api, resetCsrf } from "../lib/api";
 import type { AuthenticatedUserDTO } from "../lib/types";
+import { reiniciarCache } from "../lib/hooks";
 import { useToast } from "./toast";
 
 interface AuthCtx {
@@ -37,15 +39,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const toast = useToast();
 
+  const atualizarUsuario = useCallback((novo: AuthenticatedUserDTO | null) => {
+    reiniciarCache(novo ? `${novo.restauranteId ?? 0}|${novo.id}|${novo.perfil}` : "anonimo");
+    setUser(novo);
+  }, []);
+
   const refetchMe = useCallback(async () => {
     try {
-      setUser(await api.get<AuthenticatedUserDTO>("/api/auth/me"));
+      atualizarUsuario(await api.get<AuthenticatedUserDTO>("/api/auth/me"));
     } catch {
-      setUser(null);
+      atualizarUsuario(null);
     } finally {
       setReady(true);
     }
-  }, []);
+  }, [atualizarUsuario]);
 
   useEffect(() => {
     void refetchMe();
@@ -53,18 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onUnauthorized = () => {
-      setUser(null);
+      atualizarUsuario(null);
       resetCsrf();
     };
     window.addEventListener("estoq:unauthorized", onUnauthorized);
     return () => window.removeEventListener("estoq:unauthorized", onUnauthorized);
-  }, []);
+  }, [atualizarUsuario]);
 
   const login = useCallback(
     async (email: string, senha: string) => {
       try {
         const u = await api.post<AuthenticatedUserDTO>("/api/auth/login", { email, senha });
-        setUser(u);
+        atualizarUsuario(u);
         resetCsrf();
         toast.success(`Bem-vindo(a), ${u.nome.split(" ")[0]}`);
       } catch (e) {
@@ -73,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw e;
       }
     },
-    [toast]
+    [toast, atualizarUsuario]
   );
 
   const logout = useCallback(async () => {
@@ -83,8 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // sessão já pode ter expirado; segue o fluxo
     }
     resetCsrf();
-    setUser(null);
-  }, []);
+    atualizarUsuario(null);
+  }, [atualizarUsuario]);
 
   const value = useMemo<AuthCtx>(() => {
     const perfil = user?.perfil;
@@ -105,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, ready, login, logout, refetchMe]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={value}><Fragment key={user ? `${user.id}|${user.restauranteId}|${user.perfil}` : "anonimo"}>{children}</Fragment></Ctx.Provider>;
 }
 
 export function useAuth(): AuthCtx {

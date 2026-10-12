@@ -8,10 +8,26 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface ILoteRepository extends IGenericRepository<LoteModel> {
+
+        // Uma consulta obtém os dois cortes no mesmo retrato do banco, incluindo lotes desativados.
+        @Query("select l.quantidadeAtual as atual, l.precoUnitario as preco, "
+                        + "coalesce(sum(m.quantidadePosterior-m.quantidadeAnterior),0) as deltaInicio, "
+                        + "coalesce(sum(case when m.dataHora>=:fim then m.quantidadePosterior-m.quantidadeAnterior else 0 end),0) as deltaFim "
+                        + "from LoteModel l left join MovimentacaoEstoqueModel m on m.lote=l and m.dataHora>=:inicio "
+                        + "group by l.id, l.quantidadeAtual, l.precoUnitario")
+        List<PosicaoHistorica> posicoesHistoricas(LocalDateTime inicio, LocalDateTime fim);
+
+        interface PosicaoHistorica {
+                BigDecimal getAtual();
+                BigDecimal getPreco();
+                BigDecimal getDeltaInicio();
+                BigDecimal getDeltaFim();
+        }
 
         @EntityGraph(attributePaths = { "produto", "produto.categoria", "produto.parametro" })
         Optional<LoteModel> findByIdAndAtivoTrue(Long id);

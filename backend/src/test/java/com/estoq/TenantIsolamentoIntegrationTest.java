@@ -5,6 +5,7 @@ import com.estoq.business.usuarios.IUsuarioRepository;
 import com.estoq.business.usuarios.Perfil;
 import com.estoq.business.usuarios.UsuarioModel;
 
+import java.util.List;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -113,6 +114,56 @@ class TenantIsolamentoIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
+
+    @Test
+    void pesquisaEPaginacaoAlcancamUltimosRegistrosSemCruzarRestaurantes() throws Exception {
+        registrar("Loja com catálogo grande", "grande@teste.com", "LojaA@12345");
+        registrar("Outra loja", "outra@teste.com", "LojaB@12345");
+        var a = login("grande@teste.com", "LojaA@12345");
+        var b = login("outra@teste.com", "LojaB@12345");
+        long restauranteId = banco.queryForObject("select restaurante_id from usuarios where email=?", Long.class, "grande@teste.com");
+        long categoria = criarCategoria(a, "Categoria de teste");
+        var senha = encoder.encode("Teste@12345");
+        for (int i = 0; i < 125; i++) {
+            banco.update("insert into produtos (nome,unidade_medida,categoria_id,codigo_barras,ativo,version,data_hora_criacao,restaurante_id) values (?, 'UN', ?, ?, true, 0, CURRENT_TIMESTAMP, ?)",
+                    "Produto " + i, categoria, "COD" + i, restauranteId);
+            banco.update("insert into categorias (nome,ativo,version,data_hora_criacao,restaurante_id) values (?,true,0,CURRENT_TIMESTAMP,?)", "Grupo " + i, restauranteId);
+            banco.update("insert into usuarios (nome,email,senha,perfil,ativo,version,data_hora_criacao,restaurante_id) values (?,?,?,'COZINHA',true,0,CURRENT_TIMESTAMP,?)",
+                    "Pessoa " + i, "pessoa" + i + "@teste.com", senha, restauranteId);
+        }
+        for (var rota : List.of("produtos", "categorias", "usuarios")) {
+            mvc.perform(get("/api/" + rota + "?size=50&page=2&sort=id,asc").session(a))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.number").value(2))
+                    .andExpect(jsonPath("$.content.length()").value(org.hamcrest.Matchers.greaterThan(0)));
+            mvc.perform(get("/api/" + rota + "?size=50&q=124").session(a))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+            mvc.perform(get("/api/" + rota + "?q=124").session(b))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        }
+        mvc.perform(get("/api/produtos").param("q", "Categoria de teste").session(a)).andExpect(jsonPath("$.totalElements").value(125));
+        mvc.perform(get("/api/produtos?q=COD124").session(a)).andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void posicoesHistoricasEParametrosTambemRespeitamRestaurante() throws Exception {
+        registrar("Histórico A", "historico-a@teste.com", "LojaA@12345");
+        registrar("Histórico B", "historico-b@teste.com", "LojaB@12345");
+        var a = login("historico-a@teste.com", "LojaA@12345");
+        var b = login("historico-b@teste.com", "LojaB@12345");
+        long categoria = criarCategoria(a, "Alimentos");
+        var produto = mvc.perform(post("/api/produtos").session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Farinha\",\"unidadeMedida\":\"KG\",\"categoriaId\":" + categoria + "}"))
+                .andExpect(status().isCreated()).andReturn();
+        var id = json.readTree(produto.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(post("/api/entradas").session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"produtoId\":" + id + ",\"quantidade\":2,\"valorTotalPago\":20,\"unidadeCompra\":\"KG\",\"semCusto\":false}"))
+                .andExpect(status().isCreated());
+        mvc.perform(get("/api/parametros-estoque/por-produto/" + id).session(a)).andExpect(status().isOk());
+        mvc.perform(get("/api/parametros-estoque/por-produto/" + id).session(b)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/relatorios/cmv").session(a)).andExpect(status().isOk()).andExpect(jsonPath("$.valorCompras").value(20));
+        mvc.perform(get("/api/relatorios/cmv").session(b)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.valorCompras").value(0)).andExpect(jsonPath("$.valorEstoqueFinal").value(0));
+    }
 
     private com.estoq.business.notasFiscais.NotaFiscalDTO lerNota(MockHttpSession sessao, String xml) throws Exception {
         var arquivo = new org.springframework.mock.web.MockMultipartFile("arquivos", "nota.xml", "application/xml", xml.getBytes(java.nio.charset.StandardCharsets.UTF_8));

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 public abstract class GenericController<D extends BaseDTO> {
 
@@ -30,8 +31,8 @@ public abstract class GenericController<D extends BaseDTO> {
     }
 
     @GetMapping
-    public ResponseEntity<Page<D>> listar(Pageable pageable) {
-        return ResponseEntity.ok(service.listar(pageable));
+    public ResponseEntity<Page<D>> listar(Pageable pageable, @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(service.listar(pageable, q));
     }
 
     @PostMapping

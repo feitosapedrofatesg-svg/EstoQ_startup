@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
-import { useFetch } from "../lib/hooks";
+import { useFetch, useTodasPaginas, useDebounced } from "../lib/hooks";
+import { Paginacao } from "../components/Paginacao";
 import { api } from "../lib/api";
 import {
   PageHeader,
@@ -49,35 +50,24 @@ export function Catalogo() {
   const [busy, setBusy] = useState("");
   const toast = useToast();
 
-  const { data: catsPage, refresh: refreshCats, loading: loadingCats } = useFetch<Page<CategoriaDTO>>(
-    "/api/categorias?size=100"
-  );
-  const { data: prodsPage, refresh: refreshProds, loading: loadingProds } = useFetch<Page<ProdutoDTO>>(
-    "/api/produtos?size=100&sort=id,desc"
-  );
-  const { data: paramsPage, refresh: refreshParams } = useFetch<Page<ParametroEstoqueDTO>>(
-    isAdmin ? "/api/parametros-estoque?size=100" : null
-  );
+  const [pagina, setPagina] = useState(0);
+  const busca = useDebounced(search.trim());
+  useEffect(() => { setPagina(0); }, [busca, tab]);
+  const query = `size=50&page=${pagina}&q=${encodeURIComponent(busca)}`;
+  const { data: catsPage, refresh: refreshCats, loading: loadingCats, error: errorCats } = useFetch<Page<CategoriaDTO>>(`/api/categorias?${query}&sort=nome,asc`);
+  const { data: prodsPage, refresh: refreshProds, loading: loadingProds, error: errorProds } = useFetch<Page<ProdutoDTO>>(`/api/produtos?${query}&sort=id,desc`);
+  const { data: todasCats, refresh: refreshTodasCats, error: errorTodasCats } = useTodasPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc");
+  const { data: parametro, loading: loadingParam, error: errorParam } = useFetch<ParametroEstoqueDTO>(
+    isAdmin && prodModal.prod ? `/api/parametros-estoque/por-produto/${prodModal.prod.id}` : null);
   const cats = catsPage?.content ?? [];
-  const prods = prodsPage?.content ?? [];
-  const params = paramsPage?.content ?? [];
+  const prodRows = prodsPage?.content ?? [];
   const loading = tab === "produtos" ? loadingProds : loadingCats;
-
-  const catById = useMemo(() => {
-    const m = new Map<number, CategoriaDTO>();
-    for (const c of cats ?? []) m.set(c.id, c);
-    return m;
-  }, [cats]);
-
-  const prodRows = useMemo(() => {
-    if (!prods) return [];
-    const q = search.trim().toLowerCase();
-    return prods.filter((p) => {
-      if (!q) return true;
-      const cat = catById.get(p.categoriaId)?.nome ?? "";
-      return p.nome.toLowerCase().includes(q) || cat.toLowerCase().includes(q) || (p.codigoBarras ?? "").includes(q);
-    });
-  }, [prods, search, catById]);
+  const error = tab === "produtos" ? errorProds : errorCats;
+  const catById = new Map((todasCats ?? []).map(c => [c.id, c]));
+  const paginaAtual = tab === "produtos" ? prodsPage : catsPage;
+  useEffect(() => {
+    if (paginaAtual && pagina >= paginaAtual.totalPages && pagina > 0) setPagina(Math.max(0, paginaAtual.totalPages - 1));
+  }, [paginaAtual, pagina]);
 
   const doDelete = async (kind: "cat" | "prod", id: number) => {
     setBusy(kind + id);
@@ -87,6 +77,7 @@ export function Catalogo() {
         setDelCat(null);
         toast.success("Categoria removida");
         void refreshCats();
+        void refreshTodasCats();
       } else {
         await api.del(`/api/produtos/${id}`);
         setDelProd(null);
@@ -147,6 +138,7 @@ export function Catalogo() {
           </div>
         }
       >
+        {error && <div role="alert" className="alertbanner alertbanner--bad">{error}</div>}
         {loading ? (
           <p className="muted">Carregando…</p>
         ) : tab === "produtos" ? (
@@ -168,7 +160,7 @@ export function Catalogo() {
                       {p.nome}
                     </Button>
                   </td>
-                  <td className="muted-cell">{catById.get(p.categoriaId)?.nome ?? "—"}</td>
+                  <td className="muted-cell">{p.categoriaNome ?? catById.get(p.categoriaId)?.nome ?? "—"}</td>
                   <td>{p.unidadeMedida === "UN" ? "Unidade" : p.unidadeMedida}</td>
                   <td className="muted-cell">{p.codigoBarras ?? "—"}</td>
                   <td>{p.saldoAtual ? `${fmtNum(p.saldoAtual)} ${p.unidadeMedida}` : "0"}</td>
@@ -209,6 +201,7 @@ export function Catalogo() {
             </DataTable>
           )
         )}
+        <Paginacao dados={tab === "produtos" ? prodsPage : catsPage} pagina={pagina} alterar={setPagina} />
       </Card>
 
       {catModal.open && (
@@ -218,23 +211,23 @@ export function Catalogo() {
           onDone={() => {
             setCatModal({ open: false, cat: null });
             void refreshCats();
+            void refreshTodasCats();
           }}
         />
       )}
-      {prodModal.open && (
+      {prodModal.open && (loadingParam || errorParam || !todasCats || errorTodasCats || (isAdmin && prodModal.prod && (!parametro || parametro.produtoId !== prodModal.prod.id)) ? <div role="alert">{errorParam ?? errorTodasCats ?? "Carregando dados do produto…"}</div> : (
         <ProdutoForm
           prod={prodModal.prod}
-          cats={cats ?? []}
-          param={params?.find((pp) => pp.produtoId === prodModal.prod?.id) ?? null}
+          cats={todasCats ?? []}
+          param={parametro}
           allowParams={isAdmin}
           onClose={() => setProdModal({ open: false, prod: null })}
           onDone={() => {
             setProdModal({ open: false, prod: null });
             void refreshProds();
-            if (isAdmin) void refreshParams();
           }}
         />
-      )}
+      ))}
       <Confirm
         open={!!delCat}
         title="Remover categoria"
@@ -370,19 +363,9 @@ function ProdutoForm({
           estoqueMaximo: maximo,
           diasAlertaVencimento: diasAlerta ?? 7,
         };
-        if (param) {
-          await api.put(`/api/parametros-estoque/${param.id}`, { ...paramBody, version: param.version });
-        } else {
-          try {
-            await api.post("/api/parametros-estoque", paramBody);
-          } catch (e) {
-            // produto já pode ter parâmetro recém-criado; tenta atualizar
-            const list = await api.get<Page<ParametroEstoqueDTO>>("/api/parametros-estoque?size=100");
-            const p2 = list.content.find((x) => x.produtoId === (prod?.id ?? savedProd.id));
-            if (p2) await api.put(`/api/parametros-estoque/${p2.id}`, { ...paramBody, version: p2.version });
-            else throw e;
-          }
-        }
+        // Todo produto recebe parâmetros no backend; consultamos o registro correto pelo produto.
+        const atual = param ?? await api.get<ParametroEstoqueDTO>(`/api/parametros-estoque/por-produto/${savedProd.id}`);
+        await api.put(`/api/parametros-estoque/${atual.id}`, { ...paramBody, version: atual.version });
       }
 
       toast.success(prod ? "Produto atualizado" : "Produto criado");

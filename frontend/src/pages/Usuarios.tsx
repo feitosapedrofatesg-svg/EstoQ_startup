@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
-import { useFetch } from "../lib/hooks";
+import { useFetch, useDebounced } from "../lib/hooks";
+import { Paginacao } from "../components/Paginacao";
 import { api } from "../lib/api";
 import {
   PageHeader,
@@ -46,16 +47,16 @@ export function Usuarios() {
   const [del, setDel] = useState<UsuarioResponseDTO | null>(null);
   const [busy, setBusy] = useState("");
 
+  const [pagina, setPagina] = useState(0);
+  const busca = useDebounced(search.trim());
+  useEffect(() => { setPagina(0); }, [busca]);
   const { data, loading, error, refresh } = useFetch<Page<UsuarioResponseDTO>>(
-    "/api/usuarios?size=100"
-  );
+    `/api/usuarios?size=50&page=${pagina}&q=${encodeURIComponent(busca)}&sort=nome,asc`);
   const users = data?.content ?? [];
-
-  const rows = useMemo(() => {
-    if (users.length === 0) return [];
-    const q = search.trim().toLowerCase();
-    return users.filter((u) => !q || u.nome.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-  }, [users, search]);
+  const rows = users;
+  useEffect(() => {
+    if (data && pagina >= data.totalPages && pagina > 0) setPagina(Math.max(0, data.totalPages - 1));
+  }, [data, pagina]);
 
   const toggleAtivo = async (u: UsuarioResponseDTO) => {
     setBusy("toggle" + u.id);
@@ -161,6 +162,7 @@ export function Usuarios() {
             ))}
           </DataTable>
         )}
+        <Paginacao dados={data} pagina={pagina} alterar={setPagina} />
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
           Atualizar
         </Button>

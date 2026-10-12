@@ -261,3 +261,31 @@ ou troca de conta. Não usa armazenamento persistente e termina ao recarregar ou
 fechar o app. A retenção é limitada a 200 consultas e aproximadamente 20 MiB de
 conteúdo JSON; respostas maiores são exibidas sem retenção. Esse limite mede o
 conteúdo serializado, não a memória total usada pelo navegador.
+
+## Sincronização entre usuários e proteção do balanço
+
+Cada aba visível e autenticada de um restaurante abre uma conexão SSE em
+`GET /api/sincronizacao/eventos`. Após confirmar uma transação, o servidor avisa
+quais grupos de dados mudaram; as telas atualizam as consultas relacionadas,
+agrupando avisos próximos durante 250 ms. Nenhum conteúdo de estoque, usuário ou
+restaurante é enviado pelo canal. O restaurante é obtido da sessão autenticada.
+
+A conexão recebe heartbeat a cada dez segundos, renova após um minuto e tenta
+reconectar após três segundos. Logout, revogação da conta, aba oculta e ausência
+de conexão encerram o canal. Uma conexão nova revalida os dados; as consultas
+periódicas de 15 segundos e um minuto continuam como recuperação. A distribuição
+SSE foi projetada para uma única instância do backend. Mais instâncias exigem um
+canal compartilhado de eventos antes de escalar o serviço.
+
+As gravações do balanço bloqueiam o balanço no banco antes de conferir seu estado.
+Contagens enviam a versão do item; início e ajustes enviam a versão do balanço;
+a conclusão envia também as versões de todos os itens apresentados. Uma versão
+desatualizada retorna HTTP 409, sem sobrescrever outra contagem ou editar um
+balanço concluído. Clientes antigos sem versão devem recarregar a aplicação.
+Não foi necessária migração do banco: as versões existentes foram reaproveitadas.
+
+Ao receber alterações, campos sem edição acompanham a contagem atual. Rascunhos
+em conflito são preservados e oferecem **Recarregar contagem** antes de gravar.
+Uma conclusão remota remove a edição e avisa se havia rascunhos não salvos.
+Os testes cobrem concorrência com PostgreSQL, sessões HTTP com SSE, isolamento
+entre restaurantes, rollback, revogação e os comportamentos do navegador.

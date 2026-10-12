@@ -9,6 +9,7 @@ import { useToast } from "../store/toast";
 import { prefetchar, useFetch } from "../lib/hooks";
 import { assinarFalhasCache, possuiFalhasCache, tentarNovamenteCache } from "../lib/cache";
 import { Button } from "./UI";
+import { iniciarSincronizacao } from "../lib/sincronizacao";
 
 interface NavItem {
   to: string;
@@ -180,6 +181,9 @@ export function Layout({ children }: { children: ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
   const [falhaCache, setFalhaCache] = useState(possuiFalhasCache);
   useEffect(() => assinarFalhasCache(() => setFalhaCache(possuiFalhasCache())), []);
+  useEffect(() => {
+    if (user && user.perfil !== "PLATAFORMA" && user.restauranteId) return iniciarSincronizacao();
+  }, [user?.id, user?.restauranteId, user?.perfil]);
 
   // Pré-carrega no cache SWR as telas principais do perfil, pra troca de
   // página não re-buscar tudo do zero. O dashboard é só de ADMIN e

@@ -187,6 +187,7 @@ export interface ProdutoAbertoDTO {
 
 export interface ItemBalancoDTO {
   id: number;
+  version: number;
   produtoId: number;
   produtoNome: string;
   unidadeMedida: string;

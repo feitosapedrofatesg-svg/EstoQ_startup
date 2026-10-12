@@ -241,3 +241,16 @@ VALUES ('Admin', 'admin@estoq.com', '<hash_bcrypt>', 'ADMIN', true, 1, now(), 0)
 > ✅ Implementado em 2026-09: **Flyway** com migrações versionadas (V1–V3),
 > auto-cadastro de cozinhas e painel PLATAFORMA (suspender/reativar/redefinir
 > senha do admin).
+## 9. Publicação da sincronização e do balanço com versões
+
+Publicar primeiro o commit do backend. Conferir `GET /api/auth/csrf`: a resposta
+passa a incluir o header `X-Estoq-Sincronizacao: 1`, identificando o protocolo novo.
+Depois publicar o frontend, que envia as versões obrigatórias nas gravações de
+balanço. Abas antigas devem recarregar a aplicação.
+
+O canal autenticado `/api/sincronizacao/eventos` usa SSE pelo mesmo rewrite já
+configurado. Em uma sessão de teste autenticada, conferir a chegada imediata de
+`conectado`, os heartbeats a cada dez segundos e um aviso `alteracao` quando outra
+sessão do mesmo restaurante grava dados. Conferir também a renovação da conexão
+após um minuto. Uma falha no streaming mantém a atualização periódica anterior.
+A distribuição de eventos pressupõe uma única instância do backend.

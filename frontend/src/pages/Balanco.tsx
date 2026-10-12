@@ -1,8 +1,8 @@
 import { ProximoBalanco } from "../components/ProximoBalanco";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
 import { useFetch, useTodasPaginas, updateCache } from "../lib/hooks";
-import { api } from "../lib/api";
+import { ApiError, api } from "../lib/api";
 import {
   PageHeader,
   Card,
@@ -112,6 +112,15 @@ export function Balanco() {
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
   const [busyLabel, setBusyLabel] = useState("");
+  const [rascunhos, setRascunhos] = useState<Record<number, boolean>>({});
+  const statusAnteriores = useRef<Record<number, string>>({});
+  useEffect(() => {
+    for (const b of data ?? []) {
+      if (statusAnteriores.current[b.id] === "EM_ANDAMENTO" && b.status === "CONCLUIDO" && rascunhos[b.id])
+        toast.warning("Balanço concluído", "As contagens que você estava digitando não foram salvas.");
+      statusAnteriores.current[b.id] = b.status;
+    }
+  }, [data]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const doAction = async (id: number, label: string, fn: () => Promise<BalancoDTO>) => {
@@ -124,25 +133,32 @@ export function Balanco() {
       setAgendaRevision(v => v + 1);
       // O backend devolve o balanço completo já atualizado: mescla na lista
       // (sem re-buscar /api/balancos inteiro a cada clique) e mantém o cache SWR coerente.
-      const merge = (prev: BalancoDTO[]) => prev.map((b) => (b.id === atualizado.id ? atualizado : b));
+      const merge = (prev: BalancoDTO[]) => prev.map((b) => {
+        if (b.id !== atualizado.id || b.version > atualizado.version) return b;
+        return { ...atualizado, itens: atualizado.itens.map(item => {
+          const recente = b.itens.find(i => i.id === item.id);
+          return recente && recente.version > item.version ? recente : item;
+        }) };
+      });
       setData((prev) => (prev ? merge(prev) : prev));
       updateCache<BalancoDTO[]>("/api/balancos", merge);
     } catch (e) {
-      toast.error(label, (e as Error).message);
+      toast.error("Operação não concluída", (e as Error).message);
+      if (e instanceof ApiError && e.status === 409) await refresh();
     } finally {
       setBusy(null);
       setBusyLabel("");
     }
   };
 
-  const salvarContagem = async (balancoId: number, itemId: number, quantidadeFisica: number) => {
+  const salvarContagem = async (balancoId: number, itemId: number, quantidadeFisica: number, version: number): Promise<ItemBalancoDTO | null> => {
     const itemAnterior = data?.find((b) => b.id === balancoId)?.itens.find((item) => item.id === itemId);
-    if (!itemAnterior) return;
+    if (!itemAnterior) return null;
 
     const mesclarItem = (itemAtualizado: ItemBalancoDTO) => {
       const merge = (prev: BalancoDTO[]) => prev.map((b) =>
         b.id === balancoId
-          ? { ...b, itens: b.itens.map((item) => item.id === itemAtualizado.id ? itemAtualizado : item) }
+          ? { ...b, itens: b.itens.map((item) => item.id === itemAtualizado.id && item.version <= itemAtualizado.version ? itemAtualizado : item) }
           : b
       );
       setData((prev) => (prev ? merge(prev) : prev));
@@ -151,21 +167,18 @@ export function Balanco() {
 
     setBusy(balancoId);
     setBusyLabel("Contagem salva");
-    mesclarItem({
-      ...itemAnterior,
-      quantidadeFisica,
-      diferenca: quantidadeFisica - itemAnterior.quantidadeSistema,
-    });
     try {
       const itemAtualizado = await api.put<ItemBalancoDTO>(
         `/api/balancos/${balancoId}/itens/${itemId}/contagem`,
-        { quantidadeFisica }
+        { quantidadeFisica, version }
       );
       mesclarItem(itemAtualizado);
       toast.success("Contagem salva");
+      return itemAtualizado;
     } catch (e) {
-      mesclarItem(itemAnterior);
-      toast.error("Contagem salva", (e as Error).message);
+      toast.error("Contagem não salva", (e as Error).message);
+      await refresh();
+      return null;
     } finally {
       setBusy(null);
       setBusyLabel("");
@@ -272,7 +285,7 @@ export function Balanco() {
                           loading={busy === b.id && busyLabel === "Balanço iniciado"}
                           onClick={() =>
                             void doAction(b.id, "Balanço iniciado", () =>
-                              api.post<BalancoDTO>(`/api/balancos/${b.id}/iniciar`)
+                              api.post<BalancoDTO>(`/api/balancos/${b.id}/iniciar`, { version: b.version })
                             )
                           }
                         >
@@ -286,7 +299,7 @@ export function Balanco() {
                           loading={busy === b.id && busyLabel === "Balanço confirmado"}
                           onClick={() =>
                             void doAction(b.id, "Balanço confirmado", () =>
-                              api.post<BalancoDTO>(`/api/balancos/${b.id}/confirmar`)
+                              api.post<BalancoDTO>(`/api/balancos/${b.id}/confirmar`, { version: b.version, itens: b.itens.map(i => ({ id: i.id, version: i.version })) })
                             )
                           }
                         >
@@ -300,7 +313,7 @@ export function Balanco() {
                           loading={busy === b.id && busyLabel === "Ajustes aplicados"}
                           onClick={() =>
                             void doAction(b.id, "Ajustes aplicados", () =>
-                              api.post<BalancoDTO>(`/api/balancos/${b.id}/gerar-ajustes`)
+                              api.post<BalancoDTO>(`/api/balancos/${b.id}/gerar-ajustes`, { version: b.version })
                             )
                           }
                         >
@@ -321,7 +334,8 @@ export function Balanco() {
                       {b.status === "EM_ANDAMENTO" && (
                         <ItensContagem
                           balanco={b}
-                          onItem={(id, q) => void salvarContagem(b.id, id, q)}
+                          onItem={(id, q, version) => salvarContagem(b.id, id, q, version)}
+                          onDirty={dirty => setRascunhos(prev => ({ ...prev, [b.id]: dirty }))}
                           busy={busy === b.id}
                         />
                       )}
@@ -473,38 +487,39 @@ function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: (criado
   );
 }
 
-function ItensContagem({
-  balanco,
-  onItem,
-  busy,
-}: {
+function ItensContagem({ balanco, onItem, onDirty, busy }: {
   balanco: BalancoDTO;
-  onItem: (itemId: number, quantidadeFisica: number) => void;
+  onItem: (itemId: number, quantidadeFisica: number, version: number) => Promise<ItemBalancoDTO | null>;
+  onDirty: (dirty: boolean) => void;
   busy: boolean;
 }) {
-  const [vals, setVals] = useState<Record<number, string>>(() => {
-    const init: Record<number, string> = {};
-    for (const i of balanco.itens) {
-      init[i.id] =
-        i.quantidadeFisica === null
-          ? i.quantidadeSistema === null
-            ? ""
-            : fmtNum(i.quantidadeSistema)
-          : fmtNum(i.quantidadeFisica);
-    }
-    return init;
+  type Rascunho = { texto: string; version: number; editando: boolean };
+  const inicial = (item: ItemBalancoDTO): Rascunho => ({
+    texto: fmtNum(item.quantidadeFisica ?? item.quantidadeSistema), version: item.version, editando: false,
   });
+  const [vals, setVals] = useState<Record<number, Rascunho>>(() => Object.fromEntries(balanco.itens.map(i => [i.id, inicial(i)])));
+  const atual = useRef(balanco);
+  atual.current = balanco;
+  const callbackDirty = useRef(onDirty);
+  callbackDirty.current = onDirty;
+  useEffect(() => {
+    setVals(prev => Object.fromEntries(balanco.itens.map(i => [i.id, prev[i.id]?.editando ? prev[i.id] : inicial(i)])));
+  }, [balanco.itens]);
+  const dirty = Object.values(vals).some(r => r.editando);
+  useEffect(() => { callbackDirty.current(dirty); }, [dirty]);
 
-  const confirmItem = (itemId: number, n: number) => {
-    onItem(itemId, n);
+  const confirmItem = async (item: ItemBalancoDTO, n: number) => {
+    const rascunho = vals[item.id] ?? inicial(item);
+    const salvo = await onItem(item.id, n, rascunho.version);
+    if (salvo) {
+      const recente = atual.current.itens.find(i => i.id === item.id);
+      const resultado = recente && recente.version > salvo.version ? recente : salvo;
+      setVals(prev => ({ ...prev, [item.id]: inicial(resultado) }));
+    }
   };
-
-  const isConfirmed = (item: typeof balanco.itens[0]) => {
-    const saved = item.quantidadeFisica;
-    if (saved === null) return false;
-    const typed = parseDecimal(vals[item.id]);
-    return typed !== null && Number(saved) === typed;
-  };
+  const isConfirmed = (item: ItemBalancoDTO) => item.quantidadeFisica !== null
+    && parseDecimal(vals[item.id]?.texto ?? "") === Number(item.quantidadeFisica)
+    && vals[item.id]?.version === item.version;
 
   return (
     <div className="contagem">
@@ -521,7 +536,9 @@ function ItensContagem({
         </div>
         <div className="contagem__rows" role="rowgroup">
           {balanco.itens.map((i) => {
-            const n = parseDecimal(vals[i.id]);
+            const rascunho = vals[i.id] ?? inicial(i);
+            const conflito = rascunho.editando && rascunho.version !== i.version;
+            const n = parseDecimal(rascunho.texto);
             const valid = n !== null && n >= 0;
             const diff = valid && i.quantidadeSistema !== null ? n - i.quantidadeSistema : null;
             return (
@@ -540,12 +557,21 @@ function ItensContagem({
                       className="input"
                       inputMode="decimal"
                       aria-label={`Contagem de ${i.produtoNome}`}
-                      value={vals[i.id]}
-                      onChange={(e) => setVals((p) => ({ ...p, [i.id]: e.target.value }))}
+                      value={rascunho.texto}
+                      disabled={busy}
+                      onChange={(e) => setVals(prev => ({ ...prev, [i.id]: {
+                        texto: e.target.value, version: prev[i.id]?.editando ? prev[i.id].version : i.version, editando: true,
+                      } }))}
                       placeholder="0"
                     />
                     <span className="contagem__unit">{i.unidadeMedida.toLowerCase()}</span>
                   </div>
+                  {conflito && <div role="alert">
+                    Esta contagem mudou em outra sessão.
+                    <Button size="sm" variant="ghost" onClick={() => setVals(prev => ({ ...prev, [i.id]: inicial(i) }))}>
+                      Recarregar contagem
+                    </Button>
+                  </div>}
                 </div>
                 <div className="contagem__cell" role="cell">
                   <span className="contagem__cell-label">Resultado</span>
@@ -567,9 +593,9 @@ function ItensContagem({
                   <Button
                     size="sm"
                     variant={isConfirmed(i) ? "good" : "outline"}
-                    disabled={isConfirmed(i) || !valid || busy}
+                    disabled={isConfirmed(i) || !valid || busy || conflito}
                     icon={isConfirmed(i) ? "check-circle" : undefined}
-                    onClick={() => valid && confirmItem(i.id, n)}
+                    onClick={() => { if (valid && !conflito) void confirmItem(i, n); }}
                   >
                     OK
                   </Button>

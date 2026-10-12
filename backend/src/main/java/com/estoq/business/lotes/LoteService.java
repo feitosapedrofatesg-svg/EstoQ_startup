@@ -1,5 +1,7 @@
 package com.estoq.business.lotes;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+
 import com.estoq.business.produtos.ProdutoModel;
 import com.estoq.core.exceptions.BusinessException;
 
@@ -19,6 +21,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class LoteService {
 
+    private final DadosAlteradosService sincronizacao;
     private final ILoteRepository repository;
     private final LoteAdapter adapter;
 
@@ -71,6 +74,7 @@ public class LoteService {
         lote.setDataValidade(validade);
         lote.setCodigo("PENDENTE-" + UUID.randomUUID());
         repository.saveAndFlush(lote);
+        sincronizacao.registrar(lote);
         lote.setCodigo(String.format("L-%06d", lote.getId()));
         return lote;
     }

@@ -20,6 +20,9 @@ import java.util.Objects;
 @Transactional(readOnly = true)
 public abstract class GenericService<E extends BaseModel, D extends BaseDTO> implements IGenericService<D> {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private NotificadorAlteracoes notificador;
+
     protected final IGenericRepository<E> repository;
     protected final IGenericAdapter<E, D> adapter;
     protected final IGenericValidation<E> validation;
@@ -54,6 +57,7 @@ public abstract class GenericService<E extends BaseModel, D extends BaseDTO> imp
         validation.validate(entity);
         repository.saveAndFlush(entity);
         afterSave(entity);
+        if (entity instanceof com.estoq.core.domains.TenantEntity tenant) notificador.registrar(tenant);
         return adapter.toDto(entity);
     }
 
@@ -71,6 +75,7 @@ public abstract class GenericService<E extends BaseModel, D extends BaseDTO> imp
         validation.validate(entity);
         repository.flush();
         afterSave(entity);
+        if (entity instanceof com.estoq.core.domains.TenantEntity tenant) notificador.registrar(tenant);
         return adapter.toDto(entity);
     }
 
@@ -81,6 +86,7 @@ public abstract class GenericService<E extends BaseModel, D extends BaseDTO> imp
         entity.setAtivo(false);
         repository.flush();
         afterSave(entity);
+        if (entity instanceof com.estoq.core.domains.TenantEntity tenant) notificador.registrar(tenant);
     }
 
     protected void beforeSave(E entity, D dto) {

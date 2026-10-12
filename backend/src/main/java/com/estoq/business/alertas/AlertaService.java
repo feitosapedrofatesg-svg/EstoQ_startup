@@ -1,5 +1,7 @@
 package com.estoq.business.alertas;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+import com.estoq.business.sincronizacao.GrupoDados;
 import com.estoq.business.balancos.BalancoModel;
 import com.estoq.business.configuracoesBalanco.ConfiguracaoBalancoModel;
 import com.estoq.business.configuracoesBalanco.ConfiguracaoBalancoService;
@@ -32,6 +34,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class AlertaService {
 
+    private final DadosAlteradosService sincronizacao;
     private final IAlertaRepository repository;
     private final IProdutoRepository produtos;
     private final EstoqueService estoque;
@@ -53,7 +56,7 @@ public class AlertaService {
         if (parametro != null && saldo.compareTo(parametro.getEstoqueMinimo()) < 0) {
             gerar(TipoAlerta.ESTOQUE_BAIXO, produto, null, parametro.getEstoqueMinimo());
         } else {
-            repository.apagarAbertos(TipoAlerta.ESTOQUE_BAIXO, produto.getId(), null);
+            apagarAbertos(TipoAlerta.ESTOQUE_BAIXO, produto.getId(), null);
         }
         for (var lote : loteRepository.listarEstoque()) {
             if (!produto.getId().equals(lote.getProduto().getId())) {
@@ -67,8 +70,8 @@ public class AlertaService {
             } else if (lotes.proximoVencimento(lote)) {
                 gerar(TipoAlerta.PROXIMO_VENCIMENTO, produto, lote, lote.diasParaVencimento(LocalDate.now()));
             } else {
-                repository.apagarAbertos(TipoAlerta.PROXIMO_VENCIMENTO, produto.getId(), lote.getId());
-                repository.apagarAbertos(TipoAlerta.VENCIDO, produto.getId(), lote.getId());
+                apagarAbertos(TipoAlerta.PROXIMO_VENCIMENTO, produto.getId(), lote.getId());
+                apagarAbertos(TipoAlerta.VENCIDO, produto.getId(), lote.getId());
             }
         }
     }
@@ -92,6 +95,7 @@ public class AlertaService {
             alerta.setMensagem(mensagem);
             alerta.setDataGeracao(LocalDateTime.now());
             repository.save(alerta);
+            sincronizacao.registrar(alerta);
         }
     }
 
@@ -107,7 +111,7 @@ public class AlertaService {
         repository.findAllByAtivoTrueOrderByDataGeracaoDesc().stream()
                 .filter(a -> a.getTipo() == TipoAlerta.BALANCO_PENDENTE && !a.isVisualizado()
                         && !mensagensAtuais.contains(a.getMensagem()))
-                .forEach(repository::delete);
+                .forEach(a -> { repository.delete(a); sincronizacao.registrar(a); });
         for (var configuracao : agendamentos) {
             reavaliarBalancoPendente(configuracao);
         }
@@ -117,16 +121,18 @@ public class AlertaService {
     public void concluirAgendamento() {
         for (var configuracao : configuracoesBalanco.findAllByAtivoTrueOrderByIdAsc()) {
             if (configuracoes.estaVencida(configuracao)) {
+                sincronizacao.registrar(configuracao);
                 configuracao.setProximaExecucao(configuracoes.calcularProxima(configuracao.getPeriodicidade(),
                         configuracao.getDiaExecucao(), LocalDate.now()));
             }
         }
-        repository.apagarAbertos(TipoAlerta.BALANCO_PENDENTE, null, null);
+        apagarAbertos(TipoAlerta.BALANCO_PENDENTE, null, null);
     }
 
     @Transactional
     public void apagarAbertos(TipoAlerta tipo, Long produtoId, Long loteId) {
-        repository.apagarAbertos(tipo, produtoId, loteId);
+        if (repository.apagarAbertos(tipo, produtoId, loteId) > 0)
+            sincronizacao.registrarAtual(GrupoDados.ALERTAS);
     }
 
     @Transactional
@@ -142,7 +148,7 @@ public class AlertaService {
     public void gerar(TipoAlerta tipo, ProdutoModel produto, LoteModel lote, Object extra) {
         Long produtoId = produto == null ? null : produto.getId();
         Long loteId = lote == null ? null : lote.getId();
-        repository.apagarAbertos(tipo, produtoId, loteId);
+        apagarAbertos(tipo, produtoId, loteId);
         for (Perfil perfil : AlertaAdapter.destinos(tipo)) {
             var alerta = new AlertaModel();
             alerta.setTipo(tipo);
@@ -152,6 +158,7 @@ public class AlertaService {
             alerta.setMensagem(AlertaAdapter.mensagemDe(tipo, produto, lote, extra));
             alerta.setDataGeracao(LocalDateTime.now());
             repository.save(alerta);
+            sincronizacao.registrar(alerta);
         }
     }
 
@@ -175,6 +182,7 @@ public class AlertaService {
         var alerta = repository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Alerta não encontrado.", HttpStatus.NOT_FOUND));
         alerta.setVisualizado(true);
+        sincronizacao.registrar(alerta);
         return adapter.toDto(alerta);
     }
 }

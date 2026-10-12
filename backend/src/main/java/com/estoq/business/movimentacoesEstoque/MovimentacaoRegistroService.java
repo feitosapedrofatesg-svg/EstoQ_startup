@@ -1,5 +1,7 @@
 package com.estoq.business.movimentacoesEstoque;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+import com.estoq.business.sincronizacao.GrupoDados;
 import com.estoq.business.auditoria.AuditService;
 import com.estoq.business.produtos.EstoqueService;
 import com.estoq.business.desperdicios.DesperdicioClassificacao;
@@ -22,6 +24,7 @@ import java.util.Comparator;
 @RequiredArgsConstructor
 public class MovimentacaoRegistroService {
 
+    private final DadosAlteradosService sincronizacao;
     private final IMovimentacaoEstoqueRepository repository;
     private final MovimentacaoAdapter adapter;
     private final EstoqueService estoque;
@@ -32,6 +35,7 @@ public class MovimentacaoRegistroService {
     @Transactional
     public void salvar(MovimentacaoEstoqueModel mov) {
         repository.save(mov);
+        sincronizacao.registrar(mov);
         auditoria.registrar(mov.getTipo().name(), "LOTE", mov.getLote().getId().toString(),
                 mov.getQuantidade() + " de " + mov.getProduto().getNome(), mov.getUsuario());
     }
@@ -40,6 +44,7 @@ public class MovimentacaoRegistroService {
     public MovimentacaoResultadoDTO concluir(Long produtoId, List<? extends MovimentacaoEstoqueModel> movs) {
         entityManager.flush();
         events.publishEvent(new EstoqueAlteradoEvent(produtoId));
+        sincronizacao.registrarAtual(GrupoDados.ESTOQUE);
         return new MovimentacaoResultadoDTO(produtoId, estoque.obterSaldo(produtoId), movs.stream().map(adapter::toDto).toList());
     }
 

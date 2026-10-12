@@ -6,5 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record ContagemRequestDTO(
-        @NotNull @DecimalMin("0") BigDecimal quantidadeFisica) {
+        @NotNull @DecimalMin("0") BigDecimal quantidadeFisica,
+        @NotNull(message = "Recarregue a contagem antes de salvar.") @jakarta.validation.constraints.PositiveOrZero Long version) {
 }

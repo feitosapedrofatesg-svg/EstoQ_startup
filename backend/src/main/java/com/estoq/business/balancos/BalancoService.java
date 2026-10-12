@@ -1,5 +1,7 @@
 package com.estoq.business.balancos;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+
 import com.estoq.business.ajustes.AjusteService;
 import com.estoq.business.alertas.AlertaService;
 import com.estoq.business.alertas.TipoAlerta;
@@ -23,12 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BalancoService {
 
+    private final DadosAlteradosService sincronizacao;
     private final IBalancoRepository repository;
     private final IItemBalancoRepository itensBalanco;
     private final IProdutoRepository produtos;
@@ -53,6 +58,16 @@ public class BalancoService {
                 .orElseThrow(() -> new BusinessException("Balanço não encontrado.", HttpStatus.NOT_FOUND));
     }
 
+    private BalancoModel bloquear(Long id) {
+        return repository.bloquear(id)
+                .orElseThrow(() -> new BusinessException("Balanço não encontrado.", HttpStatus.NOT_FOUND));
+    }
+
+    private void conferirVersao(Long consultada, Long atual) {
+        if (consultada == null) throw new FieldValidationException("version", "Recarregue a tela antes de continuar.");
+        if (!Objects.equals(consultada, atual)) throw new ConflictException("O balanço ou a contagem mudou em outra sessão. Confira os dados atualizados.");
+    }
+
     @Transactional
     public BalancoDTO criar(CriarBalancoRequestDTO dto) {
         var balanco = new BalancoModel();
@@ -70,12 +85,14 @@ public class BalancoService {
         repository.saveAndFlush(balanco);
         configuracoes.findAllByAtivoTrueOrderByIdAsc().stream().findFirst()
                 .ifPresent(alertas::reavaliarBalancoPendente);
+        sincronizacao.registrar(balanco);
         return adapter.toDto(balanco);
     }
 
     @Transactional
-    public BalancoDTO iniciar(Long id) {
-        var balanco = encontrar(id);
+    public BalancoDTO iniciar(Long id, VersaoBalancoRequestDTO dto) {
+        var balanco = bloquear(id);
+        conferirVersao(dto.version(), balanco.getVersion());
         if (!balanco.getItens().isEmpty()) {
             throw new ConflictException("O balanço já foi iniciado.");
         }
@@ -99,36 +116,49 @@ public class BalancoService {
         }
         balanco.setStatus(StatusBalanco.EM_ANDAMENTO);
         repository.flush();
+        sincronizacao.registrar(balanco);
         return adapter.toDto(balanco);
     }
 
     @Transactional
     public ItemBalancoDTO registrarContagem(Long id, Long itemId, ContagemRequestDTO dto) {
+        var balanco = bloquear(id);
         var item = itensBalanco.findByIdAndBalanco_IdAndAtivoTrue(itemId, id)
                 .orElseThrow(() -> new BusinessException("Item não pertence a este balanço.", HttpStatus.NOT_FOUND));
-        var balanco = item.getBalanco();
         if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
-            throw new ConflictException("Registre contagens apenas em balanço EM_ANDAMENTO.");
+            throw new ConflictException("Este balanço não está mais em contagem. Nenhuma alteração foi salva.");
         }
         if (dto.quantidadeFisica() == null || dto.quantidadeFisica().signum() < 0) {
             throw new FieldValidationException("quantidadeFisica",
                     "Informe a quantidade física contada (não negativa).");
         }
+        conferirVersao(dto.version(), item.getVersion());
         item.definirContagem(dto.quantidadeFisica());
         itensBalanco.flush();
+        sincronizacao.registrar(balanco);
         return adapter.toItemDto(item);
     }
 
     @Transactional
-    public BalancoDTO confirmar(Long id) {
-        var balanco = encontrar(id);
+    public BalancoDTO confirmar(Long id, ConfirmarBalancoRequestDTO dto) {
+        var balanco = bloquear(id);
+        conferirVersao(dto.version(), balanco.getVersion());
         if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
             throw new ConflictException("Confirme apenas um balanço EM_ANDAMENTO.");
         }
         if (balanco.getItens().isEmpty()) {
             throw new ConflictException("Não confirme um balanço sem itens.");
         }
+        var versoes = new HashMap<Long, Long>();
+        if (dto.itens() == null) throw new FieldValidationException("itens", "Confira as contagens antes de concluir.");
+        for (var consultado : dto.itens()) {
+            if (consultado == null || consultado.id() == null || consultado.version() == null || versoes.put(consultado.id(), consultado.version()) != null)
+                throw new FieldValidationException("itens", "Informe cada item uma única vez, com sua versão consultada.");
+        }
+        if (versoes.size() != balanco.getItens().size()) throw new ConflictException("A lista de itens mudou. Confira o balanço atualizado.");
         for (var item : balanco.getItens()) {
+            if (!versoes.containsKey(item.getId())) throw new ConflictException("A lista de itens mudou. Confira o balanço atualizado.");
+            conferirVersao(versoes.get(item.getId()), item.getVersion());
             if (item.getQuantidadeFisica() == null) {
                 throw new ConflictException("Confirme todos os itens antes de encerrar o balanço.");
             }
@@ -137,12 +167,14 @@ public class BalancoService {
         alertas.reavaliarDiferenca(balanco);
         alertas.concluirAgendamento();
         repository.flush();
+        sincronizacao.registrar(balanco);
         return adapter.toDto(balanco);
     }
 
     @Transactional
-    public BalancoDTO gerarAjustes(Long id) {
-        var balanco = encontrar(id);
+    public BalancoDTO gerarAjustes(Long id, VersaoBalancoRequestDTO dto) {
+        var balanco = bloquear(id);
+        conferirVersao(dto.version(), balanco.getVersion());
         if (balanco.getStatus() != StatusBalanco.CONCLUIDO) {
             throw new ConflictException("Gere ajustes apenas em um balanço CONCLUIDO.");
         }
@@ -151,6 +183,7 @@ public class BalancoService {
             alertas.apagarAbertos(TipoAlerta.DIFERENCA_ESTOQUE, item.getProduto().getId(), null);
         }
         repository.flush();
+        sincronizacao.registrar(balanco);
         return adapter.toDto(balanco);
     }
 }

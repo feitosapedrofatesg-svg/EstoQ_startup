@@ -1,5 +1,7 @@
 package com.estoq.business.configuracoesBalanco;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+
 import com.estoq.core.exceptions.BusinessException;
 import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
@@ -19,6 +21,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ConfiguracaoBalancoService {
 
+    private final DadosAlteradosService sincronizacao;
     private final IConfiguracaoBalancoRepository repository;
 
     public List<ConfiguracaoBalancoDTO> listar() {
@@ -47,6 +50,7 @@ public class ConfiguracaoBalancoService {
         entity.setDiaExecucao(dto.diaExecucao());
         entity.setProximaExecucao(calcularProxima(dto.periodicidade(), dto.diaExecucao(), LocalDate.now()));
         repository.saveAndFlush(entity);
+        sincronizacao.registrar(entity);
         return toDto(entity);
     }
 
@@ -56,6 +60,7 @@ public class ConfiguracaoBalancoService {
                 .orElseThrow(() -> new BusinessException("Configuração não encontrada.", HttpStatus.NOT_FOUND));
         entity.setAtivo(false);
         repository.flush();
+        sincronizacao.registrar(entity);
     }
 
     private void validar(PeriodicidadeBalanco periodicidade, Integer dia) {

@@ -1,5 +1,7 @@
 package com.estoq.business.notasFiscais;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+import com.estoq.business.sincronizacao.GrupoDados;
 import com.estoq.business.auth.UsuarioAtual;
 import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.entradas.EntradaRequestDTO;
@@ -18,6 +20,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @Transactional(readOnly=true)
 public class NotaFiscalService {
+    private final DadosAlteradosService sincronizacao;
     private final INotaFiscalRepository repository;
     private final IVinculoFornecedorRepository vinculos;
     private final IProdutoRepository catalogo;
@@ -147,6 +150,7 @@ public class NotaFiscalService {
         }
         nota.setConfirmada(true); nota.setUsuarioId(usuarioAtual.obter().getId());
         repository.flush();
+        sincronizacao.registrar(nota.getRestauranteId(), GrupoDados.CATALOGO);
         return adapter.toDto(nota);
     }
 

@@ -1,5 +1,7 @@
 package com.estoq.business.parametrosCmv;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+
 import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
 
@@ -16,6 +18,7 @@ import java.time.LocalDateTime;
 @Transactional(readOnly = true)
 public class ParametroCmvService {
 
+    private final DadosAlteradosService sincronizacao;
     private final IParametroCmvRepository repository;
 
     public ParametroCmvDTO obterAtual() {
@@ -42,6 +45,7 @@ public class ParametroCmvService {
         novo.setPercentualIdeal(dto.percentualIdeal().setScale(2));
         novo.setDataAtualizacao(LocalDateTime.now());
         repository.saveAndFlush(novo);
+        sincronizacao.registrar(novo);
         return new ParametroCmvDTO(novo.getId(), novo.getVersion(), novo.getPercentualIdeal());
     }
 }

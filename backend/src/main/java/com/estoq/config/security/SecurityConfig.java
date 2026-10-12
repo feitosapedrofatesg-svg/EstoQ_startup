@@ -1,12 +1,11 @@
 package com.estoq.config.security;
 
-import com.estoq.business.usuarios.IUsuarioRepository;
-import com.estoq.business.restaurantes.IRestauranteRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import jakarta.servlet.DispatcherType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -21,6 +20,7 @@ import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -69,20 +69,27 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain security(HttpSecurity http, SecurityExceptionHandlers errors,
                         SecurityContextRepository context, CsrfTokenRepository csrf, CorsConfigurationSource cors,
-                        IUsuarioRepository users, IRestauranteRepository restaurantes) throws Exception {
-                return http.cors(c -> c.configurationSource(cors))
+                        SessaoValidaService sessoes) throws Exception {
+                return http
+                                // Identifica o protocolo publicado para conferir o backend antes do frontend.
+                                .headers(h -> h.addHeaderWriter(new StaticHeadersWriter("X-Estoq-Sincronizacao", "1")))
+                                .cors(c -> c.configurationSource(cors))
                                 .csrf(c -> c.csrfTokenRepository(csrf)
                                                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                                 .securityContext(c -> c.securityContextRepository(context))
                                 .requestCache(c -> c.disable())
-                                .addFilterAfter(new UsuarioAtivoFilter(users, restaurantes),
+                                .addFilterAfter(new UsuarioAtivoFilter(sessoes),
                                                 SecurityContextHolderFilter.class)
                                 .authorizeHttpRequests(a -> a
+                                                // O pedido original já foi autorizado; o encerramento SSE pode ocorrer após logout.
+                                                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                                                 .requestMatchers("/api/auth/csrf", "/api/auth/login", "/api/registro",
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()
                                                 .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+                                                .requestMatchers(HttpMethod.GET, "/api/sincronizacao/eventos")
+                                                .hasAnyRole("ADMIN", "COZINHA", "NUTRICIONISTA")
                                                 .requestMatchers("/api/backups", "/api/backups/**").hasRole("PLATAFORMA")
                                                 .requestMatchers("/api/plataforma/**").hasRole("PLATAFORMA")
                                                 .requestMatchers(HttpMethod.GET, "/api/balancos/proximo")

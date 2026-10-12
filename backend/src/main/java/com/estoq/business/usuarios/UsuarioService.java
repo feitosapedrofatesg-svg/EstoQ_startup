@@ -1,5 +1,7 @@
 package com.estoq.business.usuarios;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+
 import com.estoq.core.exceptions.BusinessException;
 import com.estoq.core.exceptions.ConflictException;
 
@@ -20,6 +22,7 @@ import java.util.Objects;
 @Transactional(readOnly = true)
 public class UsuarioService {
 
+    private final DadosAlteradosService sincronizacao;
     private final IUsuarioRepository repository;
     private final IUsuarioValidation validation;
     private final UsuarioAdapter adapter;
@@ -44,7 +47,9 @@ public class UsuarioService {
         u.setPerfil(dto.perfil());
         u.setSenha(encoder.encode(dto.senha()));
         validation.validate(u);
-        return adapter.toDto(repository.saveAndFlush(u));
+        repository.saveAndFlush(u);
+        sincronizacao.registrar(u);
+        return adapter.toDto(u);
     }
 
     @Transactional
@@ -68,6 +73,7 @@ public class UsuarioService {
         }
         validation.validate(u);
         repository.flush();
+        sincronizacao.registrar(u);
         return adapter.toDto(u);
     }
 
@@ -77,6 +83,7 @@ public class UsuarioService {
         protegerUltimoAdmin(u);
         u.setAtivo(false);
         repository.flush();
+        sincronizacao.registrar(u);
     }
 
     private UsuarioModel encontrar(Long id) {

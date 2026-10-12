@@ -41,8 +41,8 @@ public class BalancoController {
     }
 
     @PostMapping("/api/balancos/{id}/iniciar")
-    public BalancoDTO iniciar(@PathVariable Long id) {
-        return service.iniciar(id);
+    public BalancoDTO iniciar(@PathVariable Long id, @Valid @RequestBody VersaoBalancoRequestDTO dto) {
+        return service.iniciar(id, dto);
     }
 
     @PutMapping("/api/balancos/{id}/itens/{itemId}/contagem")
@@ -52,13 +52,13 @@ public class BalancoController {
     }
 
     @PostMapping("/api/balancos/{id}/confirmar")
-    public BalancoDTO confirmar(@PathVariable Long id) {
-        return service.confirmar(id);
+    public BalancoDTO confirmar(@PathVariable Long id, @Valid @RequestBody ConfirmarBalancoRequestDTO dto) {
+        return service.confirmar(id, dto);
     }
 
     @PostMapping("/api/balancos/{id}/gerar-ajustes")
-    public BalancoDTO gerarAjustes(@PathVariable Long id) {
-        return service.gerarAjustes(id);
+    public BalancoDTO gerarAjustes(@PathVariable Long id, @Valid @RequestBody VersaoBalancoRequestDTO dto) {
+        return service.gerarAjustes(id, dto);
     }
 
     @GetMapping("/api/balancos/proximo")

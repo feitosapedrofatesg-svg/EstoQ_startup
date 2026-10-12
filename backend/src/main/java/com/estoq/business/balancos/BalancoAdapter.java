@@ -13,7 +13,7 @@ public class BalancoAdapter {
     public ItemBalancoDTO toItemDto(ItemBalancoModel item) {
         var p = item.getProduto();
         var c = p.getCategoria();
-        return new ItemBalancoDTO(item.getId(), p.getId(), p.getNome(),
+        return new ItemBalancoDTO(item.getId(), item.getVersion(), p.getId(), p.getNome(),
                 p.getUnidadeMedida().name(), c == null ? null : c.getId(), c == null ? null : c.getNome(),
                 item.getQuantidadeSistema(), item.getQuantidadeFisica(),
                 item.getQuantidadeFisica() == null ? null : item.getQuantidadeFisica().subtract(item.getQuantidadeSistema()),

@@ -1,6 +1,8 @@
 package com.estoq;
 
 import com.estoq.business.balancos.BalancoService;
+import com.estoq.business.balancos.VersaoBalancoRequestDTO;
+import com.estoq.business.balancos.ConfirmarBalancoRequestDTO;
 import com.estoq.business.balancos.ContagemRequestDTO;
 import com.estoq.business.balancos.CriarBalancoRequestDTO;
 import com.estoq.business.balancos.StatusBalanco;
@@ -106,6 +108,16 @@ class BalancoCmvIntegrationTest {
     IConfiguracaoBalancoRepository configRepository;
     Long produtoId;
 
+    private VersaoBalancoRequestDTO versao(Long id) {
+        return new VersaoBalancoRequestDTO(balancos.buscar(id).version());
+    }
+
+    private ConfirmarBalancoRequestDTO confirmacao(Long id) {
+        var b = balancos.buscar(id);
+        return new ConfirmarBalancoRequestDTO(b.version(), b.itens().stream()
+                .map(i -> new ConfirmarBalancoRequestDTO.ItemVersion(i.id(), i.version())).toList());
+    }
+
     @BeforeEach
     void preparar() {
         var u = new UsuarioModel();
@@ -136,15 +148,15 @@ class BalancoCmvIntegrationTest {
     @Test
     void balancoEuSerumDebitoDistribuiFifo() {
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
-        var iniciado = balancos.iniciar(criado.id());
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
         assertEquals(StatusBalanco.EM_ANDAMENTO, iniciado.status());
         var item = iniciado.itens().getFirst();
         assertEquals(0, new BigDecimal("10").compareTo(item.quantidadeSistema()));
-        var contado = balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8")));
+        var contado = balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8"), item.version()));
         assertEquals(0, new BigDecimal("8").compareTo(contado.quantidadeFisica()));
-        var confirmado = balancos.confirmar(iniciado.id());
+        var confirmado = balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
         assertEquals(StatusBalanco.CONCLUIDO, confirmado.status());
-        var ajustado = balancos.gerarAjustes(confirmado.id());
+        var ajustado = balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
         assertTrue(ajustado.itens().getFirst().ajusteAplicado());
         assertEquals(0, new BigDecimal("2").compareTo(ajustado.itens().getFirst().diferenca().abs()));
         assertEquals(0, new BigDecimal("8").compareTo(lotes.saldo(produtoId)));
@@ -152,7 +164,7 @@ class BalancoCmvIntegrationTest {
         assertEquals(1, ajustes.size());
         assertEquals(0, new BigDecimal("2").compareTo(ajustes.getFirst().getDelta().abs()));
         // Reaplicar o balanço não baixa outra vez nem duplica a perda.
-        balancos.gerarAjustes(confirmado.id());
+        balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
         assertEquals(0, new BigDecimal("8").compareTo(lotes.saldo(produtoId)));
         var fim = LocalDateTime.now().plusDays(1);
         var inicio = fim.minusDays(30);
@@ -175,11 +187,11 @@ class BalancoCmvIntegrationTest {
     @Test
     void balancoSuperavitSomaNoLoteDisponivel() {
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
-        var iniciado = balancos.iniciar(criado.id());
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
         var item = iniciado.itens().getFirst();
-        balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("12")));
-        var confirmado = balancos.confirmar(iniciado.id());
-        balancos.gerarAjustes(confirmado.id());
+        balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("12"), item.version()));
+        var confirmado = balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
+        balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
         assertEquals(0, new BigDecimal("12").compareTo(lotes.saldo(produtoId)));
         var fim = LocalDateTime.now().plusDays(1);
         assertTrue(consultas.listar(produtoId, null, null, TipoMovimentacao.DESPERDICIO,
@@ -193,8 +205,8 @@ class BalancoCmvIntegrationTest {
     @Test
     void naoConfirmaSemContagem() {
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
-        var iniciado = balancos.iniciar(criado.id());
-        assertThrows(ConflictException.class, () -> balancos.confirmar(iniciado.id()));
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        assertThrows(ConflictException.class, () -> balancos.confirmar(iniciado.id(), confirmacao(iniciado.id())));
     }
 
     @Test
@@ -263,10 +275,10 @@ class BalancoCmvIntegrationTest {
         var inicio = LocalDateTime.of(2026, 1, 15, 0, 0);
         movimentos.findAll().forEach(m -> m.setDataHora(inicio.minusDays(10)));
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
-        var iniciado = balancos.iniciar(criado.id());
-        balancos.registrarContagem(iniciado.id(), iniciado.itens().getFirst().id(), new ContagemRequestDTO(new BigDecimal("12")));
-        balancos.confirmar(iniciado.id());
-        balancos.gerarAjustes(iniciado.id());
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        balancos.registrarContagem(iniciado.id(), iniciado.itens().getFirst().id(), new ContagemRequestDTO(new BigDecimal("12"), iniciado.itens().getFirst().version()));
+        balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
+        balancos.gerarAjustes(iniciado.id(), versao(iniciado.id()));
         movimentos.findAll().stream().filter(m -> m instanceof com.estoq.business.ajustes.AjusteModel)
                 .forEach(m -> m.setDataHora(inicio.plusDays(2)));
         movimentos.flush();
@@ -320,16 +332,16 @@ class BalancoCmvIntegrationTest {
         d.setUnidadeMedida(UnidadeMedida.KG);
         var semEstoque = produtos.criar(d).getId();
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
-        var iniciado = balancos.iniciar(criado.id());
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
         var existente = iniciado.itens().stream().filter(i -> i.produtoId().equals(produtoId)).findFirst()
                 .orElseThrow();
         var novo = iniciado.itens().stream().filter(i -> i.produtoId().equals(semEstoque)).findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("0").compareTo(novo.quantidadeSistema()));
         balancos.registrarContagem(iniciado.id(), existente.id(),
-                new ContagemRequestDTO(existente.quantidadeSistema()));
-        balancos.registrarContagem(iniciado.id(), novo.id(), new ContagemRequestDTO(new BigDecimal("3")));
-        var confirmado = balancos.confirmar(iniciado.id());
-        balancos.gerarAjustes(confirmado.id());
+                new ContagemRequestDTO(existente.quantidadeSistema(), existente.version()));
+        balancos.registrarContagem(iniciado.id(), novo.id(), new ContagemRequestDTO(new BigDecimal("3"), novo.version()));
+        var confirmado = balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
+        balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
         assertEquals(0, new BigDecimal("3").compareTo(lotes.saldo(semEstoque)));
         var ajustes = movimentos.findAll().stream().filter(m -> m.getTipo() == TipoMovimentacao.AJUSTE).toList();
         assertEquals(1, ajustes.size());
@@ -363,14 +375,14 @@ class BalancoCmvIntegrationTest {
         assertEquals(1, alertas.listar(false, Perfil.COZINHA).stream()
                 .filter(a -> a.tipo() == TipoAlerta.BALANCO_PENDENTE).count());
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
-        var iniciado = balancos.iniciar(criado.id());
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
         var item = iniciado.itens().getFirst();
-        balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8")));
-        var confirmado = balancos.confirmar(iniciado.id());
+        balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8"), item.version()));
+        var confirmado = balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
         assertEquals(0, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
         assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao().isAfter(LocalDate.now()));
         assertEquals(1, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
-        balancos.gerarAjustes(confirmado.id());
+        balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
         assertEquals(0, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
     }
 

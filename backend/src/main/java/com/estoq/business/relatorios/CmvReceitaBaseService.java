@@ -1,5 +1,7 @@
 package com.estoq.business.relatorios;
 
+import com.estoq.business.sincronizacao.DadosAlteradosService;
+
 import com.estoq.core.exceptions.FieldValidationException;
 
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import java.time.LocalDate;
 @Transactional(readOnly = true)
 public class CmvReceitaBaseService {
 
+    private final DadosAlteradosService sincronizacao;
     private final ICmvReceitaBaseRepository repository;
 
     public CmvReceitaBaseDTO obter(LocalDate inicio, LocalDate fim) {
@@ -37,6 +40,7 @@ public class CmvReceitaBaseService {
                 : dto.receitaBase().setScale(2,
                         java.math.RoundingMode.HALF_UP));
         repository.saveAndFlush(entity);
+        sincronizacao.registrar(entity);
         return toDto(entity);
     }
 

@@ -31,6 +31,12 @@ public class GlobalExceptionHandler {
         return negocio(new ConflictException());
     }
 
+    @ExceptionHandler({org.springframework.dao.PessimisticLockingFailureException.class,
+            jakarta.persistence.PessimisticLockException.class, jakarta.persistence.LockTimeoutException.class})
+    public ResponseEntity<ErrorResponse> bloqueio(Exception ex) {
+        return negocio(new ConflictException("Outra operação está atualizando este registro. Confira os dados e tente novamente."));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> integridade(Exception ex) {
         return negocio(new ConflictException("Registro duplicado ou com vínculos que impedem a operação."));

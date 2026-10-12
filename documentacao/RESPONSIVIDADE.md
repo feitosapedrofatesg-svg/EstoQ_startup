@@ -1,4 +1,6 @@
-# Responsividade do estoQ
+# Responsividade do EstoQ
+
+Revisão: **12/10/2026**.
 
 ## Objetivo
 
@@ -65,17 +67,38 @@ Para telas touch híbridas, foi considerada a diferença entre `pointer: coarse`
 
 ## Listas recolhidas por padrão
 
-As listas de desperdício e cozinhas e a seção Reposição sugerida dos relatórios
-começam minimizadas, com os botões **Maximizar lista** e **Minimizar lista**.
-Os filtros escolhidos são preservados ao recolher a lista.
+| Tela/bloco | Estado inicial e controles |
+| --- | --- |
+| Desperdício — Itens para excluir do estoque | Recolhido, apenas ADMIN, com Maximizar/Minimizar lista. |
+| Desperdício — Histórico geral e Embalagens abertas | Visíveis, sem controle de recolhimento. |
+| Relatórios — Reposição sugerida | Recolhida, com Maximizar/Minimizar lista. |
+| Relatórios — demais blocos | Visíveis, sem recolhimento. |
+| Balanços — relação disponível | Visível, sem botão geral para esconder a relação. |
+| Balanços — itens de cada balanço | Recolhidos, com Maximizar/Minimizar balanço individual. |
+| Plataforma — cozinhas | Recolhidas com controle da lista. |
+| Estoque, consumo, catálogo, movimentações, usuários, backup e visão geral | Visíveis, sem controle geral de recolhimento. |
 
-Estoque, consumo, catálogo, movimentações, equipe, backups, visão geral e as
-outras seções dos relatórios ficam visíveis sem botão de recolhimento.
-A relação de balanços fica aberta; apenas os itens de cada balanço começam
-recolhidos, com botões individuais **Maximizar balanço** e **Minimizar balanço**.
+Filtros são preservados ao recolher a lista. Botões têm texto, ícone, contraste
+e altura mínima de 44 px; no celular, adaptam-se ao cabeçalho.
 
-Os botões têm contraste de cor, texto, ícone e altura mínima de 44 px.
-No celular, ocupam a largura do cabeçalho.
+## Listas extensas e interação
+
+Nos relatórios, Desperdício e Consumo médio usam rolagem interna quando há mais
+de oito itens, preservando as oito primeiras linhas visíveis. O limite é visual,
+não descarte ou truncamento dos resultados da API.
+
+A revisão de nota fiscal possui atalhos para ir ao final e voltar ao início da
+lista. A conferência final libera a confirmação global, respeitando as validações
+de dados. Atalhos de rolagem respeitam a preferência por movimento reduzido.
+
+Históricos apresentam as movimentações recentes no topo; embalagens abertas usam
+a última movimentação/abertura. Isso reduz rolagem sem alterar estoque/catálogo
+ou a regra de seleção dos lotes para consumo.
+
+Na central do cabeçalho, Visto remove o alerta imediatamente e bloqueia cliques
+repetidos durante a confirmação. Falha devolve a linha e mostra o erro. O estado
+visual usa confirmação otimista apenas para esse reconhecimento de alerta;
+as gravações de contagem continuam dependendo da resposta do backend.
 
 ## Validação
 

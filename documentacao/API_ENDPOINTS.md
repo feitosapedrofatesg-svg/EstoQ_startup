@@ -1,214 +1,211 @@
-# EstoQ_Startup — Contrato de API (referência do frontend)
+# Contrato de API do EstoQ
 
-Documento gerado a partir do código (controllers + `SecurityConfig.java`). Base URL local: **`http://localhost:8083`**.
+Revisão: **12/10/2026**, conferida nos controllers, DTOs e `SecurityConfig` até
+`6bdddad`. Base local: `http://localhost:8083`; no site, use caminhos relativos
+`/api` pelo proxy da Vercel. A autorização efetiva está no backend.
 
----
+## Autenticação e formatos
 
-## 0. Como a autenticação funciona (obrigatório ler antes)
+1. `GET /api/auth/csrf` retorna `{token, headerName}` e disponibiliza cookie de sessão.
+2. `POST /api/auth/login` recebe `{email, senha}` e o header CSRF. Retorna `{id, nome, email, perfil, restauranteNome, restauranteId}`.
+3. Consulte CSRF novamente após login, pois o token é rotacionado.
+4. Envie cookie e token atual nas operações POST/PUT/DELETE. Login e registro também exigem CSRF.
+5. `GET /api/auth/me` recupera a identidade; `POST /api/auth/logout` encerra a sessão e retorna 204.
 
-1. `GET /api/auth/csrf` (público) → devolve `{ "token": "...", "headerName": "X-CSRF-TOKEN" }` e cria a sessão (cookie `ESTOQSESSION`, HttpOnly).
-2. `POST /api/auth/login` com `{ "email", "senha" }` **+ header `X-CSRF-TOKEN`** → responde `{ id, nome, email, perfil }`. Login rotaciona o token CSRF: **reconsultar `GET /api/auth/csrf` após o login**.
-3. Todas as requisições autenticadas enviam o cookie de sessão automaticamente. Toda requisição **POST/PUT/DELETE** exige o header `X-CSRF-TOKEN` (com o token atual).
-4. `GET /api/auth/me` → usuário da sessão (usar ao recarregar a página para restaurar o estado de login).
-5. `POST /api/auth/logout` → encerra a sessão (204).
+Perfis: ADMIN, COZINHA, NUTRICIONISTA e PLATAFORMA. O restaurante vem da sessão;
+não há parâmetro público para consultar arbitrariamente outra loja. PLATAFORMA
+não recebe acesso irrestrito às rotas operacionais do restaurante.
 
-**Papéis (role):** `ADMIN`, `COZINHA`, `NUTRICIONISTA`.
+Datas sem horário: `YYYY-MM-DD`. Horários de eventos: ISO `LocalDateTime` em UTC,
+atualmente **sem offset** no JSON. O cliente deve interpretar esse contrato como
+UTC e converter para exibição local. Decimais seguem os DTOs `BigDecimal`.
+As consultas de movimentações recebem `LocalDateTime`; as de relatórios recebem
+`LocalDate`. Não confundir os dois contratos de filtro.
 
-**Regras de erro:**
-- 401 sem sessão · 403 sem permissão **ou CSRF inválido** · 409 `Conflict` em corrida (conflito de `version`) · 429 após **5 falhas de login em 15 min** (por e-mail/IP)
-- Erros de validação → 400/422 com corpo em `ErrorResponse`
-- CORS: configurado por `estoq.cors.origins` (envioronment) — em dev, liberar a origem do front (ex.: `http://localhost:5173`).
+Erros: 400 para payload inválido, 401 para ausência/sessão inválida, 403 para
+perfil/CSRF, 404 para recurso não encontrado, 409 para conflito de versão/estado
+e 429 para excesso de tentativas de login. Validações de negócio podem retornar
+422, conforme a exceção. O corpo padronizado é `ErrorResponse`.
 
----
+## Registro e plataforma
 
-## 1. Auth
+| Método | Rota | Permissão / dados |
+| --- | --- | --- |
+| POST | `/api/registro` | Público com CSRF; `{nomeLoja, nomeResponsavel, email, senha}`. Cria restaurante, ADMIN, categorias e configurações; não cria estoque. |
+| GET | `/api/plataforma/restaurantes` | PLATAFORMA; lista restaurantes. |
+| PUT | `/api/plataforma/restaurantes/{id}` | PLATAFORMA; `{ativo}` suspende/reativa. |
+| POST | `/api/plataforma/restaurantes/{id}/redefinir-admin` | PLATAFORMA; `{senha}`. |
 
-| Método | Rotas | Papel | Corpo / notas |
-|--------|-------|-------|---------------|
-| GET | `/api/auth/csrf` | público | sem corpo → `{ token, headerName }` |
-| POST | `/api/auth/login` | público | `{ email, senha }` |
-| GET | `/api/auth/me` | autenticado | → `{ id, nome, email, perfil }` |
-| POST | `/api/auth/logout` | autenticado | → 204 |
+## Cadastros e paginação
 
----
+Categorias, produtos, usuários e parâmetros de estoque usam CRUD conforme seus
+controllers. Rotas genéricas: GET/POST na coleção, GET/PUT/DELETE em `/{id}`.
+DELETE cadastral é desativação lógica. Atualização envia a versão consultada.
 
-## 2. Usuários (somente ADMIN)
+| Coleção | Leitura | Escrita | Campos principais |
+| --- | --- | --- | --- |
+| `/api/categorias` | ADMIN/COZINHA | ADMIN | `nome, descricao`. |
+| `/api/produtos` | ADMIN/COZINHA | ADMIN | `nome, unidadeMedida, categoriaId, codigoBarras`. |
+| `/api/usuarios` | ADMIN | ADMIN | `nome, email, perfil, senha` na criação; `ativo, version` na atualização. Senha nunca é retornada. |
+| `/api/parametros-estoque` | ADMIN | ADMIN | `produtoId, tempoReposicaoDias, periodoAnaliseDias, consumoMedioDiario, estoqueMinimo, estoqueMedio, estoqueMaximo, diasAlertaVencimento`. |
 
-`/api/usuarios` fundo: `Pagina<UsuarioResponseDTO>` usa parâmetros `page`, `size`, `sort` (Spring Data).
+Listas paginadas aceitam `page`, `size`, `sort` e busca `q`; limite de página
+configurado: 100. Resposta inclui `content`, `number`, `size`, `totalPages` e
+`totalElements`. Quando precisa de todos os registros, o frontend percorre as
+páginas; não resolve o limite pedindo uma página arbitrariamente enorme.
 
-| Método | Rota | Corpo / notas |
-|--------|------|---------------|
-| GET | `/api/usuarios` | lista paginada |
-| GET | `/api/usuarios/{id}` | — |
-| POST | `/api/usuarios` | `{ nome, email, senha, perfil }` (senha ≥ 8) → 201 |
-| PUT | `/api/usuarios/{id}` | `{ version, nome, email, senha?, perfil, ativo }` |
-| DELETE | `/api/usuarios/{id}` | desativa (revoga sessão) → 204 |
+Unidades: `KG`, `G`, `L`, `ML`, `UN`. Produtos podem ter múltiplos lotes.
+Consulta auxiliar ADMIN: `GET /api/parametros-estoque/por-produto/{produtoId}`.
 
----
+## Estoque e lotes
 
-## 3. Catálogo
+| Método | Rota | Permissão / notas |
+| --- | --- | --- |
+| GET | `/api/estoque` | ADMIN/COZINHA; `somenteAbertos`, `somenteBaixo`. |
+| GET | `/api/produtos/{id}/saldo` | ADMIN/COZINHA; saldo derivado. |
+| GET | `/api/produtos/{id}/lotes-disponiveis` | ADMIN/COZINHA; lotes para consumo. |
+| GET | `/api/produtos/estoque-baixo` | ADMIN/COZINHA. |
+| GET | `/api/lotes` | ADMIN/COZINHA; filtro `produtoId`. |
+| GET | `/api/lotes/{id}` | ADMIN/COZINHA. |
+| GET | `/api/lotes/vencidos` | ADMIN/COZINHA. |
+| GET | `/api/lotes/proximos-vencimento` | ADMIN/COZINHA. |
 
-### Categorias — `ADMIN/COZINHA` lê, `ADMIN` escreve
-| Método | Rota | Corpo |
-|--------|------|-------|
-| GET | `/api/categorias` | lista paginada (`?page=&size=&sort=`) |
-| GET | `/api/categorias/{id}` | — |
-| POST | `/api/categorias` | `{ nome, descricao? }` → 201 |
-| PUT | `/api/categorias/{id}` | `{ id?, version?, nome, descricao? }` |
-| DELETE | `/api/categorias/{id}` | → 204 |
+`EstoqueDTO` expõe `produtoId`, nome/categoria/unidade, `saldoAtual`,
+`saldoDisponivelConsumo`, `valorEstoque`, mínimo/médio/máximo,
+`abaixoDoMinimo` e `possuiItensAbertos`. Saldo físico inclui vencidos presentes;
+saldo disponível para consumo não inclui. Não somar o restante aberto novamente.
 
-### Parâmetros de estoque — **só ADMIN** (rota fora dos matchers de COZINHA)
-| Método | Rota | Corpo |
-|--------|------|------|
-| GET | `/api/parametros-estoque` | paginada |
-| GET | `/api/parametros-estoque/{id}` | — |
-| POST | `/api/parametros-estoque` | `{ produtoId, tempoReposicaoDias, periodoAnaliseDias, consumoMedioDiario, estoqueMinimo, estoqueMedio, estoqueMaximo, diasAlertaVencimento }` → 201 |
-| PUT | `/api/parametros-estoque/{id}` | mesmo corpo + `version` |
-| DELETE | `/api/parametros-estoque/{id}` | → 204 |
+`LoteDTO` inclui ID, versão, código, produto, quantidades, datas, preço,
+`vencido`, `disponivel` e dias para vencimento. Envie `versionLote` quando
+operar sobre o lote selecionado para detectar alterações concorrentes.
 
-### Produtos — `ADMIN/COZINHA` lê, `ADMIN` escreve
-| Método | Rota | Corpo / notas |
-|--------|------|---------------|
-| GET | `/api/produtos` | paginada (`?page=&size=&sort=`) |
-| GET | `/api/produtos/{id}` | — |
-| POST | `/api/produtos` | `{ nome, unidadeMedida, categoriaId, codigoBarras?, parametroEstoqueId? }` → 201 |
-| PUT | `/api/produtos/{id}` | mesmo corpo + `version` |
-| DELETE | `/api/produtos/{id}` | → 204 |
-| GET | `/api/produtos/{id}/saldo` | → `BigDecimal` |
-| GET | `/api/produtos/{id}/lotes-disponiveis` | → lista de `LoteDTO` |
-| GET | `/api/produtos/estoque-baixo` | → lista `EstoqueDTO` abaixo do mínimo |
+## Movimentações e embalagens abertas
 
-> ⚠️ Ordem das rotas: `/api/produtos/estoque-baixo` e `/api/produtos/{id}/saldo` são dois GETs específicos; `{id}` nunca é string "estoque-baixo", então não há conflito.
+| Método | Rota | Permissão / corpo |
+| --- | --- | --- |
+| GET | `/api/movimentacoes` | ADMIN/COZINHA; `produtoId, loteId, usuarioId, tipo, inicio, fim`. Mais recentes primeiro. |
+| POST | `/api/entradas` | ADMIN; `{produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade?, observacao?, semCusto?}`. |
+| POST | `/api/consumos` | ADMIN/COZINHA; `{produtoId, loteId?, quantidade, versionLote?, observacao?}`. |
+| POST | `/api/desperdicios` | ADMIN/COZINHA; `{produtoId, loteId?, quantidade, motivo, descricaoMotivo?, versionLote?, observacao?}`. |
+| GET | `/api/produtos-abertos` | ADMIN/COZINHA; `produtoId, finalizado`. Última movimentação/abertura mais recente primeiro. |
+| GET | `/api/produtos-abertos/{id}` | ADMIN/COZINHA. |
+| POST | `/api/produtos-abertos/abrir` | ADMIN/COZINHA; `{produtoId, loteId, quantidadeDaEmbalagem, quantoUsouAgora, versionLote?, observacao?}`. |
+| POST | `/api/produtos-abertos/{id}/consumir` | ADMIN/COZINHA; `{quantidade, version?, versionLote?, observacao?}`. |
+| POST | `/api/produtos-abertos/{id}/desperdicar` | ADMIN/COZINHA; mesmos campos de quantidade/versões/observação. |
 
----
+Tipos de movimento: ENTRADA, CONSUMO, DESPERDICIO e AJUSTE. A abertura sem uso
+não cria um tipo ABERTURA no histórico. Motivos: VENCIMENTO, DETERIORACAO,
+PREPARO_INCORRETO, SOBRA_NAO_APROVEITADA e OUTRO.
 
-## 4. Estoque e lotes
+Respostas de registro usam `MovimentacaoResultadoDTO`: produto, saldo e movimentos
+com quantidades anterior/posterior, delta e horário. Entrada gratuita exige
+`semCusto=true`; essa flag não aceita valor pago positivo. Validade é opcional.
+Déficit de balanço aplicado aparece como desperdício sem duplicar o movimento.
 
-| Método | Rota | Papel | Corpo / notas |
-|--------|------|-------|---------------|
-| GET | `/api/estoque` | ADM/COZ | `?somenteAbertos=false&somenteBaixo=false` → lista `EstoqueDTO` |
-| GET | `/api/lotes` | ADM/COZ | `?produtoId=` → lista `LoteDTO` |
-| GET | `/api/lotes/{id}` | ADM/COZ | — |
-| GET | `/api/lotes/vencidos` | ADM/COZ | → lista `LoteDTO` |
-| GET | `/api/lotes/proximos-vencimento` | ADM/COZ | → lista `LoteDTO` |
+## Balanços e versões obrigatórias
 
-`EstoqueDTO`: `{ produtoId, produtoNome, categoriaNome, unidadeMedida, saldoAtual, valorEstoque, estoqueMinimo, estoqueMedio, estoqueMaximo, abaixoDoMinimo, possuiItensAbertos }`
-`LoteDTO`: `{ id, version, codigo, produtoId, produtoNome, unidadeMedida, quantidadeInicial, quantidadeAtual, dataEntrada, dataValidade, precoUnitario, vencido, disponivel, diasParaVencimento }` — **`version` é obrigatório para consumo/desperdício concorrente.**
+| Método | Rota | Permissão / corpo |
+| --- | --- | --- |
+| GET | `/api/balancos` | ADMIN/COZINHA; lista com itens. |
+| GET | `/api/balancos/{id}` | ADMIN/COZINHA; estado atual. |
+| GET | `/api/balancos/proximo` | ADMIN/COZINHA/NUTRICIONISTA; lista de configurações de agendamento. |
+| POST | `/api/balancos` | ADMIN/COZINHA; `{tipo: "GERAL"}` ou `{tipo: "PARCIAL", categorias: [1,2]}`. Corpo ausente cria GERAL. |
+| POST | `/api/balancos/{id}/iniciar` | ADMIN/COZINHA; `{version}`. |
+| PUT | `/api/balancos/{id}/itens/{itemId}/contagem` | ADMIN/COZINHA; `{quantidadeFisica, version}` do item. |
+| POST | `/api/balancos/{id}/confirmar` | ADMIN; versão do balanço e versões de todos os itens. |
+| POST | `/api/balancos/{id}/gerar-ajustes` | ADMIN; `{version}` do balanço. |
 
----
+Exemplo de conclusão (IDs/versões fictícios, sempre obtidos da leitura atual):
 
-## 5. Movimentações
+```json
+{"version": 1, "itens": [{"id": 101, "version": 2}, {"id": 102, "version": 1}]}
+```
 
-| Método | Rota | Papel | Corpo / notas |
-|--------|------|-------|---------------|
-| GET | `/api/movimentacoes` | ADM/COZ | `?produtoId=&loteId=&usuarioId=&tipo=ENTRADA|CONSUMO|DESPERDICIO|AJUSTE_...|ABERTURA&inicio=&fim=` (datas ISO) |
-| POST | `/api/entradas` | **ADMIN** | `{ produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade?, observacao?, semCusto? }` → 201 |
-| POST | `/api/consumos` | ADM/COZ | `{ produtoId, loteId?, quantidade, versionLote?, observacao? }` |
-| POST | `/api/desperdicios` | ADM/COZ | `{ produtoId, loteId?, quantidade, motivo, descricaoMotivo?, versionLote?, observacao? }` |
+O conjunto precisa corresponder aos itens completos do balanço, todos contados.
+`BalancoDTO` e cada `ItemBalancoDTO` incluem `version`. Gravações bloqueiam o
+balanço pai e validam estado. Versão antiga: 409. Campo obrigatório ausente: 400.
+Não gravar contagem em CONCLUIDO; não há rota de reabertura. Ajustes são idempotentes.
 
-- `unidadeCompra`: enum `UnidadeMedida` (ex.: `KG`, `G`, `L`, ...). A entrada converte para a unidade do produto.
-- `valorTotalPago = 0` exige `semCusto = true`.
-- **`motivo` (desperdício):** enum `MotivoDesperdicio` (ex.: `VENCIDO`, `QUEBRADO`, `SOBRA_NAO_APROVEITADA`...).
-- Resposta das movimentações: `MovimentacaoResultadoDTO { produtoId, saldoAtual, movimentacoes: [...] }` (cada item com `quantidadeAnterior/posterior`, `delta`, `dataHora`).
+Configuração, apenas ADMIN: GET/POST `/api/configuracoes-balanco` e
+PUT/DELETE `/api/configuracoes-balanco/{id}`. Campos: `periodicidade`,
+`diaExecucao`, `proximaExecucao`, ID/versão na atualização. Periodicidades:
+DIARIA, SEMANAL, MENSAL. Confirmar balanço avança o agendamento vencido.
 
----
+## Alertas e SSE
 
-## 6. Produtos abertos
+| Método | Rota | Permissão / resposta |
+| --- | --- | --- |
+| GET | `/api/alertas` | ADMIN/COZINHA; filtro `visualizado`, destino do perfil. |
+| GET | `/api/alertas/abertos` | ADMIN/COZINHA; quantidade não vista. |
+| PUT | `/api/alertas/{id}/visualizado` | ADMIN/COZINHA; marca visto. |
+| GET | `/api/sincronizacao/eventos` | ADMIN/COZINHA/NUTRICIONISTA; SSE autenticado. |
 
-| Método | Rota | Papel | Corpo / notas |
-|--------|------|-------|---------------|
-| GET | `/api/produtos-abertos` | ADM/COZ | `?produtoId=&finalizado=false` |
-| GET | `/api/produtos-abertos/{id}` | ADM/COZ | — |
-| POST | `/api/produtos-abertos/abrir` | ADM/COZ | `{ produtoId, loteId, quantidadeDaEmbalagem, quantoUsouAgora, versionLote? }` → 201 |
-| POST | `/api/produtos-abertos/{id}/consumir` | ADM/COZ | `{ quantidade, version?, versionLote? }` |
-| POST | `/api/produtos-abertos/{id}/desperdicar` | ADM/COZ | `{ quantidade, version?, versionLote? }` |
+O agendamento vencido é avaliado nas consultas autenticadas de alertas,
+sem duplicar o aviso da data/perfil ou reabrir um aviso visto.
+SSE: `conectado`, `heartbeat` e `alteracao` com `{grupos:[...]}` após commit.
+A conexão tem duração de um minuto; heartbeat a cada dez segundos. Não transmite
+registros de estoque nem dados de outro restaurante. O header
+`X-Estoq-Sincronizacao: 3` identifica o protocolo disponível; não é o SHA do commit.
+Ver [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md).
 
-> PEP abertos `version` (do produto aberto) e `versionLote` (do lote origem) vão juntos e atualizam no mesmo request.
+## Notas fiscais — somente ADMIN
 
----
+| Método | Rota | Dados |
+| --- | --- | --- |
+| POST | `/api/notas-fiscais/analisar` | Multipart `arquivos`; XML/PDF ou até dez JPG/PNG, máximo total 4 MB. |
+| GET | `/api/notas-fiscais/{id}` | Revisão/resultado. |
+| POST | `/api/notas-fiscais/{id}/confirmar` | `{version, itens, custosConferidos}`. |
 
-## 7. Balanço e alertas
+Item de confirmação: `id`, `selecionado`, `produtoId`, `nomeProduto`,
+`categoriaId`, `unidadeEstoque`, `quantidadeNota`, `fator`, `valorEntrada`,
+`validade`, `embalagemConfirmada`, `leituraConferida`, conforme a decisão.
+A conferência final vale globalmente; inconsistências continuam sendo validadas.
+O serviço bloqueia a nota e confirma tudo em uma transação; repetição não duplica
+estoque. A chave fiscal é única por restaurante. Ver o documento de importação.
 
-### Balanço (`ADM/COZ`)
-| Método | Rota | Corpo / notas |
-|--------|------|---------------|
-| GET | `/api/balancos` | lista `BalancoDTO` |
-| GET | `/api/balancos/proximo` | Agendamento da cozinha atual; leitura para ADMIN, COZINHA e NUTRICIONISTA |
-| GET | `/api/balancos/{id}` | → inclui `itens[]` |
-| POST | `/api/balancos` | `{ tipo?: GERAL|PARCIAL }` (sem corpo = GERAL) → 201 |
-| POST | `/api/balancos/{id}/iniciar` | gera itens de contagem |
-| PUT | `/api/balancos/{id}/itens/{itemId}/contagem` | `{ quantidadeFisica }` |
-| POST | `/api/balancos/{id}/confirmar` | **ADMIN** — exige contagem completa |
-| POST | `/api/balancos/{id}/gerar-ajustes` | **ADMIN** — aplica FIFO (déficit/superávit) |
+## Relatórios, CMV e dashboard
 
-> ⚠️ `confirmar` e `gerar-ajustes` caem em `anyRequest().hasRole("ADMIN")` no `SecurityConfig`: **somente ADMIN**, assim como `/api/configuracoes-balanco`.
-
-### Configuração de balanço (só ADMIN)
-| Método | Rota | Corpo |
-|--------|------|-------|
-| GET | `/api/configuracoes-balanco` | — |
-| POST | `/api/configuracoes-balanco` | `{ periodicidade, diaExecucao, proximaExecucao }` |
-| PUT | `/api/configuracoes-balanco/{id}` | mesmo corpo + `version` |
-| DELETE | `/api/configuracoes-balanco/{id}` | → 204 |
-
-O agendamento aparece na visão geral e na tela de balanços. No dia marcado ou
-em atraso, a consulta à central gera um aviso para ADMIN e COZINHA, sem duplicar
-nem reabrir avisos já vistos. A data avança após a confirmação do balanço.
-
-### Alertas (`ADM/COZ`)
-| Método | Rota | Corpo / notas |
-|--------|------|---------------|
-| GET | `/api/alertas` | `?visualizado=` (ou usa perfil do usuário p/ filtrar) |
-| GET | `/api/alertas/abertos` | → `long` (contador para badge) |
-| PUT | `/api/alertas/{id}/visualizado` | → 200 |
-
----
-
-## 8. Relatórios, dashboard e CMV — `ADMIN`/`NUTRICIONISTA`
-
-Datas como `?inicio=2026-09-01&fim=2026-09-30` (ISO `LocalDate`). Sem `inicio` → últimos 30 dias.
-
-| Método | Rota | Notas |
-|--------|------|-------|
-| GET | `/api/relatorios/estoque-atual` | → lista `EstoqueDTO` |
-| GET | `/api/relatorios/proximos-vencimento` | → `LoteDTO[]` |
-| GET | `/api/relatorios/vencidos` | → `LoteDTO[]` |
-| GET | `/api/relatorios/produtos-abertos` | → `ProdutoAbertoDTO[]` |
-| GET | `/api/relatorios/desperdicio` | → `DesperdicioDTO[]` (dataHora, motivo, produto, lote, quantidade, valorPrejuizo) |
-| GET | `/api/relatorios/desperdicio/agregado` | → `DesperdicioAgregadoDTO[]` (por motivo) |
-| GET | `/api/relatorios/consumo-medio` | `?dias=30&fim=` → `ConsumoMedioDTO[]` |
-| GET | `/api/relatorios/consumo/dia-semana` | → `ConsumoDiaSemanaDTO[]` |
-| GET | `/api/relatorios/cmv` | `?inicio=&fim=&receitaBase=` → `CmvResumoDTO` |
-| GET | `/api/relatorios/cmv/mensal` | → `CmvMensalDTO[]` (mês, compras, desperdício, cmv...) |
-| GET | `/api/relatorios/reposicao-sugerida` | `?dias=` → `ReposicaoSugeridaDTO[]` |
-| GET | `/api/relatorios/pdf/{tipo}` | PDF (content-type `application/pdf`). `tipo` ∈ {`estoque`, `cmv`, `desperdicio`, `consumo-medio`, ...} conforme `RelatorioPdfService` |
-| GET | `/api/dashboard/resumo` | → `DashboardResumoDTO` (contadores + CMV + percentuais + perdas não explicadas) |
-| GET | `/api/parametros-cmv` | → `{ id, version, percentualIdeal }` |
-| PUT | `/api/parametros-cmv` | `{ id?, version?, percentualIdeal }` |
-
----
-
-## 9. Backup — **só ADMIN**
+Permissão: ADMIN/NUTRICIONISTA. Filtros de período usam `inicio` e `fim` no formato
+`YYYY-MM-DD`; a camada de consulta transforma o fim em corte do dia seguinte.
+Sem datas, as rotas de período usam os padrões definidos no controller.
 
 | Método | Rota | Notas |
-|--------|------|-------|
-| GET | `/api/backups` | → `BackupDTO[]` (`nome`, `tamanhoBytes`, `criadoEm`) |
-| POST | `/api/backups` | gera dump (`pg_dump` custom, schema `estoq_v2`) → 201 |
-| GET | `/api/backups/{nome}` | baixa `.dump` (valida nome; sem path traversal) |
+| --- | --- | --- |
+| GET | `/api/relatorios/estoque-atual` | EstoqueDTO. |
+| GET | `/api/relatorios/proximos-vencimento` | Lotes próximos. |
+| GET | `/api/relatorios/vencidos` | Lotes vencidos. |
+| GET | `/api/relatorios/produtos-abertos` | Embalagens. |
+| GET | `/api/relatorios/desperdicio` | Perdas, incluindo ajustes negativos já aplicados. |
+| GET | `/api/relatorios/desperdicio/agregado` | Agrupamento por motivo. |
+| GET | `/api/relatorios/consumo-medio` | `dias` (padrão 30) e `fim`. |
+| GET | `/api/relatorios/consumo/dia-semana` | Distribuição por dia. |
+| GET | `/api/relatorios/cmv` | Período e `receitaBase` opcional. |
+| GET | `/api/relatorios/cmv/mensal` | CMV por mês. |
+| GET | `/api/relatorios/cmv/receita-base` | Período obrigatório. |
+| PUT | `/api/relatorios/cmv/receita-base` | Salva receita informada por período. |
+| GET | `/api/relatorios/reposicao-sugerida` | `dias` opcional. |
+| GET | `/api/relatorios/pdf/{tipo}` | PDF com os filtros correspondentes. |
+| GET | `/api/dashboard/resumo` | Indicadores e CMV. |
+| GET/PUT | `/api/parametros-cmv` | Meta: ID/versão/`percentualIdeal`. |
 
----
+Tipos PDF: `estoque-atual`, `proximos-vencimento`, `vencidos`, `produtos-abertos`,
+`desperdicio`, `consumo-medio`, `cmv`, `cmv-mensal`, `reposicao-sugerida`.
 
-## 10. Swagger/OpenAPI (público)
+CMV = estoque inicial + compras − estoque final. Sem receita válida não calcula
+percentual. Perdas não explicadas = CMV − (consumo registrado + desperdício).
+A receita base por período não significa integração com vendas/PDV.
 
-- `GET /v3/api-docs`
-- `GET /swagger-ui.html`, `/swagger-ui/**`
+## Backup e documentação interativa
 
----
+| Método | Rota | Permissão / resposta |
+| --- | --- | --- |
+| GET | `/api/backups` | PLATAFORMA; lista `BackupDTO {nome, tamanhoBytes, criadoEm}`. |
+| POST | `/api/backups` | PLATAFORMA; **200 com arquivo binário e Content-Disposition**, não JSON/201. |
+| GET | `/api/backups/{nome}` | PLATAFORMA; download do dump validado. |
 
-## 11. Vejamos os campos de resposta mais usados
+Backup completo abrange os restaurantes do banco/schema configurado. Não é backup
+individual e não está disponível aos perfis dos restaurantes. A geração tem
+limite de cinco minutos e impede duas execuções simultâneas na instância.
 
-- **`CmvResumoDTO`**: `dataInicio, dataFim, valorEstoqueInicial, valorCompras, valorEstoqueFinal, cmv, receitaBase, cmvPercentual, percentualIdeal, diferencaPercentualParaMeta, valorConsumoRegistrado, valorDesperdicio, percentualDesperdicioSobreCmv, valorPerdasNaoExplicadas`
-- **`DashboardResumoDTO`**: `totalProdutosAtivos, produtosEstoqueBaixo, lotesProximosVencimento, lotesVencidos, produtosAbertosAtivos, balancosPendentes, valorDesperdicioPeriodo, cmvPeriodo, cmvPercentual, cmvIdeal, diferencaCmvParaMeta, perdasNaoExplicadasPeriodo`
-- **`ReposicaoSugeridaDTO`**: `produtoId, produtoNome, categoriaNome, unidadeMedida, saldoAtual, estoqueMinimo, consumoMedioDiario, diasReposicao, quantidadeSugerida`
-- **`BalancoDTO`**: `id, version, dataHora, tipo, status, usuarioId, usuarioNome, itens[]`
-- Generic (categorias/produtos/parametros-estoque) herdam `BaseDTO`: `id, version, ativo, dataHoraCriacao`.
+`/v3/api-docs` e `/swagger-ui/**` dependem da habilitação por configuração;
+dev habilita, produção mantém desabilitado por padrão.

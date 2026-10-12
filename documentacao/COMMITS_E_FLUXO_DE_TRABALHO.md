@@ -1,45 +1,77 @@
-# Commits e fluxo de trabalho Git
+# Commits, branches e validação
 
-Repositório local: `/home/pedro/EstoQ`. Remote: `https://github.com/feitosapedrofatesg-svg/EstoQ_startup.git`.
+Revisão: **12/10/2026**. Repositório: `/home/pedro/EstoQ`.
+Remote: `https://github.com/feitosapedrofatesg-svg/EstoQ_startup.git`.
 
-## Branches
+## Branches e entrega
 
-O projeto usa somente `dev` e `main`:
-
-| Branch | Papel |
+| Branch | Função |
 | --- | --- |
-| `dev` | Desenvolvimento e validação das mudanças. |
-| `main` | Versão publicada; o push dispara o deploy automático. |
+| `dev` | Desenvolvimento e validação. |
+| `main` | Versão publicada; push dispara os deploys automáticos. |
 
-## Fluxo
+Não há fluxo com master. Atualize referências, integre trabalho remoto e revise
+as alterações antes de publicar. Não substitua histórico remoto com force push.
 
 ```bash
 git fetch origin
 git switch dev
-git merge origin/main
-# Implementar e validar antes de publicar.
+git merge --ff-only origin/dev
+git merge --ff-only origin/main
+# Implementar, revisar o diff e executar as verificações necessárias.
 git add <arquivos>
-git commit -m "fix(<escopo>): <resumo>"
+git commit -m "fix(<escopo>): <resultado concreto>"
 git push origin dev
+# Aguardar a CI da dev; então publicar.
 git switch main
 git merge --ff-only dev
 git push origin main
 ```
 
-Se houver commits distintos nas duas branches, integrar os históricos e resolver os conflitos antes de publicar. Nunca usar force push para substituir trabalho remoto.
+Se fast-forward não for possível, conferir a divergência, integrar os commits e
+resolver conflitos antes de continuar. Os comandos acima não descartam alterações.
+Use Conventional Commits: feat, fix, docs, test ou chore, com escopo útil.
 
-## Mensagens
+## CI ativa
 
-Usar Conventional Commits com resumo concreto: `fix`, `feat`, `test`, `docs` ou `chore`, com escopo quando ajudar. Cada commit deve representar uma mudança coesa.
+O workflow real é [.github/workflows/validacao.yml](../.github/workflows/validacao.yml),
+ativo em pushes e pull requests para dev/main. `ci.yml.example` é uma cópia de
+referência; não precisa ser instalado como outro workflow.
 
-## Validação
+- Backend: Java 21, Tesseract em português e `mvn test`.
+- Frontend: Node 24, `npm ci`, build, instalação do Chromium e Playwright.
+- Verificação local de arquivos: `git diff --check` e revisão do diff.
 
-- Backend: `cd backend && mvn test` (Java 21; os testes de migração abrem PostgreSQL temporário).
-- Frontend: `npm --prefix frontend ci` e `npm --prefix frontend run build`.
-- Verificar `git diff --check` e revisar os arquivos antes do push.
-- O modelo `documentacao/ci.yml.example` executa os testes do backend e o build do frontend nas duas branches e em pull requests. Para ativar, publicar como `.github/workflows/ci.yml` usando uma credencial com permissão `workflow`; a credencial atual não permite publicar workflows.
-- Após publicar `main`, acompanhar o deploy e verificar o site e a rota `/api/auth/csrf`.
+```bash
+mvn -f backend/pom.xml test
+npm --prefix frontend ci
+npm --prefix frontend run build
+npm --prefix frontend test
+```
 
-## Arquivos locais
+Localmente, instale o navegador Playwright conforme o ambiente de testes.
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` pode apontar para um Chrome já disponível.
+Não confundir execução de teste com build de produção nem pular testes de
+concorrência quando mudar os contratos de balanço.
 
-Não versionar credenciais, `.env`, dumps, `dados/`, `backend/target/` ou `frontend/dist/`. O `.gitignore` mantém esses arquivos fora do histórico. Scripts de manutenção e carga ficam em `scripts/`.
+## Commit enviado e site publicado são estados diferentes
+
+`git push` atualiza o GitHub. GitHub Actions valida; Vercel e Render publicam.
+Dois checks bem-sucedidos e um check Vercel pendente podem significar que a
+publicação ainda está em andamento. Confira o SHA do deployment, não publique um
+novo commit apenas porque o anterior ainda está sendo processado.
+
+Após publicar main, confira CI, deployment, login/navegação e `/api/auth/csrf`.
+Para backend/frontend com contrato incompatível, publique o backend compatível
+primeiro e verifique disponibilidade antes de liberar o frontend dependente.
+O header `X-Estoq-Sincronizacao: 3` identifica o protocolo, não o último commit.
+
+## Documentação e arquivos locais
+
+Atualize [HISTORICO_DE_MUDANCAS.md](HISTORICO_DE_MUDANCAS.md) e os contratos
+correspondentes. Mudança apenas documental não requer nova suíte de negócio;
+verifique links, comandos, referências e integridade dos arquivos Word.
+
+Não versionar credenciais, `.env`, dumps, fotos/notas fiscais reais, `dados/`,
+`backend/target/`, `frontend/dist/` ou resultados de testes. Scripts ficam em
+`scripts/`; arquivos SQL gerados pela carga devem ser refeitos pelo gerador.

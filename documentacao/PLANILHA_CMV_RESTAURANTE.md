@@ -1,7 +1,7 @@
 # Catálogo de produtos a partir da planilha de CMV Real
 
 > **Status:** catálogo e carga de estoque implementados em SQL. O histórico de consumos não é importado.
-> Atualização: 10/10/2026; instruções atuais em [scripts/seed/README.md](../scripts/seed/README.md).
+> Atualização: 12/10/2026; instruções atuais em [scripts/seed/README.md](../scripts/seed/README.md).
 > Data da análise: 28/09/2026.
 > Origem dos dados: `Downloads/Planilha de cálculo de CMV Real DEZEMBRO 22.xls`
 
@@ -78,12 +78,12 @@ As 15 categorias geradas:
 
 ## 3. O que a planilha **não** tem
 
-Estes três buracos são o que trava a implementação:
+Estas limitações orientam a carga implementada e precisam ser consideradas em novas importações:
 
 **1. Não há validade em nenhuma coluna.** O EstoQ dá baixa por FIFO ordenando
 lotes por vencimento. A planilha de CMV não tem esse conceito — ela controla
-por contagem de compras/consumo, não por validade. Sem inventar validade, o
-FIFO não roda.
+por contagem de compras/consumo, não por validade. O sistema aceita validade nula e ordena esses lotes após os datados;
+o gerador de demonstração adota prazos por categoria, que não vieram da planilha.
 
 **2. As unidades não existem no enum do backend.** A planilha usa `und`, `kg`,
 `cartela`, `pacote`, `um`. O `UnidadeMedida` do EstoQ é só `KG, G, L, ML, UN` —
@@ -111,7 +111,7 @@ quantidade é 2, são **2 sacos de 5 kg**, não 2 kg.
 
 Isso importa porque o EstoQ tem `ConversorUnidade`, que converte na entrada e
 **recusa mistura de dimensões**. Se "Arroz 5 Kg" for cadastrado como KG, entra
-2 kg em vez de 2 sacos — estoque 25× menor que o real, e todo o CMV errado.
+2 kg em vez de 2 sacos — estoque 5× menor que o real, e todo o CMV errado.
 
 **Decisão aplicada na extração:** embalagem com medida no nome é `UN` (uma
 embalagem comprada), e o peso fica no próprio nome, onde já está. Só vira `KG`
@@ -121,7 +121,7 @@ O corte sai limpo e verificável: os **92 produtos que viraram `KG` são
 exatamente os 92 que não têm medida no nome**, e os 90 que viraram `UN`
 incluem os 73 com medida.
 
-Isso é uma decisão de modelagem que vale confirmar — ver §7.
+Esse é o mapeamento aplicado na carga atual; uma mudança exige revisar o gerador e suas entradas.
 
 ---
 
@@ -133,7 +133,7 @@ Não são erro da extração; estão no arquivo original.
 (linhas 87 e 146) e 2× na `CMV SEMANA 01` (linhas 92 e 151). Por isso são
 **183 linhas mas 182 produtos** — a extração colapsa em uma só. Mas as duas
 linhas do movimento foram somadas, então as compras do Acem estão contadas em
-dobro (18,475 kg em vez de 9,2375 kg). **Precisa ser tratado antes de usar.**
+dobro (18,475 kg em vez de 9,2375 kg). **Atenção em eventual replay: revisar a duplicidade antes de usar as compras históricas.**
 
 **Consumo negativo.** 2 produtos com consumo negativo, inconsistência de
 digitação — estoque final maior que o inicial:
@@ -162,7 +162,7 @@ abas de movimento.
 
 ---
 
-## 7. Cenários de carga
+## 7. Cenários da análise original (referência histórica)
 
 A planilha é um histórico de **dezembro/2023**. Popular o EstoQ hoje coloca
 dados de 3 anos atrás no sistema. São três formas de usar:
@@ -185,12 +185,12 @@ como restaurante real faz (abre o mês com contagem). Usa a coluna
 `ESTOQUE INICIAL` como quantidade contada. É o mais correto para o domínio,
 mas o CMV dos 30 dias seguintes fica zerado até você consumir.
 
-**Recomendação: cenário 2**, porque é o único que faz o EstoQ calcular um CMV
+**Recomendação da análise original, não implementada: cenário 2**, porque é o único que faz o EstoQ calcular um CMV
 que confere com a planilha — que é exatamente o que o projeto promete.
 
 ---
 
-## 8. Decisões registradas na análise original
+## 8. Perguntas históricas, não pendências da carga atual
 
 O gerador atual define categorias, unidades, validade por categoria e o e-mail alvo. Consulte `scripts/gerar_seed_sql.py` e revise essas escolhas antes de uma nova carga. As perguntas abaixo preservam o contexto da análise original.
 
@@ -271,3 +271,24 @@ O `.xls` original **não** é versionado (é documento do cliente, 300 KB, e nã
 - O fluxo Git usa somente `dev` e `main` e está documentado em `COMMITS_E_FLUXO_DE_TRABALHO.md`.
 
 O histórico de consumos da planilha continua fora da carga implementada. Sua inclusão exige escolher um período e uma estratégia de reconstrução; a carga atual não reproduz o CMV histórico.
+
+## 12. Relação com a versão atual
+
+O cadastro público prepara 13 categorias padrão para novos restaurantes, enquanto
+a carga desta planilha usa as 15 categorias extraídas para seu catálogo específico.
+São fluxos diferentes, não duas contagens conflitantes de categorias. O CSV mantém
+182 produtos de referência; o estoque publicado pode conter outros produtos
+criados por entradas posteriores.
+
+O CMV da aplicação usa estoque inicial + compras − estoque final, com reconstrução
+histórica por lotes e deltas. Uma carga só de catálogo/entradas não reproduz o
+consumo das quatro semanas. Custos e prazos adotados pelo gerador precisam ser
+conferidos antes de usar seus dados como estoque operacional.
+
+O script SQL não passa pelos services, auditoria ou eventos SSE da aplicação.
+Após carga administrativa autorizada, reconsulte as telas e valide o restaurante
+alvo. A leitura automatizada de notas fiscais é outro recurso e está documentada
+em [IMPORTACAO_NOTAS_FISCAIS.md](IMPORTACAO_NOTAS_FISCAIS.md).
+
+Backup do EstoQ é completo e exclusivo da PLATAFORMA; a carga não cria backup
+individual para a loja. Arquivos CSV/SQL de referência não são dumps restauráveis.

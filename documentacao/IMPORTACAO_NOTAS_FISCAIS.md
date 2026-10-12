@@ -1,5 +1,7 @@
 # Entrada de mercadorias por nota fiscal
 
+Revisão: **12/10/2026**.
+
 A opção **Importar nota fiscal** fica em **Movimentações**, para o administrador.
 Enviar o documento gera uma revisão; somente **Confirmar entrada no estoque**
 cria produtos, lotes e movimentações.
@@ -102,3 +104,23 @@ As linhas desmarcadas também são consideradas processadas.
 
 Os documentos originais não são armazenados. Os dados extraídos e as decisões
 permanecem para consulta. Dados fiscais reais não devem ir para o Git.
+
+## Revisão, navegação e associação
+
+A lista possui botões para ir ao final e voltar ao início. A caixa final
+**Conferi os itens, os descontos e os custos rateados** vale para a nota inteira.
+Não é necessário conferir cada linha por um botão individual. A confirmação
+continua bloqueada quando quantidade, custo ou associação necessária é inválida;
+a tela apresenta as pendências correspondentes.
+
+Produto já existente recebe nova entrada/lote, acrescentando quantidade sem
+recriar o produto. Produto novo é criado com a categoria sugerida ou escolhida.
+Um restaurante recém-cadastrado já possui as categorias padrão, mas não produtos
+ou estoque. Sugestões desconhecidas usam Sem classificação, sem misturar lojas.
+
+Horários de confirmação são UTC e exibidos no fuso do navegador; a emissão e
+a validade são datas sem horário. A atualização invalida as listas afetadas e
+avisa as outras sessões do mesmo restaurante via SSE após o commit.
+
+Veja [API_ENDPOINTS.md](API_ENDPOINTS.md) para o payload de confirmação e
+[CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md) para consistência entre aparelhos.

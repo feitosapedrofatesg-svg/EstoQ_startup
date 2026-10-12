@@ -1,116 +1,171 @@
-# EstoQ_Startup — Resumo da sessão (backend)
+# EstoQ — resumo do sistema implementado
 
-Local: `/home/pedro/EstoQ_Startup` · Backend em `backend/` · Porta **8083** · PostgreSQL Docker porta **5434** (banco `estoq_startup`, user `estoq`/`estoq`).
+Revisão: **12/10/2026** · Código de referência: `6bdddad`.
+Projeto acadêmico de ADS, 4º período, SENAI FATESG. Repositório local:
+`/home/pedro/EstoQ`. A arquitetura segue o padrão PIAds3 em camadas.
 
----
+## Produto e arquitetura
 
-## 1. Objetivo e escopo
-Refatorar o backend do gerenciador de estoque/CMV definido na Constituição (`documentacao/EstoQ_Constituicao_do_Projeto_v1.0.docx`), agora seguindo o contrato `EstoQ_Prompt_Backend_Modular_Camadas_v1.0.docx`: padrão **PIAds3** (`core` genérico + módulos `business` autocontidos e modulares), dados novos no schema **`estoq_v2`** (a base antiga no schema `public` fica preservada, com backup em `dados/`).
+Aplicação **web multitenant**, acessada pelo navegador, sem executável,
+instalação obrigatória, PWA ou escrita offline. O backend é a fonte de verdade;
+cache no navegador melhora a navegação e não autoriza alterações de estoque.
 
-Nesta rodada: refatoração de estilo concluída (anotações linha a linha, imports explícitos) e **Fases A/B de correção e gestão** implementadas (superávit, gap de perdas, ciclo de alertas, agregados, reposição, entrada sem custo e não perecível). **Vendas/PDV ficaram fora do escopo** (decisão do produto: o app cobre controle de estoque e desperdício).
-
-## 2. Decisões-chave (confirmadas nesta rodada)
-- **Auth por e-mail + senha** (BCrypt) com **sessão HTTP**: cookie HttpOnly `ESTOQSESSION` + proteção **CSRF** (`X-CSRF-TOKEN` via `GET /api/auth/csrf`; login rotaciona o token). Elimina o PIN e o token bearer antigos.
-- **Saldo sempre derivado** (RN02): `saldoAtual = soma(lote.quantidadeAtual)`. O restante de produto aberto **não** é somado de novo (já está dentro do lote); abertura baixa do lote apenas o usado.
-- Consumo: primeiro itens abertos (mais antigos), depois lotes **FIFO por validade** (vencidos ficam de fora; dataValidade nula vai por último).
-- **Lote sem validade = não perecível**: disponível enquanto houver quantidade, ordenado por último no FIFO, nunca "vence".
-- **Ajuste de balanço — opção B** (confirmada): ItemBalanco por produto com distribuição **FIFO** — déficit baixa lotes em FIFO; superávit soma no lote disponível mais antigo (ou cria **lote de correção consumível** com validade nula se não houver). Nunca zera lote abaixo de zero.
-- Desperdício: FIFO **incluindo vencidos**; sobra de item aberto finaliza com motivo `SOBRA_NAO_APROVEITADA`.
-- **Entrada com `valorTotalPago = 0` exige flag `semCusto`** (doação) e, com a flag, custo/preço são zerados (não distorce CMV). A validade da entrada passou a ser **opcional** (lote não perecível).
-- **Gap de perdas não explicadas** no CMV: `cmv − (consumo registrado + desperdício)` exposto no `CmvResumoDTO` e no dashboard.
-- **Ciclo de alertas de balanço**: scheduler diário (06h, `@EnableScheduling`) avalia a config vencida → gera `BALANCO_PENDENTE` e avança `proximaExecucao`; concluir balanço limpa `BALANCO_PENDENTE`; `gerar-ajustes` limpa `DIFERENCA_ESTOQUE`.
-- **%CMV fica secundário**: sem módulo de vendas, `receitaBase` é parâmetro manual e opcional; indicadores principais passam a ser CMV em R$, desperdício (valor e % sobre CMV) e o gap.
-- Concorrência: `@Version` (RN24) — lock otimista vira `409 Conflict` amigável.
-- Entrada gera lote com código sequencial `L-000001, ...`; `precoUnitario = valorTotalPago / (quantidade * fatorConversao)`; unidade de compra é convertida para a unidade do produto se diferente.
-- Trilha de movimentações: base abstrata `MovimentacaoEstoqueModel` com `@Inheritance(JOINED)` + `@DiscriminatorColumn("tipo")`; cada movimento registra `quantidadeAnterior/Posterior` e `getDelta()`.
-- `@TransactionalEventListener(AFTER_COMMIT)` exige `Propagation.REQUIRES_NEW` (reavaliação de alertas pós-movimento).
-- JAR de build: `target/estoq-startup.jar` (Boot 4 compacta).
-
-## 3. Estrutura criada
-```
-backend/src/main/java/com/estoq/
-├── EstoqApplication.java
-├── core/                  # genérico PIAds3 (sem import p/ business)
-│   ├── domains/ dtos/ repositories/ services/ validations/
-│   ├── controllers/ helpers/ exceptions/   # BaseException, Conflict 409, GlobalExceptionHandler
-│   └── conf/seed/SeedDataConfig            # seed dev (3 usuários + CMV 30% + balanço MENSAL)
-├── config/security/       # SecurityConfig (matriz rotas), CustomUserDetailsService,
-│                          # UsuarioAtivoFilter, exceptions de segurança
-└── business/              # módulos numerados conforme o contrato
-    ├── usuarios/  auth/  auditoria/
-    ├── categorias/  produtos/  parametrosEstoque/  lotes/
-    ├── entradas/  consumos/  desperdicios/  ajustes/  movimentacoesEstoque/
-    ├── produtosAbertos/  balancos/  itensBalanco/  configuracoesBalanco/
-    └── alertas/  parametrosCmv/  relatorios/  dashboard/
+```text
+Navegador React → Vercel (/api por proxy) → Spring Boot no Render → PostgreSQL no Neon
 ```
 
-## 4. Regras de negócio implementadas
-- **RN02** saldo derivado (nunca digitado).
-- **RN05** entrada com conversão de unidade gera lote (ConversorUnidade KG/G/L/ML/UN).
-- **RN07** consumo não usa lotes vencidos (lotes sem validade são consumíveis).
-- **RN10/RN11** aberto: restante = embalagem − utilizada; só o utilizado vira consumo; abrir sem uso não cria movimento.
-- **RN12** sobra vira movimentação (Desperdicio `SOBRA_NAO_APROVEITADA` ao descartar aberto).
-- **RN15/16** balanço: diferença = física − sistema; gerar-ajustes aplica FIFO e é idempotente (`ajusteAplicado`).
-- **RN24** controle de concorrência em lote.
-- Lote de correção de superávit nasce consumível (validade nula) — não é estoque morto.
-- Entrada sem custo só com `semCusto=true` (doação); custo zero sem flag é rejeitado.
-- CMV mensal: cálculo por lote com deltas por mês (a soma dos meses fecha com o CMV total do período).
-- Reposição sugerida: `(consumoMedioDiario × diasReposição) − saldoAtual`, exibida quando positiva.
-- Matriz de permissões (`SecurityConfig`):
-  - COZINHA: GETs (consultas de estoque/catálogo/movimentações/alertas), POST consumo/desperdício, abrir/consumir/desperdicar aberto, contagem de balanço, `PUT /api/alertas/*/visualizado`.
-  - NUTRICIONISTA: GET/PUT `/api/parametros-cmv` (meta de CMV), relatórios e dashboard.
-  - ADMIN: todo o resto (cadastros, entradas, balanço, ajustes, configurações).
+| Parte | Implementação |
+| --- | --- |
+| Backend | Java 21, Spring Boot 4.0.6, Maven, Spring MVC, JPA, Validation, Security e Lombok. |
+| Frontend | React 18, TypeScript, Vite e React Router. |
+| Banco | PostgreSQL; desenvolvimento local com Docker na porta 5434. |
+| Migrações | Flyway; baseline B4 e evolução V1–V6 conforme o estado da base. |
+| Documentos | PDFBox para PDF; leitores NF-e e Tesseract para fotos. |
+| Testes | JUnit/integrados, H2, PostgreSQL temporário e Playwright. |
 
-## 5. Seed (dev)
-- Usuários: `admin@estoq.com`/`Admin@12345` (ADMIN), `cozinha@estoq.com`/`Cozinha@12345` (COZINHA), `nutricionista@estoq.com`/`Nutricao@12345` (NUTRICIONISTA).
-- Meta CMV padrão 30% (`parametro_cmv`) e `ConfiguracaoBalanco` MENSAL (dia 1).
-- Ativo só no profile `dev` com `estoq.seed.enabled=true` (padrão).
+`core` contém CRUD, entidades base, adapters e validações genéricas, exceções e
+contratos reutilizáveis. Não importa `business`. `business/<modulo>` contém
+Model, DTO, Adapter, Repository, Validation, Service e Controller conforme a
+necessidade. `config` concentra segurança, resolução de tenant e seed de dev.
+`backup` e `patterns` ficam fora do núcleo genérico.
 
-## 6. Endpoints principais
-- Auth: `GET /api/auth/csrf` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me`
-- Catálogo: `GET/POST /api/categorias` · `GET/POST /api/produtos` · `GET /api/produtos/{id}/saldo|lotes-disponiveis` · `GET /api/produtos/estoque-baixo` · `GET/POST /api/lotes` · `GET /api/estoque` · `GET /api/movimentacoes?produtoId&inicio&fim`
-- Movimentações: `POST /api/entradas|consumos|desperdicios` · `POST /api/produtos-abertos/abrir|/{id}/consumir|/{id}/desperdicar` (entrada aceita `dataValidade` nula e `semCusto`)
-- Balanço: `POST /api/balancos` · `/{id}/iniciar` · `PUT /{id}/itens/{itemId}/contagem` · `/{id}/confirmar` · `/{id}/gerar-ajustes` · `GET/POST/PUT/DELETE /api/configuracoes-balanco`
-- Alertas: `GET /api/alertas` · `GET /api/alertas/abertos` · `PUT /api/alertas/{id}/visualizado` (scheduler 06h gere `BALANCO_PENDENTE`)
-- CMV/Relatórios/Dashboard: `GET/PUT /api/parametros-cmv` · `GET /api/relatorios/estoque-atual|proximos-vencimento|vencidos|produtos-abertos|desperdicio|consumo-medio|cmv` · `GET /api/relatorios/desperdicio/agregado` · `GET /api/relatorios/consumo/dia-semana` · `GET /api/relatorios/cmv/mensal` · `GET /api/relatorios/reposicao-sugerida?dias=N` · `GET /api/dashboard/resumo`
+O controller recebe e delega; o service executa regras e transações; o repository
+acessa dados; o adapter converte entidades e DTOs. Consultas SQL nativas precisam
+filtrar explicitamente o restaurante, além de respeitar o isolamento do JPA.
 
-## 7. Como rodar
+## Restaurantes, sessões e permissões
+
+O cadastro público cria restaurante, ADMIN, 13 categorias padrão, meta de CMV
+30% e agendamento mensal. Não cria produtos ou saldo de estoque. A categoria
+sugerida na primeira nota já pode ser utilizada por um restaurante novo.
+
+Entidades operacionais usam `restaurante_id`; o tenant vem da identidade
+autenticada. IDs de outro restaurante não concedem acesso. Desativação de usuário,
+suspensão de restaurante ou alteração de credenciais revogam o acesso correspondente.
+
+| Perfil | Responsabilidade |
+| --- | --- |
+| ADMIN | Cadastros, entradas, notas fiscais, operações de estoque, conclusão e ajustes de balanço, relatórios e configurações. |
+| COZINHA | Consultas operacionais, consumo, abertura de embalagem, desperdício operacional, criação/início/contagem de balanço e leitura de alertas. |
+| NUTRICIONISTA | Dashboard, relatórios, meta de CMV, receita base e próximo agendamento. |
+| PLATAFORMA | Administração de restaurantes, suspensão/reativação, redefinição do administrador e backup completo. |
+
+A COZINHA não possui o bloco **Itens para excluir do estoque**, não registra
+entrada administrativa e não conclui nem aplica ajustes de balanço. Desperdício
+operacional permanece autorizado. Não há backup individual por restaurante;
+ADMIN, COZINHA e NUTRICIONISTA não acessam o dump completo da plataforma.
+
+Login usa e-mail/senha BCrypt, sessão HTTP, cookie HttpOnly `ESTOQSESSION` e
+CSRF. Token rotaciona após login. Sessão tem prazo configurado de 24 horas.
+Tentativas de login: limite padrão de cinco falhas em 15 minutos por e-mail/IP.
+As permissões são aplicadas no backend, independentemente dos botões da tela.
+
+## Estoque, consumo e desperdício
+
+- Saldo físico é a soma das quantidades dos lotes, incluindo vencidos ainda presentes.
+- `saldoDisponivelConsumo` exclui lotes vencidos; saldo aberto não é somado novamente.
+- Entrada converte KG/G ou L/ML, calcula custo unitário e cria lote na mesma transação.
+- Lote sem validade é consumível enquanto tiver saldo; não recebe validade inventada na entrada manual.
+- Entrada gratuita exige `semCusto=true`; valor positivo e essa flag são incompatíveis.
+- Consumo prioriza embalagens abertas e depois os lotes disponíveis ordenados por validade.
+- Abrir embalagem registra consumo apenas do utilizado; o restante permanece no lote e no controle de abertos.
+- Saídas não podem deixar saldo negativo. Estoque usa `@Version` para detectar concorrência.
+- Desperdício admite vencidos e mantém motivo, usuário, lote, quantidade e custo.
+- Ajuste negativo de balanço já aplicado integra o desperdício geral, preservando o movimento AJUSTE e evitando dupla baixa.
+
+Históricos aparecem do mais recente para o mais antigo, com desempate por ID.
+Embalagens abertas são ordenadas pela última movimentação ou abertura. A ordem
+operacional do consumo continua seguindo sua regra de lotes, separadamente da
+ordem visual. Estoque e catálogo não receberam ordenação por último movimento.
+
+## Notas fiscais
+
+ADMIN envia XML, PDF com texto ou JPG/PNG/fotos. A leitura cria uma revisão;
+a entrada só ocorre após a conferência final. O catálogo e os vínculos do fornecedor
+orientam a associação; nomes e categorias padrão permitem sugestão automática.
+Se o produto existe, a confirmação acrescenta um lote e sua quantidade. Caso
+contrário, cria produto e entrada. Não sobrescreve o histórico existente.
+
+A caixa **Conferi os itens, os descontos e os custos rateados** confirma a revisão
+como um todo; não exige marcar cada linha individualmente. Dados inválidos,
+quantidades incompatíveis ou custos inconsistentes continuam bloqueando a entrada.
+A confirmação é transacional e idempotente. Detalhes em
+[IMPORTACAO_NOTAS_FISCAIS.md](IMPORTACAO_NOTAS_FISCAIS.md).
+
+## Balanços e atualização entre aparelhos
+
+Fluxo: criar → iniciar → contar → ADMIN confirmar → ADMIN gerar ajustes.
+O balanço parcial restringe os produtos às categorias escolhidas.
+
+Cada gravação bloqueia primeiro o balanço pai e valida estado e versões.
+Contagem informa a versão do item; início/ajustes informam a versão do balanço;
+conclusão informa a versão do balanço e de todos os itens apresentados.
+Conflitos devolvem HTTP 409; balanço concluído rejeita novas contagens, inclusive
+quando a tela da COZINHA ainda estiver antiga. Não há reabertura implementada.
+
+SSE avisa somente as sessões do mesmo restaurante após o commit. A tela reconsulta
+os dados, preserva rascunhos locais e sinaliza divergências antes de salvar.
+Cache usa 15 segundos para dados operacionais e um minuto para os demais.
+Não é preciso aguardar esse prazo quando uma gravação invalida o cache ou chega um
+aviso remoto. Ver [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md).
+
+O próximo balanço aparece no dashboard e na tela de balanço. No dia marcado ou
+em atraso, consultas autenticadas aos alertas avaliam o agendamento e criam o
+aviso sem duplicar/reabrir o já visto. A data avança quando o balanço é concluído;
+não há scheduler global de balanços às 06h.
+
+## CMV, relatórios e horários
+
+CMV = estoque inicial + compras − estoque final. A posição histórica é reconstruída
+pelos lotes e deltas das movimentações nos cortes do período. Consumo registrado e
+desperdício são apresentados separadamente. Perdas não explicadas =
+CMV − (consumo registrado + desperdício). Receita base é manual e persistida por
+período; permite CMV percentual. ADMIN e NUTRICIONISTA configuram a meta.
+
+Relatórios incluem estoque, vencimentos, embalagens abertas, desperdício,
+consumo médio/dia da semana, CMV/mensal e reposição sugerida, com exportação PDF.
+Não há vendas/PDV, emissão fiscal, receitas por prato nem cálculo automático de faturamento.
+
+Eventos e criação/atualização são gravados em UTC, inclusive inserções em lote.
+A API retorna `LocalDateTime` sem offset; o formatter identifica esse contrato e
+exibe no fuso do navegador. Exemplo: 19:26 UTC → 16:26 na Bahia. Offsets explícitos
+são preservados. Datas de validade/emissão/agendamento não recebem essa conversão.
+O cache não altera o horário gravado. Não houve reescrita de timestamps históricos.
+
+## Execução e validação
+
+Na raiz, inicie PostgreSQL com `docker compose up -d postgres`. No backend,
+execute `mvn spring-boot:run -Dspring-boot.run.profiles=dev` (porta 8083).
+No frontend, `npm ci` e `npm run dev` (porta do Vite informada no terminal).
+O proxy de desenvolvimento envia `/api` ao backend local. Dev habilita seed;
+produção usa Flyway e `ddl-auto=validate`.
+
+Validação de referência da última alteração funcional: **99 casos backend**,
+sem falhas; três ignorados localmente conforme disponibilidade do OCR.
+Frontend: **29 testes Playwright**, incluindo horário da Bahia e virada do dia.
+Os skips dependem do ambiente; consulte o resultado da execução, não apenas a contagem.
+A CI ativa também instala OCR e executa build e Playwright.
+
 ```bash
-docker compose up -d postgres
-cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=dev   # porta 8083
-# pacote: mvn package -DskipTests → target/estoq-startup.jar
+mvn -f backend/pom.xml test
+npm --prefix frontend ci
+npm --prefix frontend run build
+npm --prefix frontend test
+git diff --check
 ```
 
-## 8. Testes automatizados (mvn test — 33 verdes)
-- `SecurityIntegrationTest` (4): login formato inválido, login OK + me, logout invalida sessão.
-- `DominioTest` (4): conversor de unidades, baixa negativa rejeitada, validade hoje/mais antiga, níveis de estoque invertidos.
-- `EstoqueIntegrationTest` (8): abrir embalagem → consumir → desperdiçar (saldo/prejuízo/custos), abertura sem uso não cria movimento e conflita 2ª abertura, consumo FIFO cede primeiro o lote, vencido rejeitado, desperdício acima do saldo rejeitado, versão divergente → 409, **entrada sem validade é consumível e nunca vence**, **custo zero exige `semCusto`**.
-- `BalancoCmvIntegrationTest` (10): débito de balanço em FIFO, superávit soma no lote, **superávit cria lote novo consumível**, confirmar exige contagem completa, CMV/consumo médio/percentuais + **gap = 0**, **gap mensura perdas não registradas**, meta CMV restritiva, **ciclo de alertas (gera/limpa/avança)**, **agregados (top desperdício, dia da semana, CMV mensal = total)**, **reposição sugerida (consumo×lead−saldo)**.
-- `ConcorrenciaIntegrationTest` (1, perfil `concorrencia`, H2 isolado): 2 threads no `RegistradorConsumoSingleton` → 1 sucesso + 1 `409` (lock otimista real), saldo 4/5. Ver `documentacao/THREADS_E_SINGLETON.md`.
-- `BackupPdfIntegrationTest` (4): PDF `estoque-atual` e `cmv` começam com `%PDF`, tipo inválido → `400`, listar backups vazio (dir temp) e `baixar` com nome fora do padrão → erro.
-- `LoginAttemptIntegrationTest` (2, `estoq.login.max-tentativas=2`): bloqueio após o limite → `429` (inclusive com senha correta), e outro e-mail sem falhas mantém acesso (limite é por e-mail+IP).
-- Smoke E2E via curl validado (app dev no Postgres): login → categoria/produto → entrada (L-000001, preço 20) → saldo 10 → abrir (lote 9) → consumir aberto (7) → consumo geral (5) → balanço iniciar (snapshot 5) → contagem 4 → confirmar → gerar-ajustes (saldo 4; AJUSTE delta −1; obs "Ajuste de déficit do balanço #1") → CMV (compras 200, estoque final 80, CMV 120, %60 vs meta 30 → dif 30) → dashboard → relatório estoque → movimentações (histórico com deltas) → alerta `DIFERENCA_ESTOQUE` → 401 sem sessão.
+Testes de PostgreSQL temporário precisam poder abrir portas locais. Navegador e
+OCR devem estar disponíveis para seus testes. As suítes cobrem isolamento,
+revogação de sessão, backup, notas, CMV, concorrência, SSE, cache, permissões e interface.
 
-## 9. Backup e PDF de relatórios (novidades desta rodada)
-- **Backup real via `pg_dump`** (PostgreSQL): novo módulo `com.estoq.backup` (paralelo a `patterns`, respeitando a Constituição — não toca no `core`). Config em `application.properties` (`estoq.backup.diretorio=${ESTOQ_BACKUP_DIR:../dados/backups}`). Endpoints: `POST /api/backups` (gera dump custom `.dump`, mantém as N últimas), `GET /api/backups` (lista) e `GET /api/backups/{nome}` (download). Nome validado por regex (`estoq-\d{8}-\d{6}\.dump`) contra path traversal; rota exige ADMIN. **Testado de ponta a ponta no Postgres real** (geração, listagem, download e restauração).
-- **PDF de relatórios**: `RelatorioPdfService` (`business/relatorios`) gera PDF via **PDFBox 3.0.4** por tipo: `estoque-atual`, `proximos-vencimento`, `vencidos`, `produtos-abertos`, `desperdicio`, `consumo-medio`, `cmv`, `cmv-mensal`, `reposicao-sugerida` (com quebra de página e truncamento de linha). Endpoint `GET /api/relatorios/pdf/{tipo}?inicio&fim&dias&receitaBase` (produces `application/pdf`). **PDF de `cmv` validado com dados reais.**
+## Publicação e limites atuais
 
-## 10. Segurança de produção (reforçada)
-- **Cookie de sessão**: `ESTOQSESSION` `HttpOnly` + `Secure` (env `SESSION_SECURE`, default `true`; `false` apenas em dev/test) + `SameSite` parametrizado por env `SESSION_SAMESITE` (default `lax`).
-- **Limite de tentativas de login** (`LoginAttemptService`, em `business/auth`): janela deslizante in-memory por **e-mail+IP**; ao exceder `estoq.login.max-tentativas` (default 5) na janela `estoq.login.janela-minutos` (default 15) → `429 Too Many Requests` (mesmo com senha correta). Sucesso limpa o registro; email/IP distintos não são afetados. Valores via env `LOGIN_MAX_TENTATIVAS`/`LOGIN_JANELA_MINUTOS`.
-- Proteção de fixação de sessão (`changeSessionId`) e rotação de CSRF pós-login já existiam.
+Site: https://estoq-oficial.vercel.app. Backend:
+https://estoq-backend-jv04.onrender.com. Banco de produção usa `public`; local
+pode usar `estoq_v2`. Não trocar schema de produção sem migração planejada.
 
-## 11. Restauração de backup (validada)
-O dump cobre apenas o schema `estoq_v2` (17 tabelas). Para restaurar num banco novo:
-
-```bash
-createdb -h localhost -p 5434 -U estoq estoq_restore_test
-psql -h localhost -p 5434 -U estoq -d estoq_restore_test -c 'CREATE SCHEMA estoq_v2 AUTHORIZATION estoq;'
-pg_restore --host localhost --port 5434 --username estoq --dbname estoq_restore_test \
-  --schema estoq_v2 --no-owner --no-privileges dados/backups/estoq-*.dump
-```
-
-**Pegadinha:** como o dump usa `--schema estoq_v2`, o `pg_restore --schema` **não inclui o `CREATE SCHEMA`** (o filtro remove a entrada de schema) — sem pré-criar o schema, o restore falha com ~112 erros. Já pré-criando o schema, o restore volta com 0 erros (dados conferidos: 3 usuários, produto, lotes, movimentações, alertas). Validação real feita com dump gerado pelo `POST /api/backups` e banco temporário depois removido.
-
-## 12. Pendências / próximos passos sugeridos
-- **Fora do escopo:** módulo de vendas/PDV e receita real para a meta de %CMV (decisão do produto; `receitaBase` segue manual e opcional).
+Git usa somente `dev` e `main`; main dispara publicação automática.
+Sessão, rate limit e distribuição SSE estão na memória de uma instância.
+Escalar exige armazenamento/distribuição compartilhados. Arquivos de backup
+no servidor são temporários; o download precisa ser guardado fora dele.
+Não foram implementados backup por restaurante, escrita offline ou reabertura de balanço.

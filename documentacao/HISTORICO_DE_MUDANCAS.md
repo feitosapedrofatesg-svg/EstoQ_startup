@@ -1,0 +1,93 @@
+# Histórico de mudanças do EstoQ
+
+Revisão: **12/10/2026**. Registro das entregas recentes, conferido no Git.
+O último commit funcional de referência é `6bdddad`; esta revisão é documental.
+As decisões atuais prevalecem sobre descrições históricas de etapas anteriores.
+
+## 10/10/2026 — entrada, agendamento e interface
+
+| Commit | Entrega |
+| --- | --- |
+| `ad28434` | Recolhimento limitado às listas solicitadas, com controles aparentes. |
+| `5658720` | Próximo balanço no dashboard/tela de balanço e aviso na data agendada. |
+| `40ccfe2` | Leitura NF-e PDF/XML, revisão, vínculos e confirmação de entrada. |
+| `1889aff` | JPG/PNG com OCR, câmera, limites de leitura e conferência humana. |
+| `864c653` | Atalhos para ir ao início/fim da lista da nota. |
+| `abfb3d7`, `d7c75a5` | Conferência final libera confirmação global; pendências inválidas são explicadas. |
+| `fa0ca6c` | Associação automática de categorias para itens importados. |
+
+A confirmação acrescenta quantidade via lote/entrada para produto existente ou
+cria produto novo. A leitura não altera estoque, e repetir confirmação não duplica.
+Custos, descontos e fatores continuam sendo validados mesmo com conferência global.
+
+## 11/10/2026 — restaurantes novos e permissões
+
+| Commit | Entrega |
+| --- | --- |
+| `55e14d8` | 13 categorias padrão no cadastro e migração V6 para lojas elegíveis. |
+| `4dbfdff` | Bloco Itens para excluir do estoque reservado ao ADMIN. |
+| `e20641e` | Histórico de desperdício e embalagens abertas sempre expandidos. |
+| `3095a6d` | Desperdício e Consumo médio dos relatórios mostram até oito linhas, com rolagem quando há mais. |
+
+COZINHA mantém consumo e desperdício operacional; não recebeu exclusão ou ajuste
+administrativo. Diferença negativa de balanço aplicada integra a perda geral
+sem gerar segunda movimentação de descarte.
+
+## 12/10/2026 — base, cache e sincronização
+
+| Commit | Entrega |
+| --- | --- |
+| `ff7a70e`, `c802395` | Isolamento de restaurante, revisão de backup/CMV/paginação, baseline de banco novo e imports da pesquisa paginada. |
+| `30173c3` | Reutilização das listas com cache por sessão: 15 segundos operacional, um minuto demais consultas, revalidação em segundo plano. |
+| `2c5337a` | Proteção concorrente de balanço e eventos pós-commit por restaurante. |
+| `a9f85a1` | SSE no navegador, atualização entre sessões, preservação de rascunhos e conflitos explícitos. |
+
+O banco é compartilhado com isolamento por restaurante. O produto passou de
+proposta de execução local/PWA para aplicação web multitenant. O backup completo
+permanece, mas é exclusivo da PLATAFORMA; backup individual não foi implementado.
+
+## 12/10/2026 — correção da regressão de desempenho
+
+| Commit | Entrega |
+| --- | --- |
+| `fe03a9f` | Remove consultas por produto, cria retrato/alertas em lote e evita leituras duplicadas durante eventos. |
+| `33c4733` | Carrega parâmetros junto dos produtos ao consultar alertas de balanço. |
+
+A primeira implementação de proteção/sincronização causou lentidão. A correção
+manteve as garantias de concorrência e reduziu consultas repetidas. Uma leitura
+de balanços com 186 produtos caiu de aproximadamente 55 s para 1,8 s no cenário
+medido em produção. Testes de PostgreSQL verificam limites de consultas, versões,
+rollback, permissões e isolamento; não há promessa de latência fixa.
+
+## 12/10/2026 — ordem, alertas e horário
+
+| Commit | Entrega |
+| --- | --- |
+| `a8a8460` | Históricos mais recentes no topo; embalagens ordenadas pela última movimentação; Visto remove imediatamente e bloqueia cliques repetidos. |
+| `6bdddad` | Horários UTC exibidos no fuso do navegador; gravação UTC explícita em Java e SQL em lote. |
+
+A ordem visual não altera a seleção dos lotes para consumo. Estoque e catálogo
+mantêm suas próprias ordenações. Na central de alertas, erro ao gravar Visto
+recoloca a linha para nova tentativa; uma resposta antiga não desfaz a confirmação.
+
+Exemplo do horário corrigido: 19:26 UTC → 16:26 na Bahia. Teste também cobre a
+virada do dia, offset explícito e preservação da validade sem horário. Não foi
+feita uma migração para subtrair três horas dos registros existentes.
+
+## Revisão documental de 12/10/2026
+
+Atualizados os documentos de requisitos, camadas, API, resumo, deploy, Git/CI,
+notas, planilha, responsividade e concorrência, incluindo Word. Acrescentados
+índice, cache/sincronização, backup/restauração e este histórico. O exemplo de CI
+passa a espelhar o workflow ativo. O CSV de referência mantém seus dados originais.
+
+Última validação funcional: 99 casos backend, sem falhas (skips de OCR conforme
+ambiente), 29 casos Playwright e build. CI da dev/main passou; a publicação da
+correção de horário foi confirmada no site com consulta de um balanço real.
+
+## Limites atuais
+
+Ainda não há backup por restaurante, escrita offline, reabertura de balanço,
+infraestrutura de SSE/sessão compartilhada entre instâncias, PDV, emissão fiscal
+ou integração automática de faturamento. Essas possibilidades são evoluções,
+não recursos já entregues.

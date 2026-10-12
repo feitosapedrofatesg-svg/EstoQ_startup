@@ -19,7 +19,6 @@ import {
   fmtDateTime,
   fmtDiaSemana,
   hojeISO,
-  diasAtrasISO,
   parseDecimal,
 } from "../lib/format";
 import type {
@@ -38,6 +37,7 @@ import { ListaComRolagem } from "../responsividade/tablet/ListaComRolagem";
 
 export function Relatorios() {
   const toast = useToast();
+  const [data, setData] = useState(hojeISO);
 
   return (
     <>
@@ -46,16 +46,25 @@ export function Relatorios() {
         subtitle="O custo de cada item que sai da sua cozinha, sem aproximação."
       />
 
-      <CmvPeriodo />
-      <CmvMensal />
+      <Card title="Data dos relatórios">
+        <div className="filters">
+          <Field label="Data" htmlFor="relatorios-data">
+            <Input id="relatorios-data" type="date" value={data} onChange={e => { if (e.target.value) setData(e.target.value); }} />
+          </Field>
+          <Button variant="outline" onClick={() => setData(hojeISO())}>Hoje</Button>
+        </div>
+        <p className="muted">CMV, desperdício e consumo correspondem ao dia escolhido. Estoque, vencimentos e reposição mostram a situação atual.</p>
+      </Card>
+      <CmvPeriodo key={data} dataReferencia={data} />
+      <CmvMensal dataReferencia={data} />
 
       <div className="grid-2">
-        <Desperdicio />
-        <ConsumoMedio />
+        <Desperdicio dataReferencia={data} />
+        <ConsumoMedio dataReferencia={data} />
       </div>
 
       <Reposicao />
-      <Pdfs toast={toast} />
+      <Pdfs toast={toast} dataReferencia={data} />
       <MetaCmv />
     </>
   );
@@ -69,12 +78,6 @@ function Section({ title, children, collapsible = false }: { title: string; chil
   );
 }
 
-function usePeriodo() {
-  const [inicio, setInicio] = useState(diasAtrasISO(30));
-  const [fim, setFim] = useState(hojeISO());
-  return { inicio, fim, setInicio, setFim };
-}
-
 const CMV_ROWS = (d: CmvResumoDTO) => [
   { label: "Estoque no início do período", value: fmtMoney(d.valorEstoqueInicial) },
   { label: "+ Compras no período", value: fmtMoney(d.valorCompras) },
@@ -83,8 +86,9 @@ const CMV_ROWS = (d: CmvResumoDTO) => [
   { label: "Receita base (informada)", value: fmtMoney(d.receitaBase ?? 0) },
 ];
 
-function CmvPeriodo() {
-  const { inicio, fim, setInicio, setFim } = usePeriodo();
+function CmvPeriodo({ dataReferencia }: { dataReferencia: string }) {
+  const inicio = dataReferencia;
+  const fim = dataReferencia;
   const [receitaBase, setReceitaBase] = useState<number | null>(null);
   const [tmpReceita, setTmpReceita] = useState("");
   const [carregandoReceita, setCarregandoReceita] = useState(true);
@@ -146,17 +150,9 @@ function CmvPeriodo() {
   const calculando = carregandoReceita || loading || (data !== null && dataAtual === null);
 
   return (
-    <Section title="CMV no período">
+    <Section title="CMV do dia">
       <div className="cmv-filters">
-        <div className="cmv-filters__dates">
-          <Field className="cmv-filter-field" label="De" htmlFor="cmv-inicio">
-            <Input id="cmv-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
-          </Field>
-          <Field className="cmv-filter-field" label="Até" htmlFor="cmv-fim">
-            <Input id="cmv-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
-          </Field>
-        </div>
-        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do período (R$)" htmlFor="cmv-receita">
+        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do dia (R$)" htmlFor="cmv-receita">
           <div className="input-group">
             <input
               id="cmv-receita"
@@ -243,8 +239,9 @@ function CmvPeriodo() {
   );
 }
 
-function CmvMensal() {
-  const { data, loading } = useFetch<CmvMensalDTO[]>("/api/relatorios/cmv/mensal");
+function CmvMensal({ dataReferencia }: { dataReferencia: string }) {
+  const inicio = `${dataReferencia.slice(0, 4)}-01-01`;
+  const { data, loading } = useFetch<CmvMensalDTO[]>(`/api/relatorios/cmv/mensal?inicio=${inicio}&fim=${dataReferencia}`);
   const bars = useMemo(
     () =>
       (data ?? []).map((d) => ({
@@ -256,7 +253,7 @@ function CmvMensal() {
   );
 
   return (
-    <Section title="CMV mês a mês">
+    <Section title="CMV mensal até a data escolhida">
       {loading ? (
         <p className="muted">Carregando…</p>
       ) : data && data.length === 0 ? (
@@ -282,8 +279,9 @@ function CmvMensal() {
   );
 }
 
-function Desperdicio() {
-  const { inicio, fim, setInicio, setFim } = usePeriodo();
+function Desperdicio({ dataReferencia }: { dataReferencia: string }) {
+  const inicio = dataReferencia;
+  const fim = dataReferencia;
   const qs = new URLSearchParams();
   qs.set("inicio", inicio);
   qs.set("fim", fim);
@@ -316,14 +314,6 @@ function Desperdicio() {
   return (
     <Section title="Desperdício">
       <div className="filters">
-        <div className="filters__dates">
-          <Field label="De" htmlFor="des-inicio">
-            <Input id="des-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
-          </Field>
-          <Field label="Até" htmlFor="des-fim">
-            <Input id="des-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
-          </Field>
-        </div>
         <p className="filters__total">
           Prejuízo: <strong className="text-bad">{fmtMoney(totalPrejuizo)}</strong>
         </p>
@@ -361,12 +351,11 @@ function Desperdicio() {
   );
 }
 
-function ConsumoMedio() {
-  const [dias, setDias] = useState(30);
+function ConsumoMedio({ dataReferencia }: { dataReferencia: string }) {
   const { data: consumo } = useFetch<ConsumoMedioDTO[]>(
-    `/api/relatorios/consumo-medio?dias=${dias}`
+    `/api/relatorios/consumo-medio?dias=1&fim=${dataReferencia}`
   );
-  const { data: diaSemana } = useFetch<ConsumoDiaSemanaDTO[]>("/api/relatorios/consumo/dia-semana");
+  const { data: diaSemana } = useFetch<ConsumoDiaSemanaDTO[]>(`/api/relatorios/consumo/dia-semana?inicio=${dataReferencia}&fim=${dataReferencia}`);
 
   const bars = useMemo(
     () =>
@@ -381,12 +370,7 @@ function ConsumoMedio() {
 
   return (
     <Section title="Consumo médio">
-      <div className="filters">
-        <Field label="Janela (dias)" htmlFor="cons-dias">
-          <Input id="cons-dias" type="number" min={1} max={365} value={dias} onChange={(e) => setDias(parseInt(e.target.value || "30", 10))} />
-        </Field>
-        <p className="muted">Média diária por produto nos últimos {dias} dias.</p>
-      </div>
+      <p className="muted">Consumo por produto no dia escolhido.</p>
       {consumo && consumo.length > 0 && (
         <>
           <h3 className="section-title">Por dia da semana</h3>
@@ -466,7 +450,7 @@ function Reposicao() {
   );
 }
 
-function Pdfs({ toast }: { toast: ReturnType<typeof useToast> }) {
+function Pdfs({ toast, dataReferencia }: { toast: ReturnType<typeof useToast>; dataReferencia: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const docs: { tipo: string; label: string }[] = [
     { tipo: "estoque-atual", label: "Estoque atual" },
@@ -481,8 +465,13 @@ function Pdfs({ toast }: { toast: ReturnType<typeof useToast> }) {
   const download = async (tipo: string, label: string) => {
     setBusy(tipo);
     try {
-      const blob = await api.blob(`/api/relatorios/pdf/${tipo}`);
-      const estampa = new Date().toISOString().slice(0, 10);
+      const qs = new URLSearchParams({ inicio: dataReferencia, fim: dataReferencia, dias: "1" });
+      if (tipo === "cmv") {
+        const receita = await api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?inicio=${dataReferencia}&fim=${dataReferencia}`);
+        if (receita.receitaBase !== null) qs.set("receitaBase", String(receita.receitaBase));
+      }
+      const blob = await api.blob(`/api/relatorios/pdf/${tipo}?${qs}`);
+      const estampa = dataReferencia;
       downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);
       toast.success(`${label} gerado em PDF`);
     } catch (e) {

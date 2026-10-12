@@ -5,6 +5,15 @@ O commit `6bdddad` registra a correção de horários; a revisão atual acrescen
 a reorganização e as correções de responsividade descritas abaixo.
 As decisões atuais prevalecem sobre descrições históricas de etapas anteriores.
 
+## 12/10/2026 — data única nos relatórios
+
+- Um único campo de data no topo, iniciado no dia local atual, com atalho Hoje.
+- CMV, receita base, desperdício e consumo usam apenas o dia selecionado.
+- Histórico mensal cobre o ano até a data selecionada, com o último mês parcial.
+- PDFs de CMV, desperdício e consumo recebem os mesmos filtros da tela; CMV inclui a receita base salva.
+- Estoque, vencimentos e reposição continuam operacionais e atuais, identificados na tela; não representam um estoque histórico.
+- Mantidos estilos, rolagem após oito itens e recolhimento apenas da reposição.
+
 ## 12/10/2026 — consumo rápido e impressão
 
 - Lista de seleção por categoria, controles −/+, atalhos e painel numérico próprio.

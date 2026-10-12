@@ -137,11 +137,16 @@ public class AlertaService {
 
     @Transactional
     public void reavaliarDiferenca(BalancoModel balanco) {
-        for (var item : balanco.getItens()) {
-            if (item.getDiferenca().signum() != 0 && item.getQuantidadeFisica() != null) {
-                gerar(TipoAlerta.DIFERENCA_ESTOQUE, item.getProduto(), null, balanco.getId());
-            }
-        }
+        // A diferença de todos os itens é avaliada no banco, sem uma inserção por produto.
+        apagarDiferencas(balanco);
+        if (repository.criarDiferencasDoBalanco(balanco.getId(), balanco.getRestauranteId()) > 0)
+            sincronizacao.registrar(balanco.getRestauranteId(), GrupoDados.ALERTAS);
+    }
+
+    @Transactional
+    public void apagarDiferencas(BalancoModel balanco) {
+        if (repository.apagarDiferencasDoBalanco(balanco.getId(), balanco.getRestauranteId()) > 0)
+            sincronizacao.registrar(balanco.getRestauranteId(), GrupoDados.ALERTAS);
     }
 
     @Transactional

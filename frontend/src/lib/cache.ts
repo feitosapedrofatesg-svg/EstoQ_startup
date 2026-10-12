@@ -5,6 +5,7 @@ type Evento = { tipo: "dados"; data: unknown } | { tipo: "invalidado" };
 const entradas = new Map<string, Entrada>();
 const ouvintes = new Map<string, Set<(evento: Evento) => void>>();
 const pendentes = new Map<string, Promise<unknown>>();
+const invalidacoesDiferidas = new Set<string>();
 const falhas = new Set<string>();
 const avisos = new Set<() => void>();
 const MAX_ENTRADAS = 200;
@@ -72,31 +73,38 @@ export function buscarCache<T>(chave: string, carregar: () => Promise<T>): Promi
   const sessao = sessaoAtual();
   falhas.delete(chave); avisarFalhas();
   const promessa = Promise.resolve().then(carregar).then(data => {
-    if (sessao !== sessaoAtual() || pendentes.get(chave) !== promessa) return undefined;
+    if (sessao !== sessaoAtual() || pendentes.get(chave) !== promessa || invalidacoesDiferidas.has(chave)) return undefined;
     gravarCache(chave, data);
     return data;
   }).catch(erro => {
     if (sessao !== sessaoAtual() || pendentes.get(chave) !== promessa) return undefined;
     if (ouvintes.has(chave)) { falhas.add(chave); avisarFalhas(); }
     throw erro;
-  }).finally(() => { if (pendentes.get(chave) === promessa) pendentes.delete(chave); });
+  }).finally(() => {
+    if (pendentes.get(chave) !== promessa) return;
+    pendentes.delete(chave);
+    if (invalidacoesDiferidas.delete(chave)) avisar(chave, { tipo: "invalidado" });
+  });
   pendentes.set(chave, promessa);
   return promessa;
 }
 
 export function limparCache(): void {
-  entradas.clear(); pendentes.clear(); ouvintes.clear(); falhas.clear(); bytes = 0;
+  entradas.clear(); pendentes.clear(); invalidacoesDiferidas.clear(); ouvintes.clear(); falhas.clear(); bytes = 0;
   avisarFalhas();
 }
 
 /** Mantém dados visíveis, mas os marca como vencidos e cancela a publicação de buscas antigas. */
-export function invalidarCache(prefixos: string[]): void {
+export function invalidarCache(prefixos: string[], aguardarPendente = false): void {
   const inicio = `${sessaoAtual()}::`;
   const chaves = new Set([...entradas.keys(), ...pendentes.keys(), ...ouvintes.keys()]);
   for (const chave of chaves) {
     if (!prefixos.some(prefixo => chave.startsWith(inicio + prefixo))) continue;
     const entrada = entradas.get(chave);
     if (entrada) entrada.ts = 0;
+    // Avisos remotos aguardam a leitura em curso e pedem uma única leitura atual depois.
+    if (aguardarPendente && pendentes.has(chave)) { invalidacoesDiferidas.add(chave); continue; }
+    invalidacoesDiferidas.delete(chave);
     pendentes.delete(chave);
     avisar(chave, { tipo: "invalidado" });
   }

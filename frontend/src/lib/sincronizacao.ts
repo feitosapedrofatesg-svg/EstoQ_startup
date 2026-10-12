@@ -20,6 +20,7 @@ export function iniciarSincronizacao(): () => void {
   let reconexao: number | undefined;
   let agrupamento: number | undefined;
   let ultimaValidacao = 0;
+  let conectou = false;
   const prefixos = new Set<string>();
   const vigente = () => !encerrado && sessao === sessaoAtual();
   const fechar = () => { fonte?.close(); fonte = null; window.clearTimeout(reconexao); };
@@ -28,7 +29,7 @@ export function iniciarSincronizacao(): () => void {
     if (agrupamento !== undefined) return;
     agrupamento = window.setTimeout(() => {
       agrupamento = undefined;
-      if (vigente()) invalidarCache([...prefixos]);
+      if (vigente()) invalidarCache([...prefixos], true);
       prefixos.clear();
     }, 250);
   };
@@ -38,7 +39,12 @@ export function iniciarSincronizacao(): () => void {
     fonte = conexao;
     const atual = () => vigente() && fonte === conexao;
     // Revalidar na conexão também recupera alterações feitas enquanto a aba estava fechada.
-    conexao.addEventListener("conectado", () => { if (atual()) agrupar(["/api/"]); });
+    conexao.addEventListener("conectado", () => {
+      if (!atual()) return;
+      // A primeira abertura já tem as consultas da tela; repetir tudo duplica o trabalho.
+      if (conectou) agrupar(["/api/"]);
+      conectou = true;
+    });
     conexao.addEventListener("alteracao", evento => {
       if (!atual()) return;
       try {

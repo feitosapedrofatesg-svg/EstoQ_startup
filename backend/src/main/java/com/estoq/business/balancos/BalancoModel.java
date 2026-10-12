@@ -63,6 +63,7 @@ public class BalancoModel extends TenantEntity {
     @OrderBy("id asc")
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<CategoriaModel> categorias = new ArrayList<>();
 
     @OneToMany(mappedBy = "balanco", cascade = CascadeType.ALL, orphanRemoval = true)

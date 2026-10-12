@@ -55,6 +55,8 @@ class SincronizacaoBalancoIntegrationTest {
                 "--server.port=0", "--spring.datasource.url=" + pg.getJdbcUrl("postgres", "postgres") + "&currentSchema=sincronizacao",
                 "--spring.datasource.username=postgres", "--spring.datasource.password=postgres",
                 "--spring.flyway.schemas=sincronizacao", "--spring.jpa.hibernate.ddl-auto=validate",
+                "--spring.jpa.properties.hibernate.generate_statistics=true",
+                "--spring.jpa.properties.hibernate.session.events.log=false",
                 "--server.servlet.session.cookie.secure=false", "--estoq.cors.origins=");
         origem = "http://localhost:" + app.getEnvironment().getProperty("local.server.port");
     }
@@ -165,6 +167,62 @@ class SincronizacaoBalancoIntegrationTest {
             assertTrue((resultadoA instanceof ItemBalancoDTO && resultadoB instanceof ConflictException)
                     || (resultadoB instanceof ItemBalancoDTO && resultadoA instanceof ConflictException));
         }
+    }
+
+    @Test void balancoCom186ProdutosNaoFazUmaConsultaPorProduto() {
+        var em = app.getBean(jakarta.persistence.EntityManager.class);
+        transacao().executeWithoutResult(status -> {
+            var categoria = app.getBean(ICategoriaRepository.class).findAllByAtivoTrue().getFirst();
+            for (int i = 0; i < 185; i++) {
+                var p = new ProdutoModel(); p.setNome("Produto de carga " + i);
+                p.setCategoria(categoria); p.setUnidadeMedida(UnidadeMedida.KG); em.persist(p);
+            }
+        });
+        var estatisticas = app.getBean(jakarta.persistence.EntityManagerFactory.class)
+                .unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        estatisticas.clear();
+        var iniciado = balancos.iniciar(criado.id(), new VersaoBalancoRequestDTO(criado.version()));
+        assertEquals(186, iniciado.itens().size());
+        assertTrue(estatisticas.getPrepareStatementCount() < 20, "Iniciar deve criar os itens e saldos em lote.");
+        estatisticas.clear();
+        balancos.listar();
+        assertTrue(estatisticas.getPrepareStatementCount() < 10, "Listar não deve consultar parâmetros por produto.");
+        transacao().executeWithoutResult(status -> em.createNativeQuery(
+                "update itens_balanco set quantidade_fisica=quantidade_sistema where balanco_id=:id and restaurante_id=:restaurante")
+                .setParameter("id", iniciado.id()).setParameter("restaurante", admin.restauranteId()).executeUpdate());
+        var atualizado = balancos.buscar(iniciado.id());
+        estatisticas.clear();
+        var concluido = balancos.confirmar(atualizado.id(), confirmacao(atualizado));
+        assertTrue(estatisticas.getPrepareStatementCount() < 20, "Concluir deve carregar os relacionamentos juntos após bloquear.");
+        estatisticas.clear();
+        balancos.gerarAjustes(concluido.id(), new VersaoBalancoRequestDTO(concluido.version()));
+        assertTrue(estatisticas.getPrepareStatementCount() < 20, "Ajustes sem diferença não devem apagar alertas por produto.");
+        var novo = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var divergente = balancos.iniciar(novo.id(), new VersaoBalancoRequestDTO(novo.version()));
+        transacao().executeWithoutResult(status -> em.createNativeQuery(
+                "update itens_balanco set quantidade_fisica=quantidade_sistema+1 where balanco_id=:id and restaurante_id=:restaurante")
+                .setParameter("id", divergente.id()).setParameter("restaurante", admin.restauranteId()).executeUpdate());
+        var conferir = balancos.buscar(divergente.id());
+        estatisticas.clear();
+        balancos.confirmar(conferir.id(), confirmacao(conferir));
+        assertTrue(estatisticas.getPrepareStatementCount() < 20, "186 diferenças devem criar seus alertas em lote.");
+        assertEquals(186, app.getBean(com.estoq.business.alertas.IAlertaRepository.class)
+                .findAllByAtivoTrueOrderByDataGeracaoDesc().stream()
+                .filter(a -> a.getTipo() == com.estoq.business.alertas.TipoAlerta.DIFERENCA_ESTOQUE).count());
+    }
+
+    @Test void retratoEmLoteRespeitaCategoriasDoBalancoParcial() {
+        var categorias = app.getBean(ICategoriaRepository.class).findAllByAtivoTrue();
+        var extra = new ProdutoDTO(); extra.setNome("Produto de outra categoria");
+        extra.setCategoriaId(categorias.get(1).getId()); extra.setUnidadeMedida(UnidadeMedida.KG);
+        app.getBean(ProdutoService.class).criar(extra);
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.PARCIAL,
+                java.util.List.of(categorias.getFirst().getId())));
+        var iniciado = balancos.iniciar(criado.id(), new VersaoBalancoRequestDTO(criado.version()));
+        assertEquals(1, iniciado.itens().size());
+        assertEquals(produtoId, iniciado.itens().getFirst().produtoId());
+        assertEquals(0, new BigDecimal("10").compareTo(iniciado.itens().getFirst().quantidadeSistema()));
     }
 
     @Test void ajustesConcorrentesGeramUmaUnicaMovimentacao() throws Exception {

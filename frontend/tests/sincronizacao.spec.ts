@@ -108,6 +108,7 @@ test("reconexão recupera dados e troca de restaurante ignora conexão antiga", 
   const estado = await preparar(page);
   await page.goto("/estoque");
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
+  await avisar(page, [], "conectado");
   estado.saldo = 4;
   await avisar(page, [], "conectado");
   await expect(page.getByRole("row").filter({ hasText: "Ingrediente do restaurante A" })).toContainText("4");
@@ -139,4 +140,24 @@ test("aba oculta fecha o canal e conexão perdida permite reconectar", async ({ 
   await expect.poll(() => page.evaluate(() => (window as any).fontesTeste.length)).toBe(antes + 1);
   await page.evaluate(() => (window as any).fontesTeste.at(-1).onerror());
   await expect.poll(() => page.evaluate(() => (window as any).fontesTeste.length)).toBe(antes + 2);
+});
+
+test("avisos durante consulta lenta aguardam uma única atualização posterior", async ({ page }) => {
+  await controlarAvisos(page); const estado = await preparar(page);
+  await page.goto("/estoque");
+  await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
+  const consultas = () => estado.consultas.filter(p => p === "/api/estoque").length;
+  const antes = consultas();
+  await avisar(page, [], "conectado");
+  await page.waitForTimeout(400);
+  expect(consultas()).toBe(antes);
+  estado.atrasarEstoqueA = true;
+  await page.getByRole("button", { name: "Atualizar", exact: true }).click();
+  await expect.poll(() => estado.pendentes.length).toBe(1);
+  for (let i = 0; i < 4; i++) { await avisar(page, ["ESTOQUE"]); await page.waitForTimeout(300); }
+  expect(consultas()).toBe(antes + 1);
+  estado.atrasarEstoqueA = false; estado.saldo = 8;
+  await estado.pendentes[0]();
+  await expect.poll(consultas).toBe(antes + 2);
+  await expect(page.getByRole("row").filter({ hasText: "Ingrediente do restaurante A" })).toContainText("8");
 });

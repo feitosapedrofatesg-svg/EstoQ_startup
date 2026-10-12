@@ -15,9 +15,9 @@ import java.util.Optional;
 
 public interface IBalancoRepository extends IGenericRepository<BalancoModel> {
 
-    @EntityGraph(attributePaths = {"itens.produto", "itens.produto.categoria", "usuario"})
+    @EntityGraph(attributePaths = {"itens.produto", "itens.produto.categoria", "itens.produto.parametro", "usuario"})
     Optional<BalancoModel> findByIdAndAtivoTrue(Long id);
-    @EntityGraph(attributePaths = {"itens", "itens.produto", "itens.produto.categoria", "usuario"})
+    @EntityGraph(attributePaths = {"itens", "itens.produto", "itens.produto.categoria", "itens.produto.parametro", "usuario"})
     List<BalancoModel> findAllByAtivoTrueOrderByDataHoraDesc();
     /** Sem joins: PostgreSQL bloqueia somente a linha do balanço, antes de ler seus itens. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

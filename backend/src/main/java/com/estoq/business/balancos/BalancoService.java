@@ -4,15 +4,10 @@ import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.business.ajustes.AjusteService;
 import com.estoq.business.alertas.AlertaService;
-import com.estoq.business.alertas.TipoAlerta;
 import com.estoq.business.auth.UsuarioAtual;
-import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
-import com.estoq.business.itensBalanco.ItemBalancoModel;
 import com.estoq.business.itensBalanco.IItemBalancoRepository;
-import com.estoq.business.produtos.EstoqueService;
-import com.estoq.business.produtos.IProdutoRepository;
 import com.estoq.core.exceptions.BusinessException;
 import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
@@ -34,11 +29,10 @@ import java.util.HashMap;
 public class BalancoService {
 
     private final DadosAlteradosService sincronizacao;
+    private final jakarta.persistence.EntityManager entityManager;
     private final IBalancoRepository repository;
     private final IItemBalancoRepository itensBalanco;
-    private final IProdutoRepository produtos;
     private final ICategoriaRepository categorias;
-    private final EstoqueService estoque;
     private final IConfiguracaoBalancoRepository configuracoes;
     private final BalancoAdapter adapter;
     private final UsuarioAtual usuarioAtual;
@@ -93,7 +87,7 @@ public class BalancoService {
     public BalancoDTO iniciar(Long id, VersaoBalancoRequestDTO dto) {
         var balanco = bloquear(id);
         conferirVersao(dto.version(), balanco.getVersion());
-        if (!balanco.getItens().isEmpty()) {
+        if (itensBalanco.existsByBalanco_Id(id)) {
             throw new ConflictException("O balanço já foi iniciado.");
         }
         if (balanco.getStatus() != StatusBalanco.PENDENTE) {
@@ -102,20 +96,12 @@ public class BalancoService {
         if (balanco.getTipo() == TipoBalanco.PARCIAL && balanco.getCategorias().isEmpty()) {
             throw new ConflictException("Balanço parcial sem categorias selecionadas.");
         }
-        var alvo = balanco.getTipo() == TipoBalanco.PARCIAL
-                ? produtos.findAllByAtivoTrueAndCategoria_IdIn(
-                        balanco.getCategorias().stream().map(CategoriaModel::getId).toList())
-                : produtos.findAllByAtivoTrue();
-        for (var produto : alvo) {
-            var item = new ItemBalancoModel();
-            item.setBalanco(balanco);
-            item.setProduto(produto);
-            item.setQuantidadeSistema(estoque.obterSaldo(produto.getId()));
-            item.setAjusteAplicado(false);
-            balanco.getItens().add(item);
-        }
         balanco.setStatus(StatusBalanco.EM_ANDAMENTO);
         repository.flush();
+        itensBalanco.criarRetrato(id, balanco.getRestauranteId());
+        // A inserção em lote não passa pela coleção gerenciada; descarte seu retrato vazio.
+        entityManager.refresh(balanco);
+        balanco = encontrar(id);
         sincronizacao.registrar(balanco);
         return adapter.toDto(balanco);
     }
@@ -142,6 +128,8 @@ public class BalancoService {
     @Transactional
     public BalancoDTO confirmar(Long id, ConfirmarBalancoRequestDTO dto) {
         var balanco = bloquear(id);
+        // Carrega os relacionamentos juntos, somente depois de adquirir o bloqueio.
+        balanco = encontrar(id);
         conferirVersao(dto.version(), balanco.getVersion());
         if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
             throw new ConflictException("Confirme apenas um balanço EM_ANDAMENTO.");
@@ -174,14 +162,16 @@ public class BalancoService {
     @Transactional
     public BalancoDTO gerarAjustes(Long id, VersaoBalancoRequestDTO dto) {
         var balanco = bloquear(id);
+        // Carrega os relacionamentos juntos, somente depois de adquirir o bloqueio.
+        balanco = encontrar(id);
         conferirVersao(dto.version(), balanco.getVersion());
         if (balanco.getStatus() != StatusBalanco.CONCLUIDO) {
             throw new ConflictException("Gere ajustes apenas em um balanço CONCLUIDO.");
         }
         for (var item : balanco.getItens()) {
             ajustes.aplicarItem(balanco, item);
-            alertas.apagarAbertos(TipoAlerta.DIFERENCA_ESTOQUE, item.getProduto().getId(), null);
         }
+        alertas.apagarDiferencas(balanco);
         repository.flush();
         sincronizacao.registrar(balanco);
         return adapter.toDto(balanco);

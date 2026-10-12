@@ -289,3 +289,12 @@ em conflito são preservados e oferecem **Recarregar contagem** antes de gravar.
 Uma conclusão remota remove a edição e avisa se havia rascunhos não salvos.
 Os testes cobrem concorrência com PostgreSQL, sessões HTTP com SSE, isolamento
 entre restaurantes, rollback, revogação e os comportamentos do navegador.
+
+O balanço carrega os parâmetros de produto junto dos itens, e as categorias são
+lidas em lotes. O início cria o retrato de quantidades com uma única inserção
+por consulta, limitada explicitamente ao restaurante do balanço bloqueado.
+Atualizações dos itens usam lotes de 50 registros. Avisos remotos recebidos
+durante uma consulta aguardam seu término e pedem uma única leitura posterior,
+sem acumular consultas simultâneas. A primeira conexão SSE aproveita as leituras
+já abertas pela tela. O teste de desempenho usa 186 produtos e limita o número
+de consultas de listagem, início, conclusão e ajustes sem diferenças.

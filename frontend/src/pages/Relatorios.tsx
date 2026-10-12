@@ -37,7 +37,9 @@ import { ListaComRolagem } from "../responsividade/tablet/ListaComRolagem";
 
 export function Relatorios() {
   const toast = useToast();
-  const [data, setData] = useState(hojeISO);
+  const [inicio, setInicio] = useState(hojeISO);
+  const [fim, setFim] = useState(hojeISO);
+  const periodo = { inicio, fim };
 
   return (
     <>
@@ -46,25 +48,16 @@ export function Relatorios() {
         subtitle="O custo de cada item que sai da sua cozinha, sem aproximação."
       />
 
-      <Card title="Data dos relatórios">
-        <div className="filters">
-          <Field label="Data" htmlFor="relatorios-data">
-            <Input id="relatorios-data" type="date" value={data} onChange={e => { if (e.target.value) setData(e.target.value); }} />
-          </Field>
-          <Button variant="outline" onClick={() => setData(hojeISO())}>Hoje</Button>
-        </div>
-        <p className="muted">CMV, desperdício e consumo correspondem ao dia escolhido. Estoque, vencimentos e reposição mostram a situação atual.</p>
-      </Card>
-      <CmvPeriodo key={data} dataReferencia={data} />
-      <CmvMensal dataReferencia={data} />
+      <CmvPeriodo key={`${inicio}|${fim}`} {...periodo} setInicio={setInicio} setFim={setFim} />
+      <CmvMensal {...periodo} />
 
       <div className="grid-2">
-        <Desperdicio dataReferencia={data} />
-        <ConsumoMedio dataReferencia={data} />
+        <Desperdicio {...periodo} />
+        <ConsumoMedio {...periodo} />
       </div>
 
       <Reposicao />
-      <Pdfs toast={toast} dataReferencia={data} />
+      <Pdfs toast={toast} {...periodo} />
       <MetaCmv />
     </>
   );
@@ -86,9 +79,14 @@ const CMV_ROWS = (d: CmvResumoDTO) => [
   { label: "Receita base (informada)", value: fmtMoney(d.receitaBase ?? 0) },
 ];
 
-function CmvPeriodo({ dataReferencia }: { dataReferencia: string }) {
-  const inicio = dataReferencia;
-  const fim = dataReferencia;
+interface PeriodoRelatorios { inicio: string; fim: string }
+
+/** Todos os blocos compartilham o mesmo intervalo, incluindo as exportações. */
+function diasPeriodo({ inicio, fim }: PeriodoRelatorios) {
+  return Math.max(1, Math.round((Date.parse(fim) - Date.parse(inicio)) / 86400000) + 1);
+}
+
+function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { setInicio: (data: string) => void; setFim: (data: string) => void }) {
   const [receitaBase, setReceitaBase] = useState<number | null>(null);
   const [tmpReceita, setTmpReceita] = useState("");
   const [carregandoReceita, setCarregandoReceita] = useState(true);
@@ -150,9 +148,17 @@ function CmvPeriodo({ dataReferencia }: { dataReferencia: string }) {
   const calculando = carregandoReceita || loading || (data !== null && dataAtual === null);
 
   return (
-    <Section title="CMV do dia">
+    <Section title="Período dos relatórios e CMV">
       <div className="cmv-filters">
-        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do dia (R$)" htmlFor="cmv-receita">
+        <div className="cmv-filters__dates">
+          <Field className="cmv-filter-field" label="De" htmlFor="relatorios-inicio">
+            <Input id="relatorios-inicio" type="date" max={fim} value={inicio} onChange={e => { if (e.target.value && e.target.value <= fim) setInicio(e.target.value); }} />
+          </Field>
+          <Field className="cmv-filter-field" label="Até" htmlFor="relatorios-fim">
+            <Input id="relatorios-fim" type="date" min={inicio} value={fim} onChange={e => { if (e.target.value && e.target.value >= inicio) setFim(e.target.value); }} />
+          </Field>
+        </div>
+        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do período (R$)" htmlFor="cmv-receita">
           <div className="input-group">
             <input
               id="cmv-receita"
@@ -239,9 +245,8 @@ function CmvPeriodo({ dataReferencia }: { dataReferencia: string }) {
   );
 }
 
-function CmvMensal({ dataReferencia }: { dataReferencia: string }) {
-  const inicio = `${dataReferencia.slice(0, 4)}-01-01`;
-  const { data, loading } = useFetch<CmvMensalDTO[]>(`/api/relatorios/cmv/mensal?inicio=${inicio}&fim=${dataReferencia}`);
+function CmvMensal({ inicio, fim }: PeriodoRelatorios) {
+  const { data, loading } = useFetch<CmvMensalDTO[]>(`/api/relatorios/cmv/mensal?inicio=${inicio}&fim=${fim}`);
   const bars = useMemo(
     () =>
       (data ?? []).map((d) => ({
@@ -253,7 +258,7 @@ function CmvMensal({ dataReferencia }: { dataReferencia: string }) {
   );
 
   return (
-    <Section title="CMV mensal até a data escolhida">
+    <Section title="CMV mês a mês no período">
       {loading ? (
         <p className="muted">Carregando…</p>
       ) : data && data.length === 0 ? (
@@ -279,9 +284,7 @@ function CmvMensal({ dataReferencia }: { dataReferencia: string }) {
   );
 }
 
-function Desperdicio({ dataReferencia }: { dataReferencia: string }) {
-  const inicio = dataReferencia;
-  const fim = dataReferencia;
+function Desperdicio({ inicio, fim }: PeriodoRelatorios) {
   const qs = new URLSearchParams();
   qs.set("inicio", inicio);
   qs.set("fim", fim);
@@ -351,11 +354,12 @@ function Desperdicio({ dataReferencia }: { dataReferencia: string }) {
   );
 }
 
-function ConsumoMedio({ dataReferencia }: { dataReferencia: string }) {
+function ConsumoMedio({ inicio, fim }: PeriodoRelatorios) {
+  const dias = diasPeriodo({ inicio, fim });
   const { data: consumo } = useFetch<ConsumoMedioDTO[]>(
-    `/api/relatorios/consumo-medio?dias=1&fim=${dataReferencia}`
+    `/api/relatorios/consumo-medio?dias=${dias}&fim=${fim}`
   );
-  const { data: diaSemana } = useFetch<ConsumoDiaSemanaDTO[]>(`/api/relatorios/consumo/dia-semana?inicio=${dataReferencia}&fim=${dataReferencia}`);
+  const { data: diaSemana } = useFetch<ConsumoDiaSemanaDTO[]>(`/api/relatorios/consumo/dia-semana?inicio=${inicio}&fim=${fim}`);
 
   const bars = useMemo(
     () =>
@@ -370,7 +374,7 @@ function ConsumoMedio({ dataReferencia }: { dataReferencia: string }) {
 
   return (
     <Section title="Consumo médio">
-      <p className="muted">Consumo por produto no dia escolhido.</p>
+      <p className="muted">Média diária por produto nos {dias} dias do período selecionado.</p>
       {consumo && consumo.length > 0 && (
         <>
           <h3 className="section-title">Por dia da semana</h3>
@@ -450,7 +454,7 @@ function Reposicao() {
   );
 }
 
-function Pdfs({ toast, dataReferencia }: { toast: ReturnType<typeof useToast>; dataReferencia: string }) {
+function Pdfs({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<typeof useToast> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const docs: { tipo: string; label: string }[] = [
     { tipo: "estoque-atual", label: "Estoque atual" },
@@ -465,13 +469,13 @@ function Pdfs({ toast, dataReferencia }: { toast: ReturnType<typeof useToast>; d
   const download = async (tipo: string, label: string) => {
     setBusy(tipo);
     try {
-      const qs = new URLSearchParams({ inicio: dataReferencia, fim: dataReferencia, dias: "1" });
+      const qs = new URLSearchParams({ inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
       if (tipo === "cmv") {
-        const receita = await api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?inicio=${dataReferencia}&fim=${dataReferencia}`);
+        const receita = await api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?inicio=${inicio}&fim=${fim}`);
         if (receita.receitaBase !== null) qs.set("receitaBase", String(receita.receitaBase));
       }
       const blob = await api.blob(`/api/relatorios/pdf/${tipo}?${qs}`);
-      const estampa = dataReferencia;
+      const estampa = `${inicio}-a-${fim}`;
       downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);
       toast.success(`${label} gerado em PDF`);
     } catch (e) {
@@ -483,6 +487,7 @@ function Pdfs({ toast, dataReferencia }: { toast: ReturnType<typeof useToast>; d
 
   return (
     <Section title="Exportar em PDF">
+      <p className="muted">CMV, desperdício e consumo usam o período acima. Estoque, vencimentos e reposição mostram a situação atual.</p>
       <div className="pdf-grid">
         {docs.map((d) => (
           <Button

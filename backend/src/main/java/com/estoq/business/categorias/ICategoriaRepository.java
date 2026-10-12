@@ -1,6 +1,7 @@
 package com.estoq.business.categorias;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.estoq.core.repositories.IGenericRepository;
 

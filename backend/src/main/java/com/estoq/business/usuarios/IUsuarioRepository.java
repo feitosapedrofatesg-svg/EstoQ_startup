@@ -2,6 +2,7 @@ package com.estoq.business.usuarios;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.estoq.core.repositories.IGenericRepository;
 

@@ -15,6 +15,7 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 | [Resumo do sistema](RESUMO_SESSAO_BACKEND.md) | Arquitetura, módulos, regras, execução local e validação. |
 | [API](API_ENDPOINTS.md) | Rotas, perfis, versões de balanço, autenticação e formatos. |
 | [Notas fiscais](IMPORTACAO_NOTAS_FISCAIS.md) | XML, PDF, fotos, categorias e confirmação de entrada. |
+| [Relatórios impressos](RELATORIOS_IMPRESSOS.md) | Layout de PDF, impressão de consumo e limites de paginação. |
 | [Consumo rápido](CONSUMO_RAPIDO.md) | Seleção por toque, confirmação conjunta e impressão. |
 | [Cache e sincronização](CACHE_E_SINCRONIZACAO.md) | Prazos, SSE, conflitos, rascunhos e desempenho. |
 | [Backup](BACKUP_E_RESTAURACAO.md) | Backup completo exclusivo da PLATAFORMA e restauração. |

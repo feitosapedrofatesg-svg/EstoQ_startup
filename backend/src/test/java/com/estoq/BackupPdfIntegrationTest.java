@@ -92,6 +92,20 @@ class BackupPdfIntegrationTest {
     }
 
     @Test
+    void todosOsTiposMantemFormatoPdfEPeriodo() throws Exception {
+        for (var tipo : List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "desperdicio", "consumo-medio", "cmv", "cmv-mensal", "reposicao-sugerida")) {
+            var bytes = pdfs.gerar(tipo, LocalDate.now().minusDays(7), LocalDate.now(), 8, new BigDecimal("1000"));
+            try (var documento = org.apache.pdfbox.Loader.loadPDF(bytes)) {
+                var texto = new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
+                assertTrue(texto.contains("EstoQ"), tipo);
+                assertTrue(texto.contains("Emissão:"), tipo);
+                assertTrue(texto.contains("Página 1 de"), tipo);
+                assertTrue(texto.contains("Posição atual") || texto.contains("Período:"), tipo);
+            }
+        }
+    }
+
+    @Test
     void rejeitaTipoDesconhecido() {
         assertThrows(BusinessException.class, () -> pdfs.gerar("inexistente", LocalDate.now(), LocalDate.now(), 30, null));
     }

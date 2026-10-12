@@ -5,6 +5,15 @@ O commit `6bdddad` registra a correção de horários; a revisão atual acrescen
 a reorganização e as correções de responsividade descritas abaixo.
 As decisões atuais prevalecem sobre descrições históricas de etapas anteriores.
 
+## 12/10/2026 — layout dos relatórios impressos
+
+- Tabelas reais no PDFBox, com larguras medidas e quebra de texto sem truncamento.
+- A4 retrato/paisagem, cabeçalhos repetidos, emissão, página X de Y e números alinhados.
+- Nove tipos de PDF com formatação brasileira, unidades e resumo de CMV já calculado.
+- Impressão de consumo com cabeçalho, metadados, legenda de conferência e fechamento.
+- Estilos exclusivos da saída impressa; cálculos, filtros e telas normais preservados.
+- Testes de limites de página, conteúdo extenso, filtros e geração de todos os tipos.
+
 ## 12/10/2026 — período único nos relatórios
 
 - Campos De e Até compartilhados, iniciados no dia local atual, e receita base do período.

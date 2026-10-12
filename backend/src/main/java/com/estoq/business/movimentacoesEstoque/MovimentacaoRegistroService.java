@@ -61,4 +61,15 @@ public class MovimentacaoRegistroService {
                         .thenComparing(MovimentacaoEstoqueModel::getId).reversed())
                 .map(adapter::toDto).toList();
     }
+
+    /** Um flush e um aviso por grupo, sem recalcular saldos para cada produto. */
+    public void concluirVarios(List<? extends MovimentacaoEstoqueModel> movs) {
+        entityManager.flush();
+        events.publishEvent(new EstoqueVariosAlteradosEvent(movs.stream().map(m -> m.getProduto().getId()).distinct().toList()));
+        sincronizacao.registrarAtual(GrupoDados.ESTOQUE);
+    }
+
+    public List<MovimentacaoDTO> adaptar(List<? extends MovimentacaoEstoqueModel> movs) {
+        return movs.stream().map(adapter::toDto).toList();
+    }
 }

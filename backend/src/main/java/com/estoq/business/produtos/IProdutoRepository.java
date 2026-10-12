@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IProdutoRepository extends IGenericRepository<ProdutoModel> {
+    @EntityGraph(attributePaths = {"categoria", "parametro"})
+    List<ProdutoModel> findAllByAtivoTrueAndIdIn(List<Long> ids);
 
     @EntityGraph(attributePaths = {"categoria", "parametro"})
     @Query("select p from ProdutoModel p where p.ativo=true and "

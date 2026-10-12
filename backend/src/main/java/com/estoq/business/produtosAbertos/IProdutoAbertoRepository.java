@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IProdutoAbertoRepository extends IGenericRepository<ProdutoAbertoModel> {
+    @Query("select a from ProdutoAbertoModel a where a.lote.id in :ids and a.ativo=true and a.finalizado=false "
+            + "order by a.dataAbertura, a.id")
+    List<ProdutoAbertoModel> findParaBaixaEmLote(List<Long> ids);
 
     @EntityGraph(attributePaths = {"lote", "lote.produto", "usuario"})
     Optional<ProdutoAbertoModel> findByIdAndAtivoTrue(Long id);

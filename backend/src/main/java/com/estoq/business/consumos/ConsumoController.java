@@ -17,6 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConsumoController {
 
     private final ConsumoService service;
+    private final ConsumoLoteService loteService;
+
+    @PostMapping("/lote")
+    public ConsumoLoteResultadoDTO registrarLote(@Valid @RequestBody ConsumoLoteRequestDTO d) {
+        return loteService.registrar(d);
+    }
 
     @PostMapping
     public MovimentacaoResultadoDTO registrar(@Valid @RequestBody ConsumoRequestDTO d) {

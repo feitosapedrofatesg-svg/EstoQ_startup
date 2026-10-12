@@ -52,14 +52,30 @@ public class AlertaService {
         if (produto == null) {
             return;
         }
+        avaliarProduto(produto, estoque.obterSaldo(produto.getId()), loteRepository.listarEstoque());
+    }
+
+    /** A confirmação conjunta não precisa percorrer todo o estoque para cada item. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void reavaliarProdutos(com.estoq.business.movimentacoesEstoque.EstoqueVariosAlteradosEvent evento) {
+        var saldos = estoque.posicoes();
+        var lotesDosProdutos = loteRepository.findParaConsumoEmLote(evento.produtoIds());
+        for (var produto : produtos.findAllByAtivoTrueAndIdIn(evento.produtoIds())) {
+            var posicao = saldos.get(produto.getId());
+            avaliarProduto(produto, posicao == null ? java.math.BigDecimal.ZERO : posicao.getSaldo(), lotesDosProdutos);
+        }
+    }
+
+    private void avaliarProduto(com.estoq.business.produtos.ProdutoModel produto, java.math.BigDecimal saldo,
+            java.util.List<com.estoq.business.lotes.LoteModel> lotesDoEstoque) {
         var parametro = produto.getParametro();
-        var saldo = estoque.obterSaldo(produto.getId());
         if (parametro != null && saldo.compareTo(parametro.getEstoqueMinimo()) < 0) {
             gerar(TipoAlerta.ESTOQUE_BAIXO, produto, null, parametro.getEstoqueMinimo());
         } else {
             apagarAbertos(TipoAlerta.ESTOQUE_BAIXO, produto.getId(), null);
         }
-        for (var lote : loteRepository.listarEstoque()) {
+        for (var lote : lotesDoEstoque) {
             if (!produto.getId().equals(lote.getProduto().getId())) {
                 continue;
             }

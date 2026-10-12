@@ -85,7 +85,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("6", flyway.info().current().getVersion().toString());
+            assertEquals("7", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -117,7 +117,7 @@ class MigracaoProdValidacaoTest {
                 + "(2,'Organização própria',true,now(),0),(3,'Sem classificação',true,now(),0),(4,'Antiga',false,now(),0)");
         }
         var atual=Flyway.configure().dataSource(jdbcUrl,"postgres","postgres")
-            .schemas("categorias_auto").locations("classpath:db/migration").load();
+            .schemas("categorias_auto").locations("classpath:db/migration").target("6").load();
         assertEquals(1,atual.migrate().migrationsExecuted);
         assertEquals(0,atual.migrate().migrationsExecuted);
         try(var conn=DriverManager.getConnection(jdbcUrl);var st=conn.createStatement()) {
@@ -196,7 +196,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(6, resultado.migrationsExecuted, "V1 até V6 devem executar no banco legado");
+        assertEquals(7, resultado.migrationsExecuted, "V1 até V7 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {
@@ -227,7 +227,11 @@ class MigracaoProdValidacaoTest {
             try (ResultSet rs = st.executeQuery("select count(*) from pg_constraint "
                     + "where contype = 'f' and confrelid = 'restaurantes'::regclass")) {
                 rs.next();
-                assertEquals(21, rs.getInt(1));
+                assertEquals(22, rs.getInt(1));
+            }
+            try (ResultSet rs = st.executeQuery("select conname from pg_constraint "
+                    + "where conrelid = 'operacoes_consumo'::regclass and contype = 'u'")) {
+                assertEquals(List.of("uk_operacao_consumo"), coletar(rs));
             }
             try (ResultSet rs = st.executeQuery("insert into restaurantes (nome, ativo, data_hora_criacao, version) "
                     + "values ('Loja Nova', true, now(), 0) returning id")) {

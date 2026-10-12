@@ -39,13 +39,18 @@ public class BaixaLoteService {
 
     @Transactional
     public List<Parcela> baixar(LoteModel lote, BigDecimal quantidade) {
+        return baixar(lote, quantidade, abertos.findByLote_IdAndAtivoTrueAndFinalizadoFalseOrderByDataAberturaAscIdAsc(lote.getId()));
+    }
+
+    /** A confirmação conjunta já carrega as embalagens de todos os lotes de uma vez. */
+    public List<Parcela> baixar(LoteModel lote, BigDecimal quantidade, List<ProdutoAbertoModel> embalagens) {
         validarQuantidade(quantidade);
         if (quantidade.compareTo(lote.getQuantidadeAtual()) > 0) {
             throw new ConflictException("Estoque insuficiente no lote.");
         }
         var parcelas = new ArrayList<Parcela>();
         var restante = quantidade;
-        for (var aberto : abertos.findByLote_IdAndAtivoTrueAndFinalizadoFalseOrderByDataAberturaAscIdAsc(lote.getId())) {
+        for (var aberto : embalagens) {
             if (restante.signum() == 0) {
                 break;
             }

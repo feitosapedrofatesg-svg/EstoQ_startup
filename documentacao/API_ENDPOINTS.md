@@ -1,7 +1,7 @@
 # Contrato de API do EstoQ
 
 Revisão: **12/10/2026**, conferida nos controllers, DTOs e `SecurityConfig` até
-`6bdddad`. Base local: `http://localhost:8083`; no site, use caminhos relativos
+as entregas de consumo conjunto desta revisão. Base local: `http://localhost:8083`; no site, use caminhos relativos
 `/api` pelo proxy da Vercel. A autorização efetiva está no backend.
 
 ## Autenticação e formatos
@@ -86,6 +86,7 @@ operar sobre o lote selecionado para detectar alterações concorrentes.
 | GET | `/api/movimentacoes` | ADMIN/COZINHA; `produtoId, loteId, usuarioId, tipo, inicio, fim`. Mais recentes primeiro. |
 | POST | `/api/entradas` | ADMIN; `{produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade?, observacao?, semCusto?}`. |
 | POST | `/api/consumos` | ADMIN/COZINHA; `{produtoId, loteId?, quantidade, versionLote?, observacao?}`. |
+| POST | `/api/consumos/lote` | ADMIN/COZINHA; `{chave: UUID, itens: [{produtoId, loteId?, quantidade, versionLote?, observacao?}]}`. |
 | POST | `/api/desperdicios` | ADMIN/COZINHA; `{produtoId, loteId?, quantidade, motivo, descricaoMotivo?, versionLote?, observacao?}`. |
 | GET | `/api/produtos-abertos` | ADMIN/COZINHA; `produtoId, finalizado`. Última movimentação/abertura mais recente primeiro. |
 | GET | `/api/produtos-abertos/{id}` | ADMIN/COZINHA. |
@@ -101,6 +102,26 @@ Respostas de registro usam `MovimentacaoResultadoDTO`: produto, saldo e moviment
 com quantidades anterior/posterior, delta e horário. Entrada gratuita exige
 `semCusto=true`; essa flag não aceita valor pago positivo. Validade é opcional.
 Déficit de balanço aplicado aparece como desperdício sem duplicar o movimento.
+
+### Confirmação conjunta de consumo
+
+O novo endpoint recebe de 1 a 500 produtos, sem produto repetido. Quantidades
+positivas aceitam até três casas decimais. Todos os itens são gravados na mesma
+transação: saldo insuficiente, lote inválido ou conflito desfazem a confirmação
+inteira. A mensagem identifica o produto que precisa de revisão.
+
+A resposta é `{estoque: EstoqueDTO[], movimentacoes: MovimentacaoDTO[]}`. Cada
+movimentação também expõe `unidadeMedida`, inclusive na consulta do histórico;
+essa adição permite imprimir quantidades sem presumir uma unidade.
+
+A chave UUID pertence ao restaurante da sessão e fica persistida pela migração
+V7. Reenviar a mesma chave e os mesmos itens recupera a resposta original, sem
+uma nova baixa. Reutilizar a chave com conteúdo diferente retorna 409. O cliente
+mantém a chave e o retrato dos itens quando não recebe uma resposta conclusiva.
+Cada nova confirmação independente recebe uma chave nova.
+
+O endpoint individual continua disponível. A impressão é feita no navegador,
+sem outro endpoint de PDF e sem gravar consumo.
 
 ## Balanços e versões obrigatórias
 

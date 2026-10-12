@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ILoteRepository extends IGenericRepository<LoteModel> {
+        @Query("select l from LoteModel l join fetch l.produto p where p.id in :ids and l.ativo=true "
+                + "and l.quantidadeAtual>0 order by l.dataValidade asc nulls last, l.dataEntrada, l.id")
+        List<LoteModel> findParaConsumoEmLote(List<Long> ids);
 
         // Uma consulta obtém os dois cortes no mesmo retrato do banco, incluindo lotes desativados.
         @Query("select l.quantidadeAtual as atual, l.precoUnitario as preco, "

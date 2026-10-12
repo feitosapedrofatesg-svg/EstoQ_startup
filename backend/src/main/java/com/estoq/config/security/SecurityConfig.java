@@ -100,7 +100,7 @@ public class SecurityConfig {
                                                                 "/api/balancos/**", "/api/movimentacoes/**",
                                                                 "/api/alertas/**")
                                                 .hasAnyRole("ADMIN", "COZINHA")
-                                                .requestMatchers(HttpMethod.POST, "/api/consumos", "/api/desperdicios",
+                                                .requestMatchers(HttpMethod.POST, "/api/consumos", "/api/consumos/lote", "/api/desperdicios",
                                                                 "/api/produtos-abertos/abrir",
                                                                 "/api/produtos-abertos/*/consumir",
                                                                 "/api/produtos-abertos/*/desperdicar",

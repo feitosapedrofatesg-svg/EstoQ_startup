@@ -3,6 +3,10 @@ package com.estoq;
 import com.estoq.business.auth.UsuarioPrincipal;
 import com.estoq.business.balancos.*;
 import com.estoq.business.categorias.ICategoriaRepository;
+import com.estoq.business.consumos.*;
+import com.estoq.business.produtosAbertos.*;
+import java.util.List;
+import java.util.UUID;
 import com.estoq.business.entradas.*;
 import com.estoq.business.lotes.ILoteRepository;
 import com.estoq.business.movimentacoesEstoque.IMovimentacaoEstoqueRepository;
@@ -220,7 +224,7 @@ class SincronizacaoBalancoIntegrationTest {
         extra.setCategoriaId(categorias.get(1).getId()); extra.setUnidadeMedida(UnidadeMedida.KG);
         app.getBean(ProdutoService.class).criar(extra);
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.PARCIAL,
-                java.util.List.of(categorias.getFirst().getId())));
+                List.of(categorias.getFirst().getId())));
         var iniciado = balancos.iniciar(criado.id(), new VersaoBalancoRequestDTO(criado.version()));
         assertEquals(1, iniciado.itens().size());
         assertEquals(produtoId, iniciado.itens().getFirst().produtoId());
@@ -250,6 +254,77 @@ class SincronizacaoBalancoIntegrationTest {
         var cliente = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).connectTimeout(Duration.ofSeconds(5)).build();
         var resposta = post(cliente, "/api/auth/login", "{\"email\":\"" + p.email() + "\",\"senha\":\"" + SENHA + "\"}");
         assertEquals(200, resposta.statusCode()); return cliente;
+    }
+
+    @Test void consumoConjuntoReverteTodosOsItensQuandoUmSaldoInsuficiente() {
+        var extra = new ProdutoDTO(); extra.setNome("Produto sem saldo"); extra.setUnidadeMedida(UnidadeMedida.UN);
+        extra.setCategoriaId(app.getBean(ICategoriaRepository.class).findAllByAtivoTrue().getFirst().getId());
+        var idExtra = app.getBean(ProdutoService.class).criar(extra).getId();
+        var pedido = new ConsumoLoteRequestDTO(UUID.randomUUID(), List.of(
+                new ConsumoRequestDTO(produtoId, null, BigDecimal.ONE, null, null),
+                new ConsumoRequestDTO(idExtra, null, BigDecimal.ONE, null, null)));
+        var erro = assertThrows(ConflictException.class, () -> app.getBean(ConsumoLoteService.class).registrar(pedido));
+        assertTrue(erro.getMessage().contains("Produto sem saldo"));
+        assertEquals(0, BigDecimal.TEN.compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+        assertEquals(0, app.getBean(IMovimentacaoEstoqueRepository.class).findAll().stream().filter(m -> m.getTipo() == TipoMovimentacao.CONSUMO).count());
+        assertEquals(0, app.getBean(IOperacaoConsumoRepository.class).count());
+    }
+
+    @Test void cozinhaRegistraConjuntoViaHttpEReenvioNaoDuplica() throws Exception {
+        var cliente = login(cozinha);
+        var chave = UUID.randomUUID();
+        String pedido = "{\"chave\":\"" + chave + "\",\"itens\":[{\"produtoId\":" + produtoId + ",\"quantidade\":0.125}]}";
+        var primeira = post(cliente, "/api/consumos/lote", pedido);
+        assertEquals(200, primeira.statusCode(), primeira.body());
+        assertTrue(primeira.body().contains("\"unidadeMedida\":\"KG\""));
+        var repetida = post(cliente, "/api/consumos/lote", pedido);
+        assertEquals(200, repetida.statusCode()); assertEquals(primeira.body(), repetida.body());
+        assertEquals(0, new BigDecimal("9.875").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+        assertEquals(409, post(cliente, "/api/consumos/lote", pedido.replace("0.125", "0.250")).statusCode());
+        assertEquals(400, post(cliente, "/api/consumos/lote", pedido.replace("0.125", "0")).statusCode());
+    }
+
+    @Test void confirmacoesConjuntasConcorrentesBaixamUmaVez() throws Exception {
+        var pedido = new ConsumoLoteRequestDTO(UUID.randomUUID(), List.of(
+                new ConsumoRequestDTO(produtoId, null, BigDecimal.ONE, null, null)));
+        var service = app.getBean(ConsumoLoteService.class);
+        var largada = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var a = executor.submit(executar(cozinha, () -> { aguardar(largada); return service.registrar(pedido); }));
+            var b = executor.submit(executar(cozinha, () -> { aguardar(largada); return service.registrar(pedido); }));
+            largada.countDown();
+            assertEquals(a.get(10, TimeUnit.SECONDS), b.get(10, TimeUnit.SECONDS));
+        }
+        assertEquals(0, new BigDecimal("9").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+        assertEquals(1, app.getBean(IOperacaoConsumoRepository.class).count());
+    }
+
+    @Test void consumoConjuntoMantemEmbalagensCoerentesERejeitaLoteVencido() {
+        var lote = app.getBean(ILoteRepository.class).findParaConsumoEmLote(List.of(produtoId)).getFirst();
+        var embalagem = app.getBean(ProdutoAbertoService.class).abrirEmbalagem(
+                new AbrirProdutoRequestDTO(produtoId, lote.getId(), new BigDecimal("2"), BigDecimal.ZERO, lote.getVersion(), null));
+        var service = app.getBean(ConsumoLoteService.class);
+        service.registrar(new ConsumoLoteRequestDTO(UUID.randomUUID(), List.of(
+                new ConsumoRequestDTO(produtoId, null, new BigDecimal("3"), null, null))));
+        assertTrue(app.getBean(ProdutoAbertoService.class).buscar(embalagem.id()).finalizado());
+        assertEquals(0, new BigDecimal("7").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+        transacao().executeWithoutResult(s -> app.getBean(ILoteRepository.class).findById(lote.getId()).orElseThrow().setDataValidade(LocalDate.now().minusDays(1)));
+        assertThrows(ConflictException.class, () -> service.registrar(new ConsumoLoteRequestDTO(UUID.randomUUID(), List.of(
+                new ConsumoRequestDTO(produtoId, lote.getId(), BigDecimal.ONE, null, null)))));
+        assertEquals(0, new BigDecimal("7").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+    }
+
+    @Test void chaveDeConsumoNaoVazaRespostaEntreRestaurantes() {
+        var chave = UUID.randomUUID();
+        var service = app.getBean(ConsumoLoteService.class);
+        service.registrar(new ConsumoLoteRequestDTO(chave, List.of(
+                new ConsumoRequestDTO(produtoId, null, BigDecimal.ONE, null, null))));
+        var outro = restaurante("consumoIsolado"); autenticar(outro);
+        assertThrows(BaseException.class, () -> service.registrar(new ConsumoLoteRequestDTO(chave, List.of(
+                new ConsumoRequestDTO(produtoId, null, BigDecimal.ONE, null, null)))));
+        assertEquals(0, app.getBean(IOperacaoConsumoRepository.class).count());
+        autenticar(admin);
+        assertEquals(0, new BigDecimal("9").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
     }
 
     HttpResponse<String> post(HttpClient cliente, String path, String json) throws Exception {

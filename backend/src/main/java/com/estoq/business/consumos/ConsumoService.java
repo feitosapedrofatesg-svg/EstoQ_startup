@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.math.BigDecimal;
+import com.estoq.business.usuarios.UsuarioModel;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,14 @@ public class ConsumoService {
         List<LoteModel> candidatos = d.loteId() == null
                 ? repository.findDisponiveisBaixa(d.produtoId(), LocalDate.now())
                 : List.of(lotes.encontrar(d.loteId()));
+        var movs = baixarConsumo(d, candidatos, usuarioAtual.obter(), baixa::baixar);
+        return registros.concluir(d.produtoId(), movs);
+    }
+
+    /** Mesma regra para o consumo individual e conjunto; o chamador controla a transação. */
+    List<ConsumoModel> baixarConsumo(ConsumoRequestDTO d, List<LoteModel> candidatos, UsuarioModel usuario,
+            BiFunction<LoteModel, BigDecimal, List<BaixaLoteService.Parcela>> baixar) {
+        baixa.validarQuantidade(d.quantidade());
         var disponivel = candidatos.stream().map(LoteModel::getQuantidadeAtual)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
         if (d.quantidade().compareTo(disponivel) > 0) {
@@ -45,7 +56,6 @@ public class ConsumoService {
                     + disponivel.stripTrailingZeros().toPlainString() + ", solicitado: "
                     + d.quantidade().stripTrailingZeros().toPlainString() + ".");
         }
-        var usuario = usuarioAtual.obter();
         var restante = d.quantidade();
         var movs = new ArrayList<ConsumoModel>();
         for (var lote : candidatos) {
@@ -60,7 +70,7 @@ public class ConsumoService {
             }
             baixa.conferirVersao(lote, d.versionLote());
             var qtd = restante.min(lote.getQuantidadeAtual());
-            for (var parcela : baixa.baixar(lote, qtd)) {
+            for (var parcela : baixar.apply(lote, qtd)) {
                 var c = new ConsumoModel();
                 c.registrar(lote, usuario, parcela.quantidade(), parcela.anterior(), parcela.posterior(),
                         d.observacao(), parcela.aberto());
@@ -72,6 +82,6 @@ public class ConsumoService {
         if (restante.signum() > 0) {
             throw new ConflictException("Estoque disponível insuficiente para o consumo solicitado.");
         }
-        return registros.concluir(d.produtoId(), movs);
+        return movs;
     }
 }

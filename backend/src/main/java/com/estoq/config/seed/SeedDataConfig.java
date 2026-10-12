@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /** Dados mínimos de desenvolvimento. Alterar as senhas padrão antes de qualquer uso real. */
 @Configuration
@@ -49,7 +50,7 @@ public class SeedDataConfig {
             if (parametroCmv.findFirstByAtivoTrueOrderByIdDesc().isEmpty()) {
                 var cmv = new ParametroCmvModel();
                 cmv.setPercentualIdeal(new BigDecimal("30.00"));
-                cmv.setDataAtualizacao(LocalDateTime.now());
+                cmv.setDataAtualizacao(LocalDateTime.now(ZoneOffset.UTC));
                 cmv.setRestauranteId(tenant);
                 parametroCmv.saveAndFlush(cmv);
             }

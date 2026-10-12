@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.HashMap;
@@ -65,7 +66,7 @@ public class BalancoService {
     @Transactional
     public BalancoDTO criar(CriarBalancoRequestDTO dto) {
         var balanco = new BalancoModel();
-        balanco.setDataHora(LocalDateTime.now());
+        balanco.setDataHora(LocalDateTime.now(ZoneOffset.UTC));
         balanco.setTipo(dto.tipo() == null ? TipoBalanco.GERAL : dto.tipo());
         balanco.setStatus(StatusBalanco.PENDENTE);
         balanco.setUsuario(usuarioAtual.obter());

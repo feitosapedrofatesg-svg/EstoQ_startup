@@ -25,7 +25,8 @@ public interface IAlertaRepository extends IGenericRepository<AlertaModel> {
     @Query(value = """
             insert into alertas (restaurante_id, ativo, visualizado, data_geracao, data_hora_criacao,
                 version, produto_id, perfil_destino, tipo, mensagem)
-            select i.restaurante_id, true, false, current_timestamp, current_timestamp, 0, i.produto_id,
+            select i.restaurante_id, true, false, (current_timestamp at time zone 'UTC'),
+                (current_timestamp at time zone 'UTC'), 0, i.produto_id,
                 'ADMIN', 'DIFERENCA_ESTOQUE',
                 concat('Diferença apurada no balanço #', cast(:balancoId as varchar), ': ', p.nome, '.')
             from itens_balanco i join produtos p on p.id=i.produto_id and p.restaurante_id=i.restaurante_id

@@ -17,7 +17,7 @@ public interface IItemBalancoRepository extends IGenericRepository<ItemBalancoMo
     @Query(value = """
             insert into itens_balanco (restaurante_id, data_hora_criacao, version, ativo,
                 balanco_id, produto_id, quantidade_sistema, ajuste_aplicado)
-            select b.restaurante_id, current_timestamp, 0, true, b.id, p.id,
+            select b.restaurante_id, (current_timestamp at time zone 'UTC'), 0, true, b.id, p.id,
                 coalesce(sum(l.quantidade_atual), 0), false
             from balancos b
             join produtos p on p.restaurante_id = b.restaurante_id and p.ativo = true

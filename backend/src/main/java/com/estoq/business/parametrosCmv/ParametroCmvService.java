@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ public class ParametroCmvService {
         }
         var novo = new ParametroCmvModel();
         novo.setPercentualIdeal(dto.percentualIdeal().setScale(2));
-        novo.setDataAtualizacao(LocalDateTime.now());
+        novo.setDataAtualizacao(LocalDateTime.now(ZoneOffset.UTC));
         repository.saveAndFlush(novo);
         sincronizacao.registrar(novo);
         return new ParametroCmvDTO(novo.getId(), novo.getVersion(), novo.getPercentualIdeal());

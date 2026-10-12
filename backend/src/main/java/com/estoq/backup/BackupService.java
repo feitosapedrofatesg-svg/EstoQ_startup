@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -44,7 +45,7 @@ public class BackupService {
         Process execucao = null;
         try {
             Files.createDirectories(config.diretorio());
-            var nome = "estoq-" + LocalDateTime.now().format(NOME) + "-" + UUID.randomUUID() + ".dump";
+            var nome = "estoq-" + LocalDateTime.now(ZoneOffset.UTC).format(NOME) + "-" + UUID.randomUUID() + ".dump";
             var arquivo = config.diretorio().resolve(nome);
             parcial = config.diretorio().resolve(nome + ".partial");
             var comando = new java.util.ArrayList<String>(List.of("pg_dump",

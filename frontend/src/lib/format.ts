@@ -36,7 +36,10 @@ export function fmtDate(iso: string | null | undefined): string {
 
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso);
+  // O servidor grava em UTC, mas os campos LocalDateTime chegam sem fuso.
+  // Preserve offsets explícitos e identifique os horários antigos como UTC.
+  const temFuso = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(iso);
+  const d = new Date(temFuso ? iso : `${iso}Z`);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("pt-BR", {
     day: "2-digit",

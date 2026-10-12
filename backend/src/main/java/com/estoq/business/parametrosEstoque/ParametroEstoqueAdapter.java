@@ -5,6 +5,7 @@ import com.estoq.core.helpers.IGenericAdapter;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Component
 public class ParametroEstoqueAdapter implements IGenericAdapter<ParametroEstoqueModel, ParametroEstoqueDTO> {
@@ -25,7 +26,7 @@ public class ParametroEstoqueAdapter implements IGenericAdapter<ParametroEstoque
         p.setEstoqueMedio(d.getEstoqueMedio());
         p.setEstoqueMaximo(d.getEstoqueMaximo());
         p.setDiasAlertaVencimento(d.getDiasAlertaVencimento());
-        p.setDataAtualizacao(LocalDateTime.now());
+        p.setDataAtualizacao(LocalDateTime.now(ZoneOffset.UTC));
     }
 
     @Override

@@ -27,6 +27,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -93,7 +94,7 @@ public class AlertaService {
             alerta.setTipo(TipoAlerta.BALANCO_PENDENTE);
             alerta.setPerfilDestino(perfil);
             alerta.setMensagem(mensagem);
-            alerta.setDataGeracao(LocalDateTime.now());
+            alerta.setDataGeracao(LocalDateTime.now(ZoneOffset.UTC));
             repository.save(alerta);
             sincronizacao.registrar(alerta);
         }
@@ -161,7 +162,7 @@ public class AlertaService {
             alerta.setProduto(produto);
             alerta.setLote(lote);
             alerta.setMensagem(AlertaAdapter.mensagemDe(tipo, produto, lote, extra));
-            alerta.setDataGeracao(LocalDateTime.now());
+            alerta.setDataGeracao(LocalDateTime.now(ZoneOffset.UTC));
             repository.save(alerta);
             sincronizacao.registrar(alerta);
         }

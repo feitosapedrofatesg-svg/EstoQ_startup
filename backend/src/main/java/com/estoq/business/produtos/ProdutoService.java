@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Service
 @Transactional(readOnly = true)
@@ -74,7 +75,7 @@ public class ProdutoService extends GenericService<ProdutoModel, ProdutoDTO> {
         if (p.getParametro() == null) {
             var par = new ParametroEstoqueModel();
             par.setProduto(p);
-            par.setDataAtualizacao(LocalDateTime.now());
+            par.setDataAtualizacao(LocalDateTime.now(ZoneOffset.UTC));
             parametros.saveAndFlush(par);
             p.setParametro(par);
         }

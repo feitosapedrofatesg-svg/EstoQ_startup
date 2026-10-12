@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 
@@ -70,7 +71,7 @@ public class ProdutoAbertoService {
         var a = new ProdutoAbertoModel();
         a.setLote(lote);
         a.setUsuario(usuarioAtual.obter());
-        a.setDataAbertura(LocalDateTime.now());
+        a.setDataAbertura(LocalDateTime.now(ZoneOffset.UTC));
         a.setQuantidadeAberta(d.quantidadeDaEmbalagem());
         a.utilizar(d.quantoUsouAgora());
         repository.save(a);

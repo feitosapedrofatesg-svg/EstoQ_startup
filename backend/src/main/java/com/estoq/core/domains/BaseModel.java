@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -36,7 +37,8 @@ public abstract class BaseModel {
     @PrePersist
     protected void registrarCriacao() {
         if (dataHoraCriacao == null) {
-            dataHoraCriacao = LocalDateTime.now();
+            // Horários são persistidos em UTC; a interface exibe no fuso do usuário.
+            dataHoraCriacao = LocalDateTime.now(ZoneOffset.UTC);
         }
     }
 }

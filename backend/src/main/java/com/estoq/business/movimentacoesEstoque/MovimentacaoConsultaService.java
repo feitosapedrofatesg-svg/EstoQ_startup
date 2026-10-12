@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -17,8 +18,8 @@ public class MovimentacaoConsultaService {
 
     public List<MovimentacaoDTO> listar(Long produtoId, Long loteId, Long usuarioId, TipoMovimentacao tipo,
             LocalDateTime inicio, LocalDateTime fim) {
-        var ini = inicio == null ? LocalDateTime.now().withDayOfMonth(1).toLocalDate().atStartOfDay() : inicio;
-        var ate = fim == null ? LocalDateTime.now() : fim;
+        var ini = inicio == null ? LocalDateTime.now(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay() : inicio;
+        var ate = fim == null ? LocalDateTime.now(ZoneOffset.UTC) : fim;
         if (ini.isAfter(ate)) {
             throw new FieldValidationException("inicio", "Início deve ser anterior ao fim.");
         }

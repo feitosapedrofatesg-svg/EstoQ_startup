@@ -29,6 +29,7 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -102,7 +103,7 @@ public abstract class MovimentacaoEstoqueModel extends TenantEntity {
         this.quantidadePosterior = posterior;
         this.observacao = observacao;
         this.produtoAberto = aberto;
-        this.dataHora = LocalDateTime.now();
+        this.dataHora = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     @Transient

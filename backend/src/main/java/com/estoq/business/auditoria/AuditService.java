@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class AuditService {
         a.setEntidadeId(entidadeId);
         a.setDescricao(descricao != null && descricao.length() > 400 ? descricao.substring(0, 400) : descricao);
         a.setUsuarioNome(usuario != null ? usuario.getNome() : "sistema");
-        a.setDataHora(LocalDateTime.now());
+        a.setDataHora(LocalDateTime.now(ZoneOffset.UTC));
         repository.save(a);
     }
 }

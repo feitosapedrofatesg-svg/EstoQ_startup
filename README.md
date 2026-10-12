@@ -31,6 +31,11 @@ O padrão **PIAds3** separa a camada genérica (`core/`) da camada de negócio
 (`business/`). O `core` nunca importa `business`. Cada módulo de negócio é
 autocontido com seu controller → service → repository.
 
+Os horários dos registros são gravados em UTC, independentemente do fuso do
+servidor. A API usa `LocalDateTime` sem offset; a interface interpreta esses
+horários como UTC e exibe no fuso do navegador. Datas sem horário, como validade
+e agendamento de balanço, preservam o dia informado.
+
 ## Estrutura
 
 ```

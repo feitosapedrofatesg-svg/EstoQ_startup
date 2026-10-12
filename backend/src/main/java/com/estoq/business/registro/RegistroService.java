@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Locale;
 
 /**
@@ -64,7 +65,7 @@ public class RegistroService {
     private void criarParametroCmv(Long restauranteId) {
         var cmv = new ParametroCmvModel();
         cmv.setPercentualIdeal(new BigDecimal("30.00"));
-        cmv.setDataAtualizacao(LocalDateTime.now());
+        cmv.setDataAtualizacao(LocalDateTime.now(ZoneOffset.UTC));
         cmv.setRestauranteId(restauranteId);
         parametrosCmv.saveAndFlush(cmv);
     }

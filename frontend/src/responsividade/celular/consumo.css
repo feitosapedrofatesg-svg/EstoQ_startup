@@ -1,0 +1,6 @@
+@media (max-width: 720px) {
+  .consumo-produtos { grid-template-columns: minmax(0, 1fr); }
+  .consumo-produto { padding: 12px; }
+  .consumo-confirmacao { padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
+  .consumo-confirmacao .btn { width: 100%; }
+}

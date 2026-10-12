@@ -1,0 +1,13 @@
+/* Mantemos a identidade existente; estes estilos organizam os controles de toque. */
+.consumo-card { overflow: visible; }
+.consumo-rapido { display: grid; gap: 16px; }
+.consumo-categorias, .consumo-atalhos, .consumo-detalhes { display: flex; flex-wrap: wrap; gap: 8px; }
+.consumo-produtos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.consumo-produto { display: grid; gap: 10px; min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--r); }
+.consumo-produto strong, .consumo-produto p { overflow-wrap: anywhere; }
+.consumo-produto p { margin: 4px 0 0; }
+.consumo-controles { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
+.consumo-controles .btn, .consumo-teclado .btn, .consumo-categorias .btn, .consumo-atalhos .btn { min-height: 44px; }
+.consumo-teclado { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.consumo-numero { display: block; padding: 12px 0; overflow-wrap: anywhere; }
+.consumo-confirmacao { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--surface); padding: 12px 0; z-index: 2; }

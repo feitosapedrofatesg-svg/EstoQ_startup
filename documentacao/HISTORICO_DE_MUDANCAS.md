@@ -5,6 +5,15 @@ O commit `6bdddad` registra a correção de horários; a revisão atual acrescen
 a reorganização e as correções de responsividade descritas abaixo.
 As decisões atuais prevalecem sobre descrições históricas de etapas anteriores.
 
+## 12/10/2026 — consumo rápido e impressão
+
+- Lista de seleção por categoria, controles −/+, atalhos e painel numérico próprio.
+- Digitação da busca liberada somente após dois toques; quantidades preservadas nos filtros.
+- Conferência com impressão antes de gravar e lista diária consolidada por produto/unidade.
+- Novo registro conjunto transacional, com chave persistida pela migração V7 contra duplicação.
+- Resposta atualiza saldos/histórico sem esperar recarga; consultas e avaliação de alertas agrupadas.
+- Endpoint individual preservado e unidade acrescentada ao DTO de movimentação.
+
 ## 12/10/2026 — responsividade de celular e tablet
 
 - Criado `frontend/src/responsividade/`, dividido em `desktop`, `celular` e `tablet`.

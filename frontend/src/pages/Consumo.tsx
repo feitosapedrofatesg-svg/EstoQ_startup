@@ -1,35 +1,30 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFetch } from "../lib/hooks";
-import { api } from "../lib/api";
 import {
   PageHeader,
   Card,
   Button,
-  NumberField,
-  SearchSelect,
-  Field,
-  Input,
-  Checkbox,
-  AlertBanner,
   DataTable,
   EmptyState,
 } from "../components/UI";
 import { fmtNum, fmtDate, fmtDateTime, fmtMoney, hojeISO } from "../lib/format";
 import type {
   EstoqueDTO,
-  LoteDTO,
   MovimentacaoDTO,
-  MovimentacaoResultadoDTO,
   ProdutoAbertoDTO,
-  ProdutoDTO,
 } from "../lib/types";
+import { ConsumoRapido } from "../components/consumo/ConsumoRapido";
+import { imprimirConsumo } from "../components/consumo/ImprimirConsumo";
+import { useAuth } from "../store/auth";
 import { useToast } from "../store/toast";
 import { AbrirEmbalagemModal, AcaoProdutoAbertoModal } from "../components/ProdutoAbertoModals";
 
 /** Consumo do estoque: abertura de embalagem, baixa do que foi usado e histórico do dia. */
 export function Consumo() {
   const toast = useToast();
+  const { user } = useAuth();
+  const { data: estoque } = useFetch<EstoqueDTO[]>("/api/estoque");
   const [params] = useSearchParams();
   // Deep link do Estoque: /consumo?produto=123 já abre com o produto escolhido.
   const produtoParam = params.get("produto") ?? "";
@@ -44,7 +39,7 @@ export function Consumo() {
   } = useFetch<ProdutoAbertoDTO[]>("/api/produtos-abertos?finalizado=false");
 
   const hoje = hojeISO();
-  const { data: registros, loading: loadingRegistros, refresh: refreshRegistros } =
+  const { data: registros, loading: loadingRegistros, refresh: refreshRegistros, setData: setRegistros } =
     useFetch<MovimentacaoDTO[]>(
       `/api/movimentacoes?tipo=CONSUMO&inicio=${hoje}T00:00:00&fim=${hoje}T23:59:59`
     );
@@ -71,10 +66,12 @@ export function Consumo() {
         }
       />
 
-      <Card title="Novo consumo">
-        <FormularioConsumo
+      <Card title="Novo consumo" className="consumo-card">
+        <ConsumoRapido
           produtoInicial={produtoParam}
-          onDone={() => {
+          onDone={(resultado) => {
+            setRegistros(atuais => [...resultado.movimentacoes, ...(atuais ?? []).filter(m => !resultado.movimentacoes.some(novo => novo.id === m.id))]
+              .sort((a, b) => b.dataHora.localeCompare(a.dataHora) || b.id - a.id));
             recarregar();
             toast.success("Consumo registrado");
           }}
@@ -140,6 +137,19 @@ export function Consumo() {
             <span className="muted">
               Custo registrado: <strong>{fmtMoney(custoHoje)}</strong>
             </span>
+            <Button variant="outline" size="sm" icon="printer" disabled={!registros?.length || loadingRegistros} onClick={() => {
+              const consolidados = new Map<string, { produto: string; quantidade: number; unidade: string }>();
+              for (const movimento of registros ?? []) {
+                const unidade = movimento.unidadeMedida ?? estoque?.find(p => p.produtoId === movimento.produtoId)?.unidadeMedida;
+                if (!unidade) { toast.error("Não foi possível imprimir", "Atualize a lista para recuperar a unidade dos produtos."); return; }
+                const chave = `${movimento.produtoId}|${unidade}`;
+                const linha = consolidados.get(chave) ?? { produto: movimento.produtoNome, quantidade: 0, unidade };
+                linha.quantidade = Math.round((linha.quantidade + movimento.quantidade) * 1000) / 1000;
+                consolidados.set(chave, linha);
+              }
+              try { imprimirConsumo(user?.restauranteNome ?? "Restaurante", hoje, [...consolidados.values()].sort((a, b) => a.produto.localeCompare(b.produto))); }
+              catch (e) { toast.error("Não foi possível imprimir", (e as Error).message); }
+            }}>Imprimir lista do dia</Button>
             <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshRegistros()}>
               Atualizar
             </Button>
@@ -164,7 +174,7 @@ export function Consumo() {
                   {m.observacao && <span className="cell-sub">{m.observacao}</span>}
                 </td>
                 <td className="muted-cell">{m.loteCodigo ?? "—"}</td>
-                <td>{fmtNum(m.quantidade)}</td>
+                <td>{fmtNum(m.quantidade)} {m.unidadeMedida?.toLowerCase()}</td>
                 <td>{fmtMoney(m.custoConsumo ?? 0)}</td>
               </tr>
             ))}
@@ -196,180 +206,5 @@ export function Consumo() {
         />
       )}
     </>
-  );
-}
-
-function FormularioConsumo({
-  produtoInicial,
-  onDone,
-}: {
-  produtoInicial: string;
-  onDone: () => void;
-}) {
-  const [produtoId, setProdutoId] = useState(produtoInicial);
-  const [quantidade, setQuantidade] = useState<number | null>(null);
-  const [manualLote, setManualLote] = useState(false);
-  const [loteId, setLoteId] = useState("");
-  const [observacao, setObservacao] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const { data: estoque, refresh: refreshEstoque } = useFetch<EstoqueDTO[]>("/api/estoque");
-  const produtoOpts = useMemo(
-    () =>
-      (estoque ?? []).map((p) => ({
-        value: String(p.produtoId),
-        label: p.produtoNome,
-        sub: `${p.categoriaNome} · consumível: ${fmtNum(p.saldoDisponivelConsumo ?? 0)} ${p.unidadeMedida.toLowerCase()}`,
-      })),
-    [estoque]
-  );
-  const estoqueSelecionado = (estoque ?? []).find((p) => String(p.produtoId) === produtoId);
-  const saldoDisponivel = estoqueSelecionado?.saldoDisponivelConsumo ?? 0;
-
-  const { data: lotes, refresh: refreshLotes } = useFetch<LoteDTO[]>(produtoId && manualLote ? `/api/lotes?produtoId=${produtoId}` : null);
-  const { data: detalheProduto } = useFetch<ProdutoDTO>(produtoId ? `/api/produtos/${produtoId}` : null);
-
-  const lotesDisponiveis = useMemo(
-    () => (lotes ?? []).filter((l) => l.disponivel && !l.vencido),
-    [lotes]
-  );
-
-  const loteSelecionado = lotesDisponiveis.find((l) => String(l.id) === loteId);
-  const limiteQuantidade = manualLote ? (loteSelecionado?.quantidadeAtual ?? 0) : saldoDisponivel;
-
-  const submit = async () => {
-    if (!produtoId) return setError("Escolha o produto.");
-    if (!quantidade || quantidade <= 0) return setError("Informe uma quantidade maior que zero.");
-    if (manualLote && !loteSelecionado) return setError("Escolha um lote disponível.");
-    if (quantidade > limiteQuantidade) {
-      return setError(`A quantidade disponível é ${fmtNum(limiteQuantidade)} ${estoqueSelecionado?.unidadeMedida.toLowerCase() ?? "un"}.`);
-    }
-    setSubmitting(true);
-    setError(null);
-    const lote = lotesDisponiveis.find((l) => String(l.id) === loteId);
-    try {
-      await api.post<MovimentacaoResultadoDTO>("/api/consumos", {
-        produtoId: Number(produtoId),
-        loteId: lote?.id ?? null,
-        versionLote: lote?.version ?? null,
-        quantidade,
-        observacao: observacao || null,
-      });
-      await Promise.all([refreshEstoque(), refreshLotes()]);
-      setQuantidade(null);
-      setObservacao("");
-      onDone();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-      noValidate
-    >
-      {error && (
-        <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
-        </div>
-      )}
-
-      <SearchSelect
-        label="Produto"
-        options={produtoOpts}
-        value={produtoId}
-        onValue={(v) => {
-          setProdutoId(v);
-          setQuantidade(null);
-          setLoteId("");
-          setError(null);
-        }}
-        placeholder="Buscar produto…"
-        hint={produtoId
-          ? `Disponível no estoque: ${fmtNum(saldoDisponivel)} ${estoqueSelecionado?.unidadeMedida.toLowerCase() ?? "UN"}`
-          : "Selecione um produto para ver o saldo disponível."}
-        required
-      />
-
-      <div className="form-grid-2">
-        <NumberField
-          label="Quantidade consumida"
-          value={quantidade}
-          onValue={setQuantidade}
-          min={0}
-          max={limiteQuantidade}
-          placeholder={produtoId ? "Ex.: até " + fmtNum(limiteQuantidade) : "Selecione o produto"}
-          suffix={detalheProduto?.unidadeMedida ?? "UN"}
-          hint={produtoId
-            ? `Até ${fmtNum(limiteQuantidade)} ${detalheProduto?.unidadeMedida.toLowerCase() ?? "UN"} disponíveis.`
-            : "O limite será preenchido após escolher o produto."}
-          required
-        />
-        <Field label="Observação (opcional)" htmlFor="consumo-obs">
-          <Input
-            id="consumo-obs"
-            value={observacao}
-            onChange={(e) => setObservacao(e.target.value)}
-            placeholder="Notas internas…"
-          />
-        </Field>
-      </div>
-
-      {produtoId && saldoDisponivel === 0 && (
-        <AlertBanner tone="warn">
-          Este produto não tem estoque disponível para consumir.
-        </AlertBanner>
-      )}
-
-      <Checkbox
-        checked={manualLote}
-        onChange={(v) => {
-          setManualLote(v);
-          setLoteId("");
-        }}
-        label="Escolho o lote manualmente"
-      />
-
-      {manualLote && lotesDisponiveis.length > 0 && (
-        <SearchSelect
-          label="Lote consumido"
-          options={lotesDisponiveis.map((l) => ({
-            value: String(l.id),
-            label: l.codigo,
-            sub: `Validade ${l.dataValidade ?? "—"} · saldo ${fmtNum(l.quantidadeAtual)} ${l.unidadeMedida}`,
-          }))}
-          value={loteId}
-          onValue={setLoteId}
-          placeholder="Escolha o lote…"
-        />
-      )}
-      {manualLote && lotesDisponiveis.length === 0 && (
-        <AlertBanner tone="info">Este produto não tem lotes disponíveis para escolha.</AlertBanner>
-      )}
-
-      {!manualLote && (
-        <AlertBanner tone="info">
-          Lote não informado: o sistema aplica a regra FIFO (primeiro que vence, primeiro que sai)
-        </AlertBanner>
-      )}
-
-      <div className="form-actions">
-        <Button
-          type="submit"
-          loading={submitting}
-          icon="check"
-          disabled={!produtoId || limiteQuantidade <= 0}
-        >
-          Registrar consumo
-        </Button>
-      </div>
-    </form>
   );
 }

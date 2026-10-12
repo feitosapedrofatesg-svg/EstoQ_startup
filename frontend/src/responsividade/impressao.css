@@ -1,0 +1,9 @@
+.consumo-impressao { padding: 24px; }
+.consumo-impressao table { width: 100%; border-collapse: collapse; }
+.consumo-impressao th, .consumo-impressao td { padding: 8px; text-align: left; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .consumo-impressao { padding: 0; }
+  .consumo-impressao thead { display: table-header-group; }
+  .consumo-impressao tr { break-inside: avoid; }
+}

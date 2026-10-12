@@ -1,6 +1,6 @@
 # Documentação do EstoQ
 
-Revisão: **12/10/2026**. Referência funcional e técnica: código até o commit `6bdddad`.
+Revisão: **12/10/2026**. Inclui as entregas de responsividade e consumo rápido.
 
 O EstoQ é uma aplicação web multitenant para estoque, consumo, desperdício,
 balanço e CMV de restaurantes. Cada restaurante compartilha seus dados entre
@@ -15,6 +15,7 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 | [Resumo do sistema](RESUMO_SESSAO_BACKEND.md) | Arquitetura, módulos, regras, execução local e validação. |
 | [API](API_ENDPOINTS.md) | Rotas, perfis, versões de balanço, autenticação e formatos. |
 | [Notas fiscais](IMPORTACAO_NOTAS_FISCAIS.md) | XML, PDF, fotos, categorias e confirmação de entrada. |
+| [Consumo rápido](CONSUMO_RAPIDO.md) | Seleção por toque, confirmação conjunta e impressão. |
 | [Cache e sincronização](CACHE_E_SINCRONIZACAO.md) | Prazos, SSE, conflitos, rascunhos e desempenho. |
 | [Backup](BACKUP_E_RESTAURACAO.md) | Backup completo exclusivo da PLATAFORMA e restauração. |
 | [Deploy](DEPLOY_VERCEL_RENDER_NEON.md) | Configuração, migrações e verificação da publicação. |

@@ -1,5 +1,10 @@
 export type Perfil = "ADMIN" | "COZINHA" | "NUTRICIONISTA" | "PLATAFORMA";
 export type UnidadeMedida = "KG" | "G" | "L" | "ML" | "UN";
+
+export interface ConsumoLoteResultadoDTO {
+  estoque: EstoqueDTO[];
+  movimentacoes: MovimentacaoDTO[];
+}
 export type MotivoDesperdicio =
   | "VENCIMENTO"
   | "DETERIORACAO"
@@ -136,6 +141,7 @@ export interface EstoqueDTO {
 }
 
 export interface MovimentacaoDTO {
+  unidadeMedida?: UnidadeMedida;
   id: number;
   tipo: TipoMovimentacao;
   dataHora: string;

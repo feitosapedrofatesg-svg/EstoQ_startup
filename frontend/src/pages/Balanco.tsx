@@ -1,8 +1,7 @@
 import { ProximoBalanco } from "../components/ProximoBalanco";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../store/auth";
-import { useFetch, updateCache } from "../lib/hooks";
-import { carregarPaginas } from "../lib/hooks";
+import { useFetch, useTodasPaginas, updateCache } from "../lib/hooks";
 import { api } from "../lib/api";
 import {
   PageHeader,
@@ -386,18 +385,11 @@ export function Balanco() {
 
 function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: (criado: BalancoDTO) => void }) {
   const [tipo, setTipo] = useState<TipoBalanco>("GERAL");
-  const [cats, setCats] = useState<CategoriaDTO[]>([]);
+  const { data: categorias } = useTodasPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc");
+  const cats = categorias ?? [];
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    carregarPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc").then((r) => {
-      if (mounted) setCats(r);
-    }).catch(() => { });
-    return () => { mounted = false; };
-  }, []);
 
   const toggle = (id: number) => {
     setSelected((prev) => {

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
-import { useTodasPaginas, invalidarCache } from "../lib/hooks";
+import { useTodasPaginas } from "../lib/hooks";
 import { fmtDate, fmtMoney, fmtNum, parseDecimal } from "../lib/format";
-import type { CategoriaDTO, ItemNotaFiscalDTO, NotaFiscalDTO, Page, ProdutoDTO, UnidadeMedida } from "../lib/types";
+import type { CategoriaDTO, ItemNotaFiscalDTO, NotaFiscalDTO, ProdutoDTO, UnidadeMedida } from "../lib/types";
 import { PageHeader, Card, Button, LinkButton, Field, Input, Select, Checkbox, SearchSelect, AlertBanner } from "../components/UI";
 import { useToast } from "../store/toast";
 
@@ -33,8 +33,9 @@ export function NotasFiscais() {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [custosConferidos, setCustosConferidos] = useState(false);
-  const [produtos, setProdutos] = useState<ProdutoDTO[]>([]);
-  const { data: categorias, refresh: atualizarCategorias } = useTodasPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc");
+  const { data: listaProdutos } = useTodasPaginas<ProdutoDTO>("/api/produtos");
+  const produtos = listaProdutos ?? [];
+  const { data: categorias } = useTodasPaginas<CategoriaDTO>("/api/categorias?sort=nome,asc");
   const toast = useToast();
   const notaId = params.get("id");
   useEffect(() => {
@@ -53,23 +54,11 @@ export function NotasFiscais() {
     selecionarArquivos(copia);
   };
 
-  const carregarCatalogo = async () => {
-    const lista: ProdutoDTO[] = [];
-    let pagina = 0, totalPaginas = 1;
-    do {
-      const resultado = await api.get<Page<ProdutoDTO>>(`/api/produtos?size=100&page=${pagina}`);
-      lista.push(...resultado.content); totalPaginas = resultado.totalPages; pagina++;
-    } while (pagina < totalPaginas);
-    setProdutos(lista);
-  };
   const mostrar = (resultado: NotaFiscalDTO) => {
     setNota(resultado);
     setItens(resultado.itens);
     setCustosConferidos(false);
   };
-  useEffect(() => {
-    void carregarCatalogo().catch(e => setErro((e as Error).message));
-  }, []);
   useEffect(() => {
     let ativo = true;
     if (notaId && nota?.id !== Number(notaId)) {
@@ -113,9 +102,6 @@ export function NotasFiscais() {
           embalagemConfirmada: custosConferidos, leituraConferida: custosConferidos })),
       });
       mostrar(resultado);
-      invalidarCache(["/api/categorias", "/api/produtos", "/api/estoque", "/api/lotes", "/api/movimentacoes", "/api/dashboard", "/api/alertas"]);
-      void carregarCatalogo().catch(e => setErro((e as Error).message));
-      void atualizarCategorias();
       toast.success("Entrada confirmada", "Produtos, lotes e estoque foram atualizados.");
     } catch (e) { setErro((e as Error).message); }
     finally { setOcupado(false); }

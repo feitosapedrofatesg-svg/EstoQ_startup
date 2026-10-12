@@ -9,7 +9,7 @@ export function ProximoBalanco({ revision = 0 }: { revision?: number }) {
   const hoje = hojeISO();
   return (
     <Card title="Próximo balanço">
-      {error ? <AlertBanner tone="bad">Não foi possível carregar o agendamento. {error}</AlertBanner>
+      {error && !data ? <AlertBanner tone="bad">Não foi possível carregar o agendamento. {error}</AlertBanner>
         : loading && !data ? <p className="muted">Carregando agendamento…</p>
         : dataAgendada ? <AlertBanner tone={dataAgendada <= hoje ? "warn" : "info"}>
           <strong>{fmtDate(dataAgendada)}</strong>

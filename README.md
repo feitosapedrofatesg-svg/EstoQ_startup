@@ -243,3 +243,21 @@ Detalhes completos em `documentacao/RESUMO_SESSAO_BACKEND.md`.
 ## Licença
 
 Projeto acadêmico · SENAI FATESG · ADS 2026
+
+## Cache das listas no navegador
+
+As listas já visitadas aparecem imediatamente e são atualizadas em segundo plano:
+estoque, lotes, consumo, desperdício, embalagens abertas, movimentações, balanços
+e alertas a cada 15 segundos; cadastros, parâmetros, dashboard, relatórios, backups
+e administração da plataforma a cada minuto. As buscas periódicas pausam quando
+a aba está oculta ou sem conexão. Ao retornar, consultas vencidas são atualizadas.
+
+Gravações bem-sucedidas invalidam as consultas relacionadas imediatamente, sem
+esconder dados já carregados. Em falhas de atualização, a lista permanece visível
+e o aviso permite tentar novamente. Requisições simultâneas são compartilhadas.
+
+O cache é separado por sessão, restaurante, usuário e perfil, e é limpo na saída
+ou troca de conta. Não usa armazenamento persistente e termina ao recarregar ou
+fechar o app. A retenção é limitada a 200 consultas e aproximadamente 20 MiB de
+conteúdo JSON; respostas maiores são exibidas sem retenção. Esse limite mede o
+conteúdo serializado, não a memória total usada pelo navegador.

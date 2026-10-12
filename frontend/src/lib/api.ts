@@ -1,3 +1,4 @@
+import { invalidarAposGravacao } from "./cache";
 import { sessaoAtual } from "./sessao";
 import type { ErrorResponse } from "./types";
 
@@ -126,6 +127,7 @@ async function request<T>(
     throw await parseError(res);
   }
 
+  if (method !== "GET") invalidarAposGravacao(path);
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -178,6 +180,7 @@ export const api = {
     }
     const blob = await res.blob();
     conferirSessao(sessao);
+    invalidarAposGravacao(path);
     const cd = res.headers.get("content-disposition") ?? "";
     const match = /filename="?([^";]+)"?/.exec(cd);
     const fallback = `estoq-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}.dump`;

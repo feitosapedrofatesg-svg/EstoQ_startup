@@ -10,6 +10,10 @@ import { api } from "./api";
 import type { Page } from "./types";
 import { mudarSessao, sessaoAtual } from "./sessao";
 
+import { assinarCache, buscarCache, chaveCache, gravarCache, intervaloCache, lerCache, limparCache } from "./cache";
+
+export { invalidarCache } from "./cache";
+
 interface FetchState<T> {
   data: T | null;
   loading: boolean;
@@ -18,100 +22,119 @@ interface FetchState<T> {
   setData: Dispatch<SetStateAction<T | null>>;
 }
 
-/** Cache SWR por caminho: páginas revisitadas abrem com os dados na hora. */
-const cache = new Map<string, { data: unknown; ts: number }>();
-const TTL_MS = 60_000;
 
 export function reiniciarCache(identidade = "anonimo"): void {
   mudarSessao(identidade);
-  cache.clear();
+  limparCache();
 }
 
-function chaveCache(path: string): string {
-  return `${sessaoAtual()}::${path}`;
-}
+/** Reutiliza listas por sessão. O terceiro argumento legado é mantido para compatibilidade;
+ * a atualização na montagem agora segue o prazo de cada consulta. */
+export function useFetch<T>(path: string | null, deps: unknown[] = [], _revalidateOnMount = false, carregar?: (path: string) => Promise<T>): FetchState<T> {
+  const chave = path ? chaveCache(carregar ? `${path}#todas` : path) : null;
+  const inicial = (): { chave: string | null; data: T | null; error: string | null } => ({ chave, data: chave ? (lerCache(chave)?.data as T ?? null) : null, error: null });
+  const [estado, setEstado] = useState(inicial);
+  const mounted = useRef(false);
+  const atual = useRef(chave);
+  atual.current = chave;
+  const loader = useRef(carregar);
+  const sequencia = useRef(0);
+  const ultimasDeps = useRef(deps);
+  loader.current = carregar;
+  const visivel = estado.chave === chave ? estado : inicial();
 
-export function useFetch<T>(path: string | null, deps: unknown[] = [], revalidateOnMount = false, carregar?: (path: string) => Promise<T>): FetchState<T> {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState<boolean>(!!path);
-  const [error, setError] = useState<string | null>(null);
-  const mounted = useRef(true);
-  const firstRun = useRef(true);
-  const requestSequence = useRef(0);
+  const run = useCallback(async (force = false) => {
+    if (!path || !chave) return;
+    const entrada = lerCache(chave);
+    if (!force && entrada && Date.now() - entrada.ts < intervaloCache(path)) return;
+    const numero = ++sequencia.current;
+    const sessao = sessaoAtual();
+    const vigente = () => mounted.current && atual.current === chave && sessao === sessaoAtual() && numero === sequencia.current;
+    if (vigente()) setEstado(prev => ({ chave, data: prev.chave === chave ? prev.data : (entrada?.data as T ?? null), error: null }));
+    try {
+      const resultado = await buscarCache(chave, () => loader.current ? loader.current(path) : api.get<T>(path));
+      if (vigente() && resultado !== undefined) setEstado({ chave, data: resultado, error: null });
+    } catch (e) {
+      if (vigente()) setEstado(prev => ({ ...prev, error: (e as Error).message }));
+    }
+  }, [path, chave]);
 
   useEffect(() => {
     mounted.current = true;
-    return () => {
-      mounted.current = false;
+    setEstado(inicial());
+    const intervalo = path ? intervaloCache(path) : 60_000;
+    let timer: number;
+    let encerrado = false;
+    let ultimaTentativa = 0;
+    let ultimaResposta = 0;
+    const agendar = () => {
+      window.clearTimeout(timer);
+      if (encerrado || !chave) return;
+      const base = Math.max(lerCache(chave)?.ts ?? 0, ultimaTentativa, ultimaResposta) || Date.now();
+      timer = window.setTimeout(() => void verificar(), Math.max(1, base + intervalo - Date.now()));
     };
-  }, []);
-
-  const run = useCallback(
-    async (force?: boolean) => {
-      const sequence = ++requestSequence.current;
-      const sessao = sessaoAtual();
-      const vigente = () => mounted.current && sequence === requestSequence.current && sessao === sessaoAtual();
-      if (!path) {
-        setData(null);
-        setLoading(false);
+    const verificar = async () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        const entrada = chave ? lerCache(chave) : undefined;
+        if (!entrada || Date.now() - entrada.ts >= intervalo) ultimaTentativa = Date.now();
+        await run();
+      } else ultimaTentativa = Date.now();
+      agendar();
+    };
+    const desassinar = chave ? assinarCache(chave, evento => {
+      if (evento.tipo === "invalidado") {
+        if (document.visibilityState === "visible" && navigator.onLine) {
+          ultimaTentativa = Date.now();
+          void run(true).finally(agendar);
+        }
         return;
       }
-      const caminhoCache = carregar ? `${path}#todas` : path;
-      const cached = cache.get(chaveCache(caminhoCache)) as { data: T; ts: number } | undefined;
-      const fresca = cached !== undefined && Date.now() - cached.ts < TTL_MS;
-      if (cached) {
-        setData(cached.data);
-        setLoading(false);
-        if (fresca && !force) return;
-      } else {
-        setData(null);
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const result = await (carregar ? carregar(path) : api.get<T>(path));
-        if (sessao !== sessaoAtual()) return;
-        cache.set(chaveCache(caminhoCache), { data: result, ts: Date.now() });
-        if (vigente()) setData(result);
-      } catch (e) {
-        if (vigente()) {
-          setError((e as Error).message);
-        }
-      } finally {
-        if (vigente()) setLoading(false);
-      }
-    },
-    [path]
-  );
-
-  useEffect(() => {
-    // Primeira montagem usa o cache; troca de caminho (filtros) sempre refaz a rede.
-    void run(revalidateOnMount || !firstRun.current);
-    firstRun.current = false;
+      ultimaResposta = Date.now();
+      setEstado({ chave, data: evento.data as T, error: null });
+      agendar();
+    }) : () => {};
+    const mudouDependencia = deps.length !== ultimasDeps.current.length || deps.some((valor, i) => !Object.is(valor, ultimasDeps.current[i]));
+    ultimasDeps.current = deps;
+    const entrada = chave ? lerCache(chave) : undefined;
+    if (!entrada || Date.now() - entrada.ts >= intervalo || mudouDependencia) ultimaTentativa = Date.now();
+    void run(mudouDependencia).finally(agendar);
+    // O prazo começa na última resposta, evitando adiar uma atualização por mais um ciclo.
+    agendar();
+    document.addEventListener("visibilitychange", verificar);
+    window.addEventListener("focus", verificar);
+    window.addEventListener("online", verificar);
+    return () => {
+      mounted.current = false;
+      encerrado = true;
+      sequencia.current++;
+      desassinar(); window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", verificar);
+      window.removeEventListener("focus", verificar);
+      window.removeEventListener("online", verificar);
+    };
+    // As dependências explícitas mantêm compatibilidade com os consumidores atuais.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, ...deps]);
+  }, [chave, ...deps]);
 
-  return { data, loading, error, refresh: () => run(true), setData };
+  const setData: Dispatch<SetStateAction<T | null>> = valor => {
+    setEstado(prev => ({ chave, data: typeof valor === "function" ? (valor as (data: T | null) => T | null)(prev.chave === chave ? prev.data : null) : valor, error: null }));
+  };
+  return { data: visivel.data, loading: !!path && visivel.data === null && !visivel.error,
+    error: visivel.error, refresh: () => run(true), setData };
 }
 
-/** Pré-carrega um caminho no cache SWR (usado pelo Layout ao montar). */
+/** O pré-carregamento compartilha a mesma requisição da tela, sem buscar caminhos vencidos duas vezes. */
 export async function prefetchar(path: string): Promise<void> {
-  const sessao = sessaoAtual();
-  if (cache.has(chaveCache(path))) return;
-  try {
-    const data = await api.get<unknown>(path);
-    if (sessao === sessaoAtual()) cache.set(chaveCache(path), { data, ts: Date.now() });
-  } catch {
-    // sem rede ou sem permissão: deixa sem cache, a página busca normalmente
-  }
+  const chave = chaveCache(path);
+  const entrada = lerCache(chave);
+  if (entrada && Date.now() - entrada.ts < intervaloCache(path)) return;
+  try { await buscarCache(chave, () => api.get<unknown>(path)); } catch { /* A tela pode tentar novamente. */ }
 }
 
-/** Atualiza o cache SWR após uma gravação (ex.: mesclar um balanço respondido). */
 export function updateCache<T>(path: string, updater: (prev: T) => T): void {
-  const entry = cache.get(chaveCache(path));
-  if (entry) {
-    cache.set(chaveCache(path), { data: updater(entry.data as T), ts: Date.now() });
-  }
+  const chave = chaveCache(path);
+  const entrada = lerCache(chave);
+  if (entrada) gravarCache(chave, updater(entrada.data as T));
 }
 
 export function useDebounced<T>(value: T, ms = 300): T {
@@ -121,13 +144,6 @@ export function useDebounced<T>(value: T, ms = 300): T {
     return () => window.clearTimeout(t);
   }, [value, ms]);
   return debounced;
-}
-
-/** Invalida telas afetadas por uma entrada em lote, para que consultem os novos saldos. */
-export function invalidarCache(prefixos: string[]): void {
-  for (const caminho of cache.keys()) {
-    if (prefixos.some(prefixo => caminho.startsWith(`${sessaoAtual()}::${prefixo}`))) cache.delete(caminho);
-  }
 }
 
 /** Seletores percorrem todas as páginas, sem aumentar o limite seguro do servidor. */

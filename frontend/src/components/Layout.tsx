@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../store/auth";
 import { api } from "../lib/api";
 import type { AlertaDTO, Perfil } from "../lib/types";
 import { Icon, type IconName } from "./Icon";
-import { fmtDateTime } from "../lib/format";
+import { fmtDateTime, diasAtrasISO, hojeISO } from "../lib/format";
 import { useToast } from "../store/toast";
-import { prefetchar } from "../lib/hooks";
+import { prefetchar, useFetch } from "../lib/hooks";
+import { assinarFalhasCache, possuiFalhasCache, tentarNovamenteCache } from "../lib/cache";
+import { Button } from "./UI";
 
 interface NavItem {
   to: string;
@@ -100,41 +102,15 @@ function RoleLabel({ perfil }: { perfil: Perfil }) {
 }
 
 function AlertBell() {
-  const [count, setCount] = useState(0);
   const [open, setOpen] = useState(false);
-  const [alerts, setAlerts] = useState<AlertaDTO[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: total } = useFetch<number>("/api/alertas/abertos");
+  const count = total ?? 0;
+  const { data: lista, loading } = useFetch<AlertaDTO[]>(open ? "/api/alertas?visualizado=false" : null);
+  const alerts = lista ?? [];
   const boxRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
 
-  const loadCount = useCallback(async () => {
-    try {
-      setCount(await api.get<number>("/api/alertas/abertos"));
-    } catch {
-      /* colapsa com 0 em falha de rede */
-    }
-  }, []);
-
-  const openPanel = async () => {
-    setOpen((o) => !o);
-    if (!open) {
-      setLoading(true);
-      try {
-        const list = await api.get<AlertaDTO[]>("/api/alertas?visualizado=false");
-        setAlerts(list);
-      } catch {
-        /* sem alertas */
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    void loadCount();
-    const t = window.setInterval(loadCount, 60_000);
-    return () => window.clearInterval(t);
-  }, [loadCount]);
+  const openPanel = () => setOpen(o => !o);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -147,8 +123,6 @@ function AlertBell() {
   const markSeen = async (id: number) => {
     try {
       await api.put(`/api/alertas/${id}/visualizado`);
-      setAlerts((prev) => prev.filter((a) => a.id !== id));
-      void loadCount();
     } catch (e) {
       toast.error("Não foi possível atualizar", (e as Error).message);
     }
@@ -204,13 +178,15 @@ function AlertBell() {
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout, isAdmin, isCozinha } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
+  const [falhaCache, setFalhaCache] = useState(possuiFalhasCache);
+  useEffect(() => assinarFalhasCache(() => setFalhaCache(possuiFalhasCache())), []);
 
   // Pré-carrega no cache SWR as telas principais do perfil, pra troca de
   // página não re-buscar tudo do zero. O dashboard é só de ADMIN e
   // NUTRICIONISTA, então a cozinha não gasta requisição com ele.
   useEffect(() => {
     if (!user) return;
-    if (isAdmin || user.perfil === "NUTRICIONISTA") void prefetchar("/api/dashboard/resumo");
+    if (isAdmin || user.perfil === "NUTRICIONISTA") void prefetchar(`/api/dashboard/resumo?${new URLSearchParams({ inicio: diasAtrasISO(30), fim: hojeISO() })}`);
     if (isAdmin || isCozinha) {
       void prefetchar("/api/estoque");
       void prefetchar("/api/balancos");
@@ -298,7 +274,13 @@ export function Layout({ children }: { children: ReactNode }) {
           {showBell && <AlertBell />}
         </header>
         <main className="main__content">
-          <div className="main__inner">{children}</div>
+          <div className="main__inner">
+            {falhaCache && <div className="alertbanner" role="status">
+              Não foi possível atualizar algumas informações. Os dados já carregados continuam disponíveis.{" "}
+              <Button size="sm" variant="ghost" onClick={tentarNovamenteCache}>Tentar novamente</Button>
+            </div>}
+            {children}
+          </div>
         </main>
       </div>
     </div>

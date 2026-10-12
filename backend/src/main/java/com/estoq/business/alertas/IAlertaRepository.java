@@ -34,10 +34,10 @@ public interface IAlertaRepository extends IGenericRepository<AlertaModel> {
             """, nativeQuery = true)
     int criarDiferencasDoBalanco(Long balancoId, Long restauranteId);
 
-    @EntityGraph(attributePaths = { "produto", "lote" })
+    @EntityGraph(attributePaths = { "produto", "produto.parametro", "lote" })
     Optional<AlertaModel> findByIdAndAtivoTrue(Long id);
 
-    @EntityGraph(attributePaths = { "produto", "lote" })
+    @EntityGraph(attributePaths = { "produto", "produto.parametro", "lote" })
     List<AlertaModel> findAllByAtivoTrueOrderByDataGeracaoDesc();
 
     long countByAtivoTrueAndVisualizadoFalseAndPerfilDestino(Perfil perfil);

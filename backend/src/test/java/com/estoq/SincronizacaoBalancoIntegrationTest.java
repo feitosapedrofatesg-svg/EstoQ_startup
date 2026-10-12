@@ -207,9 +207,11 @@ class SincronizacaoBalancoIntegrationTest {
         estatisticas.clear();
         balancos.confirmar(conferir.id(), confirmacao(conferir));
         assertTrue(estatisticas.getPrepareStatementCount() < 20, "186 diferenças devem criar seus alertas em lote.");
+        estatisticas.clear();
         assertEquals(186, app.getBean(com.estoq.business.alertas.IAlertaRepository.class)
                 .findAllByAtivoTrueOrderByDataGeracaoDesc().stream()
                 .filter(a -> a.getTipo() == com.estoq.business.alertas.TipoAlerta.DIFERENCA_ESTOQUE).count());
+        assertTrue(estatisticas.getPrepareStatementCount() < 5, "Ler alertas não deve carregar parâmetros por produto.");
     }
 
     @Test void retratoEmLoteRespeitaCategoriasDoBalancoParcial() {

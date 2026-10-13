@@ -27,11 +27,17 @@ O manifesto não deve ser editado; repita a inspeção se os alvos mudarem.
 
 A execução exige duas cópias idênticas do backup e o comprovante do ensaio. Este
 comprovante vincula os hashes do dump e do manifesto. O ensaio restaura o dump em
-um banco vazio com outro nome e testa a limpeza com ROLLBACK. Um arquivo válido
+um banco vazio com outro nome e testa a limpeza com ROLLBACK. A restauração de ensaio seleciona
+o schema da aplicação (`public`), incluindo suas tabelas, dados, sequências e FKs.
+Extensões gerenciadas do Neon, como `pg_session_jwt`, permanecem no dump completo,
+mas precisam de um ambiente Neon compatível para uma restauração integral do
+serviço de autenticação. O ensaio local não homologa essa extensão. Um arquivo válido
 não substitui a necessidade de armazenar uma cópia em outro dispositivo/local.
 
 A limpeza bloqueia escritas brevemente, suspende os alvos e remove as relações em
 uma única transação. Uma FK inválida ou qualquer outro erro desfaz a operação.
+Tabelas filhas de movimentação usam o ID da movimentação principal para incluir
+registros legados sem tenant na filha; vínculos contraditórios interrompem a limpeza.
 Contas PLATAFORMA vinculadas aos alvos, ausência de PLATAFORMA ativa e tabelas
 novas com restaurante_id interrompem a limpeza. Referências cruzadas não são
 corrigidas automaticamente. Schema, Flyway e sequências são preservados.

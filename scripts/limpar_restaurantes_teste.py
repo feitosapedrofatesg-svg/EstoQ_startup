@@ -107,11 +107,16 @@ def main():
             FROM (SELECT id,nome,data_hora_criacao AS criacao,ativo,
                 (SELECT count(*) FROM "{args.schema}".usuarios u WHERE u.restaurante_id=r.id) AS usuarios
                 FROM "{args.schema}".restaurantes r) r;'''))
-        tabelas = re.findall(r'DELETE FROM ([a-z_]+) WHERE restaurante_id', SQL.read_text(encoding='utf-8'))
-        contagens = ' UNION ALL '.join(
-            f"SELECT '{tabela}' AS tabela, count(*) AS registros FROM \"{args.schema}\".{tabela} "
-            f"WHERE restaurante_id IN (SELECT id FROM \"{args.schema}\".restaurantes)"
-            for tabela in tabelas)
+        tabelas = re.findall(r'DELETE FROM ([a-z_]+) WHERE', SQL.read_text(encoding='utf-8'))
+        tabelas = [t for t in tabelas if t not in ('restaurantes','balanco_categorias')]
+        contagens = []
+        for tabela in tabelas:
+            filtro = f'restaurante_id IN (SELECT id FROM "{args.schema}".restaurantes)'
+            if tabela in ('ajustes','consumos','desperdicios','entradas'):
+                filtro = f'id IN (SELECT id FROM "{args.schema}".movimentacoes WHERE {filtro})'
+            contagens.append(f"SELECT '{tabela}' AS tabela, count(*) AS registros "
+                f'FROM "{args.schema}".{tabela} WHERE {filtro}')
+        contagens = ' UNION ALL '.join(contagens)
         dados['contagens'] = json.loads(consultar(
             f"SELECT json_object_agg(tabela,registros) FROM ({contagens}) contagens;"))
         salvar(args.manifesto, dados)
@@ -136,7 +141,7 @@ def main():
         if tabelas != '0':
             raise ValueError('O banco de ensaio precisa estar vazio.')
         subprocess.run(['pg_restore', '--exit-on-error', '--no-owner', '--no-privileges',
-            '--dbname', 'service='+args.servico_restauracao, args.backup], env=ambiente, check=True)
+            '--schema', manifesto['schema'], '--dbname', 'service='+args.servico_restauracao, args.backup], env=ambiente, check=True)
         limpeza(manifesto, False, ambiente)
         salvar(args.comprovante, assinatura)
         print('Backup restaurado e limpeza ensaiada com ROLLBACK. Origem preservada.')

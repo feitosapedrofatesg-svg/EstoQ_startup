@@ -30,6 +30,9 @@ class LimpezaRestaurantesTesteIntegrationTest {
                 + "VALUES (1,'Teste',true,now(),0)");
             s.execute("INSERT INTO produtos(restaurante_id,categoria_id,nome,unidade_medida,ativo,data_hora_criacao,version) "
                 + "VALUES (1,1,'Item','UN',true,now(),0)");
+            s.execute("INSERT INTO movimentacoes(restaurante_id,produto_id,usuario_id,ativo,quantidade,quantidade_anterior,quantidade_posterior,data_hora,data_hora_criacao,version,tipo) "
+                + "VALUES (1,1,2,true,1,0,1,now(),now(),0,'ENTRADA')");
+            s.execute("INSERT INTO entradas(id,valor_total_pago,unidade_compra) VALUES (1,10,'UN')");
             // O retrato é anterior ao cadastro do restaurante que será preservado.
             s.execute("CREATE TEMP TABLE alvos_limpeza AS SELECT id,nome,data_hora_criacao AS criacao FROM restaurantes");
             s.execute("INSERT INTO restaurantes(nome,ativo,data_hora_criacao,version) VALUES ('Novo',true,now(),0)");
@@ -55,6 +58,8 @@ class LimpezaRestaurantesTesteIntegrationTest {
                 assertEquals(1,contar(c,"SELECT count(*) FROM restaurantes WHERE id=2 AND ativo"));
                 assertEquals(1,contar(c,"SELECT count(*) FROM usuarios WHERE perfil='PLATAFORMA' AND senha='hash-preservado'"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM produtos"));
+                assertEquals(0,contar(c,"SELECT count(*) FROM entradas"));
+                assertEquals(0,contar(c,"SELECT count(*) FROM movimentacoes"));
                 assertEquals(migracoes,contar(c,"SELECT count(*) FROM flyway_schema_history"));
                 assertEquals(3,contar(c,"INSERT INTO restaurantes(nome,ativo,data_hora_criacao,version) VALUES ('Real',true,now(),0) RETURNING id"));
             }
@@ -76,6 +81,7 @@ class LimpezaRestaurantesTesteIntegrationTest {
                 assertEquals(1,contar(c,"SELECT count(*) FROM restaurantes WHERE id=1 AND ativo"));
                 assertEquals(1,contar(c,"SELECT count(*) FROM usuarios WHERE restaurante_id=1"));
                 assertEquals(2,contar(c,"SELECT count(*) FROM produtos"));
+                assertEquals(1,contar(c,"SELECT count(*) FROM entradas WHERE restaurante_id IS NULL"));
             }
         }
     }

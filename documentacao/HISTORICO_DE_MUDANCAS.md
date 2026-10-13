@@ -149,3 +149,18 @@ não recursos já entregues.
 - Procedimento e configuração inicial registrados em `INICIO_PRODUCAO.md`.
 - A implementação da ferramenta não significa que a limpeza remota foi executada;
   produção depende do acesso ao Neon, backup e ensaio efetivamente verificados.
+
+### Execução da preparação no Neon
+
+- Backup completo salvo fora do Render, com segunda cópia local e hashes iguais.
+- Restauração do schema da aplicação ensaiada em PostgreSQL 18 isolado; conteúdo
+  das 26 tabelas conferido contra a origem antes da exclusão.
+- 17 restaurantes de teste e 22 usuários operacionais removidos em transação.
+  A conta PLATAFORMA, o histórico Flyway, as sequências e a tabela de exemplo
+  própria do Neon foram preservados e conferidos contra o backup.
+- Registros antigos das tabelas filhas de movimentação sem restaurante_id foram
+  contemplados pelo vínculo com a movimentação principal e testados em PostgreSQL.
+- A extensão gerenciada pg_session_jwt permanece no dump completo e na produção;
+  o ensaio local do schema da aplicação não homologa sua restauração no Neon.
+- Backups e registro detalhado ficam em dados/, ignorado pelo Git. O cadastro
+  do restaurante real e a troca das credenciais permanecem a cargo do responsável.

@@ -50,6 +50,8 @@ class BackupPdfIntegrationTest {
     RelatorioPdfService pdfs;
     @Autowired
     BackupService backups;
+    @Autowired
+    com.estoq.business.desperdicios.DesperdicioService desperdicios;
     Long produtoId;
 
     @BeforeEach
@@ -102,6 +104,21 @@ class BackupPdfIntegrationTest {
                 assertTrue(texto.contains("Página 1 de"), tipo);
                 assertTrue(texto.contains("Posição atual") || texto.contains("Período:"), tipo);
             }
+        }
+    }
+
+    @Test
+    void exportaPerdaRegistradaSemDescricaoComplementar() throws Exception {
+        desperdicios.registrarDesperdicio(new com.estoq.business.desperdicios.DesperdicioRequestDTO(
+                produtoId, null, new BigDecimal("2"), com.estoq.business.desperdicios.MotivoDesperdicio.DETERIORACAO, null, null, null));
+        var bytes = pdfs.gerar("desperdicio", LocalDate.now().minusDays(1), LocalDate.now(java.time.ZoneOffset.UTC), 2, null);
+        try (var documento = org.apache.pdfbox.Loader.loadPDF(bytes)) {
+            var texto = new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
+            assertTrue(texto.contains("Farinha"));
+            assertTrue(texto.contains("DETERIORACAO"));
+            assertTrue(texto.contains("2 kg"));
+            assertTrue(texto.contains("Prejuízo total no período"));
+            assertTrue(texto.contains("R$ 16,00"));
         }
     }
 

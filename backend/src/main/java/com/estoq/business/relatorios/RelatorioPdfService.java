@@ -30,6 +30,7 @@ public class RelatorioPdfService {
         var ate = periodoFim.atStartOfDay().plusDays(1);
         String periodo = "Período: " + periodoInicio.format(DATA) + " a " + periodoFim.format(DATA);
         String observacao = null;
+        Destaque total = null;
         var linhas = new ArrayList<List<String>>();
         var resumo = new ArrayList<Destaque>();
         List<Coluna> colunas;
@@ -39,24 +40,35 @@ public class RelatorioPdfService {
             case "estoque-atual" -> {
                 titulo = "Estoque atual";
                 colunas = List.of(c("Produto", 4), c("Categoria", 2.5f), n("Saldo", 2), n("Valor em estoque", 2));
-                for (var l : relatorios.estoqueAtual()) linhas.add(List.of(l.produtoNome(), l.categoriaNome(), qtd(l.saldoAtual(), l.unidadeMedida().name()), moeda(l.valorEstoque())));
+                var valorTotal = BigDecimal.ZERO;
+                for (var l : relatorios.estoqueAtual()) {
+                    linhas.add(java.util.Arrays.asList(l.produtoNome(), l.categoriaNome(), qtd(l.saldoAtual(), l.unidadeMedida().name()), moeda(l.valorEstoque())));
+                    valorTotal = valorTotal.add(valorMonetario(l.valorEstoque()));
+                }
+                total = new Destaque("Valor total em estoque", moeda(valorTotal));
             }
             case "proximos-vencimento" -> {
                 titulo = "Lotes próximos do vencimento";
                 colunas = List.of(c("Produto", 3), c("Lote", 2.5f), c("Validade", 1.5f), n("Dias restantes", 1.3f), n("Saldo", 1.8f));
-                for (var l : relatorios.proximosVencimento()) linhas.add(List.of(l.produtoNome(), l.codigo(), data(l.dataValidade()), l.diasParaVencimento() == null ? "-" : l.diasParaVencimento().toString(), qtd(l.quantidadeAtual(), l.unidadeMedida().name())));
+                for (var l : relatorios.proximosVencimento()) linhas.add(java.util.Arrays.asList(l.produtoNome(), l.codigo(), data(l.dataValidade()), l.diasParaVencimento() == null ? "-" : l.diasParaVencimento().toString(), qtd(l.quantidadeAtual(), l.unidadeMedida().name())));
                 observacao = "Atenção: lotes próximos da validade. Confira a data antes de utilizar.";
             }
             case "vencidos" -> {
                 titulo = "Lotes vencidos";
                 colunas = List.of(c("Produto", 3), c("Lote", 2.5f), c("Validade", 1.5f), n("Saldo", 1.8f), n("Valor do saldo", 2));
-                for (var l : relatorios.vencidos()) linhas.add(List.of(l.produtoNome(), l.codigo(), data(l.dataValidade()), qtd(l.quantidadeAtual(), l.unidadeMedida().name()), moeda(l.quantidadeAtual().multiply(l.precoUnitario()))));
+                var valorTotal = BigDecimal.ZERO;
+                for (var l : relatorios.vencidos()) {
+                    var valor = l.quantidadeAtual().multiply(l.precoUnitario());
+                    linhas.add(java.util.Arrays.asList(l.produtoNome(), l.codigo(), data(l.dataValidade()), qtd(l.quantidadeAtual(), l.unidadeMedida().name()), moeda(valor)));
+                    valorTotal = valorTotal.add(valorMonetario(valor));
+                }
+                total = new Destaque("Valor total dos lotes vencidos", moeda(valorTotal));
                 observacao = "VENCIDO: os lotes desta lista ultrapassaram sua validade.";
             }
             case "produtos-abertos" -> {
                 titulo = "Embalagens abertas";
                 colunas = List.of(c("Produto", 3), c("Lote", 2.5f), c("Abertura", 1.8f), n("Quantidade aberta", 2), n("Restante", 2));
-                for (var p : relatorios.produtosAbertos()) linhas.add(List.of(p.produtoNome(), p.loteCodigo(), p.dataAbertura() == null ? "-" : p.dataAbertura().toLocalDate().format(DATA), qtd(p.quantidadeAberta(), p.unidadeMedida()), qtd(p.quantidadeRestante(), p.unidadeMedida())));
+                for (var p : relatorios.produtosAbertos()) linhas.add(java.util.Arrays.asList(p.produtoNome(), p.loteCodigo(), p.dataAbertura() == null ? "-" : p.dataAbertura().toLocalDate().format(DATA), qtd(p.quantidadeAberta(), p.unidadeMedida()), qtd(p.quantidadeRestante(), p.unidadeMedida())));
             }
             case "desperdicio" -> {
                 titulo = "Desperdício no período";
@@ -64,7 +76,15 @@ public class RelatorioPdfService {
                 var perdas = relatorios.desperdicio(de, ate);
                 var unidades = perdas.isEmpty() ? java.util.Map.<Long, String>of() : relatorios.estoqueAtual().stream()
                         .collect(java.util.stream.Collectors.toMap(com.estoq.business.produtos.EstoqueDTO::produtoId, p -> p.unidadeMedida().name()));
-                for (var d : perdas) linhas.add(List.of(d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), d.produtoNome(), d.descricaoMotivo(), qtd(d.quantidade(), unidades.get(d.produtoId())), moeda(d.valorPrejuizo())));
+                var valorTotal = BigDecimal.ZERO;
+                for (var d : perdas) {
+                    // A descrição é opcional; o motivo cadastrado continua identificando a perda.
+                    String motivo = d.descricaoMotivo();
+                    if (motivo == null || motivo.isBlank()) motivo = d.motivo() == null ? "Não informado" : d.motivo().name().replace('_', ' ');
+                    linhas.add(java.util.Arrays.asList(d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), d.produtoNome(), motivo, qtd(d.quantidade(), unidades.get(d.produtoId())), moeda(d.valorPrejuizo())));
+                    valorTotal = valorTotal.add(valorMonetario(d.valorPrejuizo()));
+                }
+                total = new Destaque("Prejuízo total no período", moeda(valorTotal));
                 observacao = "Quantidades na unidade de cadastro de cada produto; quando indisponível, a unidade não é indicada. Não somar unidades diferentes. Horários em UTC-3.";
             }
             case "consumo-medio" -> {
@@ -73,7 +93,7 @@ public class RelatorioPdfService {
                 var inicioConsumo = ate.minusDays(janela);
                 periodo = "Período: " + inicioConsumo.toLocalDate().format(DATA) + " a " + periodoFim.format(DATA);
                 colunas = List.of(c("Produto", 4), n("Total consumido", 2.5f), n("Dias", 1), n("Média por dia", 2.5f));
-                for (var c : relatorios.consumoMedio(inicioConsumo, ate)) linhas.add(List.of(c.produtoNome(), qtd(c.totalConsumidoPeriodo(), c.unidadeMedida()), Long.toString(c.diasPeriodo()), qtd(c.consumoMedioDiario(), c.unidadeMedida())));
+                for (var c : relatorios.consumoMedio(inicioConsumo, ate)) linhas.add(java.util.Arrays.asList(c.produtoNome(), qtd(c.totalConsumidoPeriodo(), c.unidadeMedida()), Long.toString(c.diasPeriodo()), qtd(c.consumoMedioDiario(), c.unidadeMedida())));
             }
             case "cmv" -> {
                 titulo = "Custo da mercadoria vendida (CMV)";
@@ -81,35 +101,35 @@ public class RelatorioPdfService {
                 var cmv = relatorios.calcularCmv(de, ate, receitaBase);
                 resumo.add(new Destaque("CMV do período", moeda(cmv.cmv())));
                 if (cmv.receitaBase() != null) resumo.add(new Destaque("Percentual de CMV", percentual(cmv.cmvPercentual())));
-                linhas.add(List.of("Estoque no início do período", moeda(cmv.valorEstoqueInicial())));
-                linhas.add(List.of("+ Compras no período", moeda(cmv.valorCompras())));
-                linhas.add(List.of("- Estoque no fim do período", moeda(cmv.valorEstoqueFinal())));
-                linhas.add(List.of("Consumo registrado", moeda(cmv.valorConsumoRegistrado())));
-                linhas.add(List.of("Desperdício", moeda(cmv.valorDesperdicio())));
-                linhas.add(List.of("Perdas não explicadas", moeda(cmv.valorPerdasNaoExplicadas())));
+                linhas.add(java.util.Arrays.asList("Estoque no início do período", moeda(cmv.valorEstoqueInicial())));
+                linhas.add(java.util.Arrays.asList("+ Compras no período", moeda(cmv.valorCompras())));
+                linhas.add(java.util.Arrays.asList("- Estoque no fim do período", moeda(cmv.valorEstoqueFinal())));
+                linhas.add(java.util.Arrays.asList("Consumo registrado", moeda(cmv.valorConsumoRegistrado())));
+                linhas.add(java.util.Arrays.asList("Desperdício", moeda(cmv.valorDesperdicio())));
+                linhas.add(java.util.Arrays.asList("Perdas não explicadas", moeda(cmv.valorPerdasNaoExplicadas())));
                 if (cmv.receitaBase() != null) {
-                    linhas.add(List.of("Receita base informada", moeda(cmv.receitaBase())));
-                    linhas.add(List.of("Percentual ideal de CMV", percentual(cmv.percentualIdeal())));
+                    linhas.add(java.util.Arrays.asList("Receita base informada", moeda(cmv.receitaBase())));
+                    linhas.add(java.util.Arrays.asList("Percentual ideal de CMV", percentual(cmv.percentualIdeal())));
                 }
                 observacao = "CMV = estoque inicial + compras - estoque final. Valores apurados pelo sistema para o período consultado.";
             }
             case "cmv-mensal" -> {
                 titulo = "CMV mês a mês";
                 colunas = List.of(c("Mês", 3), n("CMV", 3));
-                for (var m : relatorios.cmvPorMes(de, ate)) linhas.add(List.of(m.periodo().format(DateTimeFormatter.ofPattern("MM/yyyy")), moeda(m.cmv())));
+                for (var m : relatorios.cmvPorMes(de, ate)) linhas.add(java.util.Arrays.asList(m.periodo().format(DateTimeFormatter.ofPattern("MM/yyyy")), moeda(m.cmv())));
                 observacao = "Os meses nas bordas do intervalo podem representar períodos parciais.";
             }
             case "reposicao-sugerida" -> {
                 titulo = "Reposição sugerida";
                 colunas = List.of(c("Produto", 4), n("Saldo atual", 2.5f), n("Quantidade sugerida", 2.5f), n("Prazo (dias)", 1.5f));
-                for (var r : relatorios.reposicaoSugerida(null)) linhas.add(List.of(r.produtoNome(), qtd(r.saldoAtual(), r.unidadeMedida().name()), qtd(r.quantidadeSugerida(), r.unidadeMedida().name()), Integer.toString(r.diasReposicao())));
+                for (var r : relatorios.reposicaoSugerida(null)) linhas.add(java.util.Arrays.asList(r.produtoNome(), qtd(r.saldoAtual(), r.unidadeMedida().name()), qtd(r.quantidadeSugerida(), r.unidadeMedida().name()), Integer.toString(r.diasReposicao())));
             }
             default -> throw new BusinessException("Relatório PDF não suportado: " + tipo, HttpStatus.BAD_REQUEST);
         }
         if (List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "reposicao-sugerida").contains(tipo)) {
             periodo = "Posição atual em " + LocalDate.now().format(DATA) + " (não é um estoque histórico)";
         }
-        try { return new LayoutRelatorioPdf().gerar(new DocumentoRelatorioPdf(titulo, periodo, colunas, linhas, resumo, observacao)); }
+        try { return new LayoutRelatorioPdf().gerar(new DocumentoRelatorioPdf(titulo, periodo, colunas, linhas, resumo, observacao, total)); }
         catch (IOException e) { throw new BusinessException("Falha ao gerar o PDF.", HttpStatus.INTERNAL_SERVER_ERROR); }
     }
 
@@ -122,6 +142,10 @@ public class RelatorioPdfService {
         var formato = NumberFormat.getNumberInstance(BRASIL);
         formato.setMaximumFractionDigits(Math.max(3, valor.scale()));
         return formato.format(valor);
+    }
+    /** Soma os valores monetários exibidos, sem misturar quantidades de unidades diferentes. */
+    private static BigDecimal valorMonetario(BigDecimal valor) {
+        return (valor == null ? BigDecimal.ZERO : valor).setScale(2, java.math.RoundingMode.HALF_UP);
     }
     private static String moeda(BigDecimal valor) {
         var formato = NumberFormat.getCurrencyInstance(BRASIL);

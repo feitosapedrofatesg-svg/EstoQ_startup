@@ -4,7 +4,11 @@ import java.util.List;
 
 /** Dados de apresentação; não calcula saldos, custos ou indicadores. */
 record DocumentoRelatorioPdf(String titulo, String periodo, List<Coluna> colunas,
-        List<List<String>> linhas, List<Destaque> resumo, String observacao) {
+        List<List<String>> linhas, List<Destaque> resumo, String observacao, Destaque total) {
+    DocumentoRelatorioPdf(String titulo, String periodo, List<Coluna> colunas,
+            List<List<String>> linhas, List<Destaque> resumo, String observacao) {
+        this(titulo, periodo, colunas, linhas, resumo, observacao, null);
+    }
     record Coluna(String titulo, float peso, boolean numerica) {}
     record Destaque(String rotulo, String valor) {}
 }

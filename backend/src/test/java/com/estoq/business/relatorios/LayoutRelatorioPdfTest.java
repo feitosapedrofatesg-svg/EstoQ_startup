@@ -38,7 +38,7 @@ class LayoutRelatorioPdfTest {
                 "Deterioração da embalagem e ajuste negativo de balanço", "123,456", "R$ 9.876,54"));
         var dados = new DocumentoRelatorioPdf("Desperdício no período", "Período: 01/10/2026 a 12/10/2026",
                 List.of(new Coluna("Data e hora", 2, false), new Coluna("Produto", 3, false), new Coluna("Motivo", 3, false), new Coluna("Quantidade", 2, true), new Coluna("Prejuízo", 2, true)),
-                linhas, List.of(), "Quantidades na unidade de cadastro de cada produto.");
+                linhas, List.of(), "Quantidades na unidade de cadastro de cada produto.", new Destaque("Prejuízo total no período", "R$ 839.505,90"));
         var bytes = new LayoutRelatorioPdf().gerar(dados);
         guardar("desperdicio", bytes);
         try (var pdf = Loader.loadPDF(bytes)) {
@@ -46,6 +46,11 @@ class LayoutRelatorioPdfTest {
             assertTrue(pdf.getPage(0).getMediaBox().getWidth() > pdf.getPage(0).getMediaBox().getHeight());
             String texto = new PDFTextStripper().getText(pdf);
             assertTrue(texto.contains("Produto 85"));
+            var ultima = new PDFTextStripper(); ultima.setStartPage(pdf.getNumberOfPages());
+            String fechamento = ultima.getText(pdf);
+            assertTrue(fechamento.contains("Produto 85"));
+            assertTrue(fechamento.contains("Prejuízo total no período"));
+            assertTrue(fechamento.contains("R$ 839.505,90"));
             for (int i = 1; i <= pdf.getNumberOfPages(); i++) {
                 var leitor = new PDFTextStripper(); leitor.setStartPage(i); leitor.setEndPage(i);
                 String pagina = leitor.getText(pdf);

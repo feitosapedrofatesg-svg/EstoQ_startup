@@ -27,7 +27,7 @@ final class LayoutRelatorioPdf {
     private PDDocument documento;
     private PDPageContentStream desenho;
     private DocumentoRelatorioPdf dados;
-    private float largura, altura, y;
+    private float largura, altura, y, reserva;
     private float[] larguras;
     private String emissao;
 
@@ -46,8 +46,19 @@ final class LayoutRelatorioPdf {
             doc.getDocumentInformation().setAuthor("EstoQ");
             novaPagina(true);
             cabecalhoTabela();
-            if (dados.linhas().isEmpty()) texto("Nenhum registro para os filtros selecionados.", MARGEM + 8, y - 22, normal, FONTE);
-            for (int i = 0; i < dados.linhas().size(); i++) linhaTabela(dados.linhas().get(i), i % 2 == 1);
+            if (dados.linhas().isEmpty()) { texto("Nenhum registro para os filtros selecionados.", MARGEM + 8, y - 22, normal, FONTE); y -= 38; }
+            for (int i = 0; i < dados.linhas().size(); i++) {
+                // Reservar espaço na última linha evita um total sozinho na página seguinte.
+                reserva = i == dados.linhas().size() - 1 && dados.total() != null ? 44 : 0;
+                linhaTabela(dados.linhas().get(i), i % 2 == 1);
+            }
+            if (dados.total() != null) {
+                y -= 10;
+                fundo(y - 32, 32, PAPEL);
+                texto(dados.total().rotulo(), MARGEM + 8, y - 20, negrito, 10);
+                String valor = dados.total().valor();
+                texto(valor, largura - MARGEM - 8 - medida(valor, negrito, 12), y - 20, negrito, 12);
+            }
             if (desenho != null) desenho.close();
             for (int i = 0; i < doc.getNumberOfPages(); i++) {
                 try (var rodape = new PDPageContentStream(doc, doc.getPage(i), PDPageContentStream.AppendMode.APPEND, true, true)) {
@@ -113,10 +124,10 @@ final class LayoutRelatorioPdf {
         int total = celulas.stream().mapToInt(List::size).max().orElse(1);
         float h = total * ENTRELINHA + 16;
         // Linhas normais ficam inteiras. Textos maiores que uma página continuam sem corte.
-        if (y - h < RODAPE && h <= altura - MARGEM - 150 - RODAPE) { novaPagina(false); cabecalhoTabela(); }
+        if (y - h < RODAPE + reserva && h <= altura - MARGEM - 150 - RODAPE) { novaPagina(false); cabecalhoTabela(); }
         int offset = 0;
         while (offset < total) {
-            int capacidade = Math.max(1, (int) ((y - RODAPE - 16) / ENTRELINHA));
+            int capacidade = Math.max(1, (int) ((y - RODAPE - reserva - 16) / ENTRELINHA));
             int quantidade = Math.min(total - offset, capacidade);
             var trecho = new ArrayList<List<String>>();
             for (var celula : celulas) trecho.add(celula.subList(Math.min(offset, celula.size()), Math.min(offset + quantidade, celula.size())));

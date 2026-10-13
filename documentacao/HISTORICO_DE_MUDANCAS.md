@@ -5,6 +5,14 @@ O commit `6bdddad` registra a correção de horários; a revisão atual acrescen
 a reorganização e as correções de responsividade descritas abaixo.
 As decisões atuais prevalecem sobre descrições históricas de etapas anteriores.
 
+## 12/10/2026 — exportação de desperdício e totais dos PDFs
+
+- Corrigida a exportação de desperdício quando a descrição opcional do motivo está vazia ou nula.
+- Campos textuais opcionais não interrompem a montagem das linhas do PDF.
+- Estoque atual, vencidos e desperdício apresentam total monetário no fechamento.
+- O fechamento permanece junto aos últimos itens; totais usam os valores exibidos em centavos.
+- Testes cobrem descrição ausente, perdas de balanço, totais e fechamento em várias páginas.
+
 ## 12/10/2026 — layout dos relatórios impressos
 
 - Tabelas reais no PDFBox, com larguras medidas e quebra de texto sem truncamento.

@@ -137,3 +137,15 @@ Ainda não há backup por restaurante, escrita offline, reabertura de balanço,
 infraestrutura de SSE/sessão compartilhada entre instâncias, PDV, emissão fiscal
 ou integração automática de faturamento. Essas possibilidades são evoluções,
 não recursos já entregues.
+
+## 12/10/2026 — preparação para iniciar com dados reais
+
+- Utilitário administrativo em `scripts/limpar_restaurantes_teste.py`, com inspeção,
+  ensaio de restauração e execução explícita; nenhum endpoint ou migração automática.
+- Manifesto fixa os restaurantes de teste; contas PLATAFORMA, novos restaurantes,
+  sequências e histórico Flyway são preservados. Exclusão respeita FKs e transação.
+- Execução exige duas cópias do dump e comprovante do ensaio, vinculados por SHA-256.
+- Testes PostgreSQL reais cobrem preservação, rollback e bloqueios de segurança.
+- Procedimento e configuração inicial registrados em `INICIO_PRODUCAO.md`.
+- A implementação da ferramenta não significa que a limpeza remota foi executada;
+  produção depende do acesso ao Neon, backup e ensaio efetivamente verificados.

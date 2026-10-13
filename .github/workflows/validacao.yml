@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Validar proteções da limpeza administrativa
+        run: python3 -m unittest discover -s scripts/tests -v
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

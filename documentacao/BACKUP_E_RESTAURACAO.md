@@ -75,3 +75,9 @@ de restauração não demonstra recuperação bem-sucedida.
 Exportação/restauração individual por restaurante, agendamento externo, cópia
 persistente remota e recuperação por interface exigem projeto próprio. Um dump
 completo nunca deve ser entregue como backup individual de uma loja.
+
+## Remoção de demonstrações antes do uso real
+
+Consulte [Início de produção](INICIO_PRODUCAO.md) para inspeção dos restaurantes,
+backup em duas cópias, ensaio de restauração e limpeza transacional. O procedimento
+é administrativo e manual; não é executado pelo deploy nem pelas telas de estoque.

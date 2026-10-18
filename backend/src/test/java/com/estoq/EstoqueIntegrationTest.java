@@ -1,5 +1,7 @@
 package com.estoq;
 
+import static com.estoq.core.helpers.HorarioOperacao.FUSO;
+
 import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.consumos.ConsumoModel;
@@ -118,7 +120,7 @@ class EstoqueIntegrationTest {
     @Autowired com.estoq.business.movimentacoesEstoque.MovimentacaoRegistroService registros;
 
     @Test void historicoMostraMovimentacaoMaisRecentePrimeiro() {
-        entrada("10", "100", LocalDate.now().plusDays(30));
+        entrada("10", "100", LocalDate.now(FUSO).plusDays(30));
         var primeiro = consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("1"), null, null));
         var ultimo = consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("2"), null, null));
         var historico = registros.consultar(produtoId, null, null,
@@ -129,7 +131,7 @@ class EstoqueIntegrationTest {
     }
 
     @Test void embalagemMovimentadaRecentementeSobeParaInicio() {
-        var lote = entrada("10", "100", LocalDate.now().plusDays(30));
+        var lote = entrada("10", "100", LocalDate.now(FUSO).plusDays(30));
         var antiga = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, lote, n("2"), n("0"), null, null));
         var nova = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, lote, n("2"), n("0"), null, null));
         assertEquals(nova.id(), abertos.listar(produtoId, false).getFirst().id());
@@ -139,8 +141,8 @@ class EstoqueIntegrationTest {
 
     @Test
     void listaEstoqueSeparaSaldoFisicoDeSaldoConsumivel() {
-        entrada("5", "200", LocalDate.now().minusDays(1));
-        entrada("2", "80", LocalDate.now());
+        entrada("5", "200", LocalDate.now(FUSO).minusDays(1));
+        entrada("2", "80", LocalDate.now(FUSO));
         entrada("3", "120", null);
 
         var item = estoque.listar(false, false).stream()
@@ -154,7 +156,7 @@ class EstoqueIntegrationTest {
 
     @Test
     void aberturaConsumoEDescarteMantemRestanteDentroDoLote() {
-        Long loteId = entrada("5", "200", LocalDate.now().plusDays(3));
+        Long loteId = entrada("5", "200", LocalDate.now(FUSO).plusDays(3));
         var a = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("2"), n("0.5"), null, null));
         igual("4.5", lotes.findById(loteId).orElseThrow().getQuantidadeAtual());
         igual("4.5", estoque.obterSaldo(produtoId));
@@ -176,7 +178,7 @@ class EstoqueIntegrationTest {
 
     @Test
     void aberturaSemUsoNaoCriaConsumoNemBaixa() {
-        Long loteId = entrada("5", "50", LocalDate.now().plusDays(3));
+        Long loteId = entrada("5", "50", LocalDate.now(FUSO).plusDays(3));
         long antes = movimentos.count();
         var a = abertos
                 .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("3"), BigDecimal.ZERO, null, null));
@@ -189,8 +191,8 @@ class EstoqueIntegrationTest {
 
     @Test
     void fifoPorValidadeConsomeAbertoSemDesalinharRastreio() {
-        Long tardio = entrada("5", "50", LocalDate.now().plusDays(10));
-        Long cedo = entrada("3", "60", LocalDate.now().plusDays(1));
+        Long tardio = entrada("5", "50", LocalDate.now(FUSO).plusDays(10));
+        Long cedo = entrada("3", "60", LocalDate.now(FUSO).plusDays(1));
         var a = abertos
                 .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, cedo, n("2"), BigDecimal.ZERO, null, null));
         var result = consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("4"), null, null));
@@ -203,10 +205,10 @@ class EstoqueIntegrationTest {
 
     @Test
     void rejeitaConsumoVencidoIncluindoItemAberto() {
-        Long loteId = entrada("5", "50", LocalDate.now().plusDays(1));
+        Long loteId = entrada("5", "50", LocalDate.now(FUSO).plusDays(1));
         var a = abertos
                 .abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("2"), BigDecimal.ZERO, null, null));
-        lotes.findById(loteId).orElseThrow().setDataValidade(LocalDate.now().minusDays(1));
+        lotes.findById(loteId).orElseThrow().setDataValidade(LocalDate.now(FUSO).minusDays(1));
         lotes.flush();
         assertThrows(ConflictException.class, () -> abertos.consumirProdutoAberto(a.id(),
                 new ConsumirProdutoAbertoRequestDTO(n("1"), null, null, null)));
@@ -214,7 +216,7 @@ class EstoqueIntegrationTest {
 
     @Test
     void rejeitaDesperdicioAcimaDoRestante() {
-        Long loteId = entrada("5", "50", LocalDate.now().plusDays(1));
+        Long loteId = entrada("5", "50", LocalDate.now(FUSO).plusDays(1));
         var a = abertos.abrirEmbalagem(new AbrirProdutoRequestDTO(produtoId, loteId, n("2"), n("1"), null, null));
         assertThrows(ConflictException.class, () -> abertos.desperdicarProdutoAberto(a.id(),
                 new DesperdicarProdutoAbertoRequestDTO(n("2"), null, null, null)));
@@ -223,7 +225,7 @@ class EstoqueIntegrationTest {
 
     @Test
     void rejeitaDesperdicioMaiorQueEstoqueDisponivelComMensagemExplicita() {
-        entrada("9", "50", LocalDate.now().plusDays(1));
+        entrada("9", "50", LocalDate.now(FUSO).plusDays(1));
         var ex = assertThrows(ConflictException.class,
                 () -> desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, n("10"),
                         MotivoDesperdicio.VENCIMENTO, null, null, null)));
@@ -232,7 +234,7 @@ class EstoqueIntegrationTest {
 
     @Test
     void consultaComVersaoAntigaRecebeConflito() {
-        Long loteId = entrada("5", "50", LocalDate.now().plusDays(1));
+        Long loteId = entrada("5", "50", LocalDate.now(FUSO).plusDays(1));
         Long version = lotes.findById(loteId).orElseThrow().getVersion();
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, loteId, n("1"), version, null));
         assertThrows(ConflictException.class,
@@ -244,7 +246,7 @@ class EstoqueIntegrationTest {
         Long loteId = entrada("5", "50", null);
         var lote = lotes.findById(loteId).orElseThrow();
         assertNull(lote.getDataValidade());
-        assertFalse(lote.estaVencido(LocalDate.now()));
+        assertFalse(lote.estaVencido(LocalDate.now(FUSO)));
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, n("2"), null, null));
         igual("3", estoque.obterSaldo(produtoId));
     }
@@ -253,13 +255,13 @@ class EstoqueIntegrationTest {
     void entradaCustoZeroExigeFlagSemCusto() {
         assertThrows(FieldValidationException.class,
                 () -> entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), BigDecimal.ZERO,
-                        UnidadeMedida.KG, LocalDate.now().plusDays(3), null, false)));
+                        UnidadeMedida.KG, LocalDate.now(FUSO).plusDays(3), null, false)));
         var mov = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), BigDecimal.ZERO, UnidadeMedida.KG,
-                LocalDate.now().plusDays(3), null, true)).movimentacoes().getFirst();
+                LocalDate.now(FUSO).plusDays(3), null, true)).movimentacoes().getFirst();
         igual("5", estoque.obterSaldo(produtoId));
         igual("0", lotes.findById(mov.loteId()).orElseThrow().getPrecoUnitario());
         assertThrows(FieldValidationException.class,
                 () -> entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), n("50"), UnidadeMedida.KG,
-                        LocalDate.now().plusDays(3), null, true)));
+                        LocalDate.now(FUSO).plusDays(3), null, true)));
     }
 }

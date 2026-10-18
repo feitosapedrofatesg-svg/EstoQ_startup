@@ -1,5 +1,7 @@
 package com.estoq;
 
+import static com.estoq.core.helpers.HorarioOperacao.FUSO;
+
 import com.estoq.backup.BackupService;
 import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.categorias.ICategoriaRepository;
@@ -72,7 +74,7 @@ class BackupPdfIntegrationTest {
         d.setUnidadeMedida(UnidadeMedida.KG);
         produtoId = produtos.criar(d).getId();
         entradas.registrarEntrada(new EntradaRequestDTO(produtoId, new BigDecimal("10"), new BigDecimal("80"), UnidadeMedida.KG,
-                LocalDate.now().plusDays(30), null, false));
+                LocalDate.now(FUSO).plusDays(30), null, false));
     }
 
     @AfterEach
@@ -82,21 +84,21 @@ class BackupPdfIntegrationTest {
 
     @Test
     void geraRelatorioPdfValido() {
-        var bytes = pdfs.gerar("estoque-atual", LocalDate.now().minusDays(7), LocalDate.now(), 30, null);
+        var bytes = pdfs.gerar("estoque-atual", LocalDate.now(FUSO).minusDays(7), LocalDate.now(FUSO), 30, null);
         assertTrue(bytes.length > 100);
         assertTrue(new String(bytes, 0, 5, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
     }
 
     @Test
     void geraCmvPdfMesmoSemReceita() {
-        var bytes = pdfs.gerar("cmv", LocalDate.now().minusDays(7), LocalDate.now(), 30, null);
+        var bytes = pdfs.gerar("cmv", LocalDate.now(FUSO).minusDays(7), LocalDate.now(FUSO), 30, null);
         assertTrue(new String(bytes, 0, 5, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
     }
 
     @Test
     void todosOsTiposMantemFormatoPdfEPeriodo() throws Exception {
         for (var tipo : List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "desperdicio", "consumo-medio", "cmv", "cmv-mensal", "reposicao-sugerida")) {
-            var bytes = pdfs.gerar(tipo, LocalDate.now().minusDays(7), LocalDate.now(), 8, new BigDecimal("1000"));
+            var bytes = pdfs.gerar(tipo, LocalDate.now(FUSO).minusDays(7), LocalDate.now(FUSO), 8, new BigDecimal("1000"));
             try (var documento = org.apache.pdfbox.Loader.loadPDF(bytes)) {
                 var texto = new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
                 assertTrue(texto.contains("EstoQ"), tipo);
@@ -111,7 +113,7 @@ class BackupPdfIntegrationTest {
     void exportaPerdaRegistradaSemDescricaoComplementar() throws Exception {
         desperdicios.registrarDesperdicio(new com.estoq.business.desperdicios.DesperdicioRequestDTO(
                 produtoId, null, new BigDecimal("2"), com.estoq.business.desperdicios.MotivoDesperdicio.DETERIORACAO, null, null, null));
-        var bytes = pdfs.gerar("desperdicio", LocalDate.now().minusDays(1), LocalDate.now(java.time.ZoneOffset.UTC), 2, null);
+        var bytes = pdfs.gerar("desperdicio", LocalDate.now(FUSO).minusDays(1), LocalDate.now(java.time.ZoneOffset.UTC), 2, null);
         try (var documento = org.apache.pdfbox.Loader.loadPDF(bytes)) {
             var texto = new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
             assertTrue(texto.contains("Farinha"));
@@ -124,7 +126,7 @@ class BackupPdfIntegrationTest {
 
     @Test
     void rejeitaTipoDesconhecido() {
-        assertThrows(BusinessException.class, () -> pdfs.gerar("inexistente", LocalDate.now(), LocalDate.now(), 30, null));
+        assertThrows(BusinessException.class, () -> pdfs.gerar("inexistente", LocalDate.now(FUSO), LocalDate.now(FUSO), 30, null));
     }
 
     @Test

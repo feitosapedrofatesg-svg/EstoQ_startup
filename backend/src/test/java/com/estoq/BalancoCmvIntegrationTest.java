@@ -1,5 +1,7 @@
 package com.estoq;
 
+import static com.estoq.core.helpers.HorarioOperacao.FUSO;
+
 import com.estoq.business.balancos.BalancoService;
 import com.estoq.business.balancos.VersaoBalancoRequestDTO;
 import com.estoq.business.balancos.ConfirmarBalancoRequestDTO;
@@ -137,7 +139,7 @@ class BalancoCmvIntegrationTest {
         d.setUnidadeMedida(UnidadeMedida.KG);
         produtoId = produtos.criar(d).getId();
         entradas.registrarEntrada(new EntradaRequestDTO(produtoId, new BigDecimal("10"), new BigDecimal("200"),
-                UnidadeMedida.KG, LocalDate.now().plusDays(60), null, false));
+                UnidadeMedida.KG, LocalDate.now(FUSO).plusDays(60), null, false));
     }
 
     @AfterEach
@@ -315,8 +317,8 @@ class BalancoCmvIntegrationTest {
 
     @Test
     void resumoDaVisaoGeralUsaReceitaBaseSalvaNoMesmoPeriodo() {
-        var inicio = LocalDate.now().minusDays(30);
-        var fim = LocalDate.now();
+        var inicio = LocalDate.now(FUSO).minusDays(30);
+        var fim = LocalDate.now(FUSO);
         receitasCmv.salvar(new CmvReceitaBaseDTO(inicio, fim, new BigDecimal("100")));
 
         var resumo = dashboard.resumo(inicio.atStartOfDay(), fim.plusDays(1).atStartOfDay(), null);
@@ -366,11 +368,11 @@ class BalancoCmvIntegrationTest {
     void cicloAlertasBalancoGeraLimpaEAvanca() {
         var cfg = configuracoes.salvar(new ConfiguracaoBalancoDTO(null, null, PeriodicidadeBalanco.DIARIA, null, null));
         var guardado = configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow();
-        guardado.setProximaExecucao(LocalDate.now());
+        guardado.setProximaExecucao(LocalDate.now(FUSO));
         configRepository.flush();
         alertas.avaliarAgendamentos();
         assertEquals(2, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
-        assertEquals(LocalDate.now(), configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao());
+        assertEquals(LocalDate.now(FUSO), configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao());
         alertas.avaliarAgendamentos();
         assertEquals(2, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
         assertEquals(1, alertas.listar(false, Perfil.COZINHA).stream()
@@ -381,7 +383,7 @@ class BalancoCmvIntegrationTest {
         balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(new BigDecimal("8"), item.version()));
         var confirmado = balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
         assertEquals(0, contarAbertos(TipoAlerta.BALANCO_PENDENTE));
-        assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao().isAfter(LocalDate.now()));
+        assertTrue(configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow().getProximaExecucao().isAfter(LocalDate.now(FUSO)));
         assertEquals(1, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
         balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
         assertEquals(0, contarAbertos(TipoAlerta.DIFERENCA_ESTOQUE));
@@ -392,17 +394,17 @@ class BalancoCmvIntegrationTest {
         var cfg = configuracoes.salvar(new ConfiguracaoBalancoDTO(null, null, PeriodicidadeBalanco.DIARIA, null, null));
         assertEquals(0, alertas.contarAbertos(Perfil.ADMIN));
         var guardado = configRepository.findByIdAndAtivoTrue(cfg.id()).orElseThrow();
-        guardado.setProximaExecucao(LocalDate.now());
+        guardado.setProximaExecucao(LocalDate.now(FUSO));
         configRepository.flush();
         var avisos = alertas.listar(false, Perfil.ADMIN);
         assertEquals(1, avisos.size());
-        assertTrue(avisos.getFirst().mensagem().contains(LocalDate.now().format(
+        assertTrue(avisos.getFirst().mensagem().contains(LocalDate.now(FUSO).format(
                 java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
         assertEquals(1, alertas.contarAbertos(Perfil.ADMIN));
         alertas.marcarVisualizado(avisos.getFirst().id());
         assertEquals(0, alertas.contarAbertos(Perfil.ADMIN));
         assertEquals(1, alertas.contarAbertos(Perfil.COZINHA));
-        assertEquals(LocalDate.now(), configuracoes.listar().getFirst().proximaExecucao());
+        assertEquals(LocalDate.now(FUSO), configuracoes.listar().getFirst().proximaExecucao());
     }
 
     @Test
@@ -458,7 +460,7 @@ class BalancoCmvIntegrationTest {
         bebida.setCategoriaId(produtos.encontrar(produtoId).getCategoria().getId());
         var bebidaId = produtos.criar(bebida).getId();
         entradas.registrarEntrada(new EntradaRequestDTO(bebidaId, BigDecimal.ONE, new BigDecimal("20"),
-                UnidadeMedida.L, LocalDate.now().plusDays(30), null, false));
+                UnidadeMedida.L, LocalDate.now(FUSO).plusDays(30), null, false));
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
         consumos.registrarConsumo(new ConsumoRequestDTO(bebidaId, null, new BigDecimal("0.5"), null, null));
         movimentos.findAll().stream().filter(m -> m instanceof com.estoq.business.consumos.ConsumoModel)

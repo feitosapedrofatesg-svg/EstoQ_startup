@@ -1,5 +1,7 @@
 package com.estoq;
 
+import static com.estoq.core.helpers.HorarioOperacao.FUSO;
+
 import com.estoq.business.lotes.LoteModel;
 import com.estoq.business.parametrosEstoque.ParametroEstoqueModel;
 import com.estoq.business.parametrosEstoque.ParametroEstoqueValidation;
@@ -46,11 +48,11 @@ class DominioTest {
         var l = new LoteModel();
         l.setProduto(new ProdutoModel());
         l.setQuantidadeAtual(BigDecimal.ONE);
-        l.setDataValidade(LocalDate.now());
-        assertTrue(l.estaDisponivel(LocalDate.now()));
-        l.setDataValidade(LocalDate.now().minusDays(1));
-        assertFalse(l.estaDisponivel(LocalDate.now()));
-        assertTrue(l.estaVencido(LocalDate.now()));
+        l.setDataValidade(LocalDate.now(FUSO));
+        assertTrue(l.estaDisponivel(LocalDate.now(FUSO)));
+        l.setDataValidade(LocalDate.now(FUSO).minusDays(1));
+        assertFalse(l.estaDisponivel(LocalDate.now(FUSO)));
+        assertTrue(l.estaVencido(LocalDate.now(FUSO)));
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.estoq;
 
+import static com.estoq.core.helpers.HorarioOperacao.FUSO;
+
 import com.estoq.business.auth.UsuarioPrincipal;
 import com.estoq.business.balancos.*;
 import com.estoq.business.categorias.ICategoriaRepository;
@@ -93,7 +95,7 @@ class SincronizacaoBalancoIntegrationTest {
         produto.setCategoriaId(app.getBean(ICategoriaRepository.class).findAllByAtivoTrue().getFirst().getId());
         produtoId = app.getBean(ProdutoService.class).criar(produto).getId();
         app.getBean(EntradaService.class).registrarEntrada(new EntradaRequestDTO(produtoId, new BigDecimal("10"), new BigDecimal("100"),
-                UnidadeMedida.KG, LocalDate.now().plusDays(30), null, false));
+                UnidadeMedida.KG, LocalDate.now(FUSO).plusDays(30), null, false));
         balancos = app.getBean(BalancoService.class);
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
         var iniciado = balancos.iniciar(criado.id(), new VersaoBalancoRequestDTO(criado.version()));
@@ -336,7 +338,7 @@ class SincronizacaoBalancoIntegrationTest {
                 new ConsumoRequestDTO(produtoId, null, new BigDecimal("3"), null, null))));
         assertTrue(app.getBean(ProdutoAbertoService.class).buscar(embalagem.id()).finalizado());
         assertEquals(0, new BigDecimal("7").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
-        transacao().executeWithoutResult(s -> app.getBean(ILoteRepository.class).findById(lote.getId()).orElseThrow().setDataValidade(LocalDate.now().minusDays(1)));
+        transacao().executeWithoutResult(s -> app.getBean(ILoteRepository.class).findById(lote.getId()).orElseThrow().setDataValidade(LocalDate.now(FUSO).minusDays(1)));
         assertThrows(ConflictException.class, () -> service.registrar(new ConsumoLoteRequestDTO(UUID.randomUUID(), List.of(
                 new ConsumoRequestDTO(produtoId, lote.getId(), BigDecimal.ONE, null, null)))));
         assertEquals(0, new BigDecimal("7").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));

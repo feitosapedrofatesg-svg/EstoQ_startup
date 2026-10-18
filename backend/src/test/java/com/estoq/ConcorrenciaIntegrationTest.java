@@ -1,5 +1,7 @@
 package com.estoq;
 
+import static com.estoq.core.helpers.HorarioOperacao.FUSO;
+
 import com.estoq.business.categorias.CategoriaModel;
 import com.estoq.business.categorias.ICategoriaRepository;
 import com.estoq.business.consumos.ConsumoRequestDTO;
@@ -88,7 +90,7 @@ class ConcorrenciaIntegrationTest {
 
     @Test
     void singletonComThreadsRegistraSomenteUmConsumo() throws Exception {
-        Long loteId = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), n("50"), UnidadeMedida.KG, LocalDate.now().plusDays(60), null, false))
+        Long loteId = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("5"), n("50"), UnidadeMedida.KG, LocalDate.now(FUSO).plusDays(60), null, false))
                 .movimentacoes().getFirst().loteId();
         Long version = lotes.findById(loteId).orElseThrow().getVersion();
 

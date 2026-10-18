@@ -1,5 +1,13 @@
 # Histórico de mudanças do EstoQ
 
+## 18/10/2026 — preparação de banco vazio no Supabase
+
+Referência de ambiente para Session pooler, schema privado `estoq_v2`, scripts de
+provisionamento e criação inicial de PLATAFORMA sem senha fixa. Gerador local de
+BCrypt com entrada oculta; PostgreSQL descartável valida scripts e migração até V8.
+O Neon não é apagado. A troca efetiva depende da configuração do projeto e do
+Render, conforme [procedimento Supabase](DEPLOY_SUPABASE.md).
+
 ## 18/10/2026 — ociosidade do Neon e mensagem de login
 
 Healthcheck automático consulta apenas o processo, pool de produção libera conexões

@@ -28,7 +28,7 @@ domínio sem revisar esse contrato de autenticação.
 ## Backend
 
 O `render.yaml` referencia branch main, `backend/Dockerfile`, deploy automático
-e health check `/api/auth/csrf`. A imagem usa Java 21, gera o JAR e instala
+e health check `/api/saude/vivo`, sem consulta ao banco. A imagem usa Java 21, gera o JAR e instala
 cliente PostgreSQL e Tesseract em português. Não adicionar notas reais à imagem.
 
 | Variável | Uso / padrão da publicação |
@@ -121,4 +121,4 @@ Para rollback, escolha uma versão compatível no histórico dos provedores.
 Rollback do código não desfaz migração nem dados. Verifique compatibilidade do
 schema e dos payloads antes de promover a versão anterior.
 
-Os endpoints de saúde novos são `/api/saude/vivo` e `/api/saude/pronto`. Consulte o [anexo de 18/10](REVISAO_SEGURANCA_2026_10_18.md) antes da publicação.
+Os endpoints de saúde são `/api/saude/vivo` e `/api/saude/pronto`. Consulte [Neon e consumo](NEON_E_CONSUMO.md) para configurar o serviço existente sem manter o banco ativo por healthchecks. `pronto` é diagnóstico manual.

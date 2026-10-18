@@ -27,7 +27,9 @@ export function Login() {
       await login(email.trim().toLowerCase(), senha);
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 429) {
+        if ([502, 503, 504].includes(err.status)) {
+          setError("Serviço de acesso temporariamente indisponível. Tente novamente mais tarde.");
+        } else if (err.status === 429) {
           setError("Muitas tentativas de acesso. Espere alguns minutos e tente novamente.");
         } else if (err.status === 401) {
           setError("E-mail ou senha incorretos.");

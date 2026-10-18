@@ -1,5 +1,5 @@
 // Keep-alive do estoQ: impede o Render free de dormir (sleep após ~15 min
-// sem tráfego). Chama o healthCheckPath do serviço — que é público e sem
+// sem tráfego). Chama a verificação do processo — que é pública e sem
 // efeito colateral (não cria sessão nem consulta o banco).
 const ALVO = "https://estoq-backend-jv04.onrender.com/api/saude/vivo";
 

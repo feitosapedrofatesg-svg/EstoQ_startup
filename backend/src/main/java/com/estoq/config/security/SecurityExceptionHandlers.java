@@ -10,6 +10,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,6 +31,12 @@ public class SecurityExceptionHandlers {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(mapper.writeValueAsString(ErrorResponse.error(mensagem)));
+    }
+
+    @ExceptionHandler(AuthenticationServiceException.class)
+    public ResponseEntity<ErrorResponse> indisponivel(AuthenticationServiceException ex) {
+        return ResponseEntity.status(503).body(ErrorResponse.error(
+                "Serviço de acesso temporariamente indisponível. Tente novamente mais tarde."));
     }
 
     @ExceptionHandler(AuthenticationException.class)

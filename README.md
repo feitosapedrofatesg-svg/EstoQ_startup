@@ -1,5 +1,7 @@
 # EstoQ — Controle de Estoque e CMV para Restaurantes
 
+Operação com banco serverless: [consumo do Neon e falhas de acesso](documentacao/NEON_E_CONSUMO.md).
+
 Aplicação web **EstoQ**, um sistema para gestão de estoque, lotes/validade, consumo,
 desperdício, balanço físico e custo da mercadoria vendida (CMV) em restaurantes.
 

@@ -1,5 +1,12 @@
 # Histórico de mudanças do EstoQ
 
+## 18/10/2026 — ociosidade do Neon e mensagem de login
+
+Healthcheck automático consulta apenas o processo, pool de produção libera conexões
+ociosas sem pings e falhas internas de autenticação retornam 503 com o contrato de
+erro do core. Login distingue indisponibilidade de credenciais recusadas.
+Procedimento e limitações em [Neon e consumo](NEON_E_CONSUMO.md).
+
 ## 18/10/2026 — revisão de segurança e estoque
 
 Correções de fuso, impressão do balanço, saldo disponível na reposição, reconciliação de alertas, proteção do último ADMIN, validações, auditoria administrativa e consultas de notas/relatórios. Dependências atualizadas e scanner no CI. API, migração V8 e operação descritas no [anexo da revisão](REVISAO_SEGURANCA_2026_10_18.md).

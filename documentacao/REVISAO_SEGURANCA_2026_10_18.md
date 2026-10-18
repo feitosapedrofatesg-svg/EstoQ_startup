@@ -52,7 +52,7 @@ Na conferência local desta revisão, o OSV retornou zero avisos para 107 depend
 
 ## Produção e provisionamento
 
-O Blueprint Render fixa o perfil `prod`; esse perfil usa Flyway e Hibernate `validate`. Os endpoints públicos `GET /api/saude/vivo` e `GET /api/saude/pronto` não criam sessão nem expõem a configuração do banco. O primeiro verifica o processo; o segundo verifica a conexão. O keepalive usa o primeiro e o health check Render usa o segundo.
+O Blueprint Render fixa o perfil `prod`; esse perfil usa Flyway e Hibernate `validate`. Os endpoints públicos `GET /api/saude/vivo` e `GET /api/saude/pronto` não criam sessão nem expõem a configuração do banco. O primeiro verifica o processo; o segundo verifica a conexão. Após o ajuste de consumo, keepalive e healthcheck automático Render usam o primeiro; o segundo é diagnóstico manual. Conferir a configuração efetiva do serviço existente conforme [Neon e consumo](NEON_E_CONSUMO.md).
 
 O frontend recebe Referrer-Policy, Permissions-Policy e CSP em modo de relatório. A CSP deve ser observada no navegador antes de passar ao modo bloqueador. O domínio estável confirmado é `https://estoq-ph-feit0sa.vercel.app`; o endereço antigo do homepage retornava 404.
 

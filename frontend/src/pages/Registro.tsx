@@ -13,6 +13,7 @@ export function Registro() {
   const [nomeResponsavel, setNomeResponsavel] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,6 +23,10 @@ export function Registro() {
       setError(
         "Preencha todos os campos. A senha precisa ter ao menos 8 caracteres."
       );
+      return;
+    }
+    if (senha !== confirmarSenha) {
+      setError("As senhas não conferem.");
       return;
     }
     setLoading(true);
@@ -117,6 +122,17 @@ export function Registro() {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               placeholder="Senha com 8+ caracteres"
+            />
+          </Field>
+
+          <Field label="Confirmar senha" htmlFor="reg-confirmar-senha" required>
+            <Input
+              id="reg-confirmar-senha"
+              type="password"
+              autoComplete="new-password"
+              value={confirmarSenha}
+              onChange={(e) => setConfirmarSenha(e.target.value)}
+              placeholder="Repita a senha"
             />
           </Field>
 

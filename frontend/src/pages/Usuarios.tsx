@@ -207,6 +207,7 @@ function UsuarioForm({
   const [email, setEmail] = useState(u?.email ?? "");
   const [perfil, setPerfil] = useState<Perfil>(u?.perfil ?? "COZINHA");
   const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -215,6 +216,7 @@ function UsuarioForm({
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Informe um e-mail válido.");
     if (!u && senha.length < 8) return setError("A senha precisa ter ao menos 8 caracteres.");
     if (u && senha && senha.length < 8) return setError("A senha precisa ter ao menos 8 caracteres.");
+    if (senha !== confirmarSenha) return setError("As senhas não conferem.");
     setSubmitting(true);
     setError(null);
     try {
@@ -281,13 +283,24 @@ function UsuarioForm({
           ))}
         </Select>
       </Field>
-      <Field label={u ? "Nova senha (deixe vazio para manter)" : "Senha"} required={!u} hint="Ao menos 8 caracteres.">
+      <Field label={u ? "Nova senha (deixe vazio para manter)" : "Senha"} htmlFor="usuario-senha" required={!u} hint="Ao menos 8 caracteres.">
         <Input
+          id="usuario-senha"
           type="password"
           autoComplete="new-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
           placeholder={u ? "••••••••" : "Senha com 8+ caracteres"}
+        />
+      </Field>
+      <Field label="Confirmar senha" htmlFor="usuario-confirmar-senha" required={!u || senha.length > 0}>
+        <Input
+          id="usuario-confirmar-senha"
+          type="password"
+          autoComplete="new-password"
+          value={confirmarSenha}
+          onChange={(e) => setConfirmarSenha(e.target.value)}
+          placeholder="Repita a senha"
         />
       </Field>
     </Modal>

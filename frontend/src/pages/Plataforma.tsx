@@ -129,12 +129,17 @@ function RedefinirSenhaModal({
 }) {
   const toast = useToast();
   const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
     if (senha.length < 8) {
       setError("A nova senha precisa ter ao menos 8 caracteres.");
+      return;
+    }
+    if (senha !== confirmarSenha) {
+      setError("As senhas não conferem.");
       return;
     }
     setSubmitting(true);
@@ -174,13 +179,24 @@ function RedefinirSenhaModal({
           {error}
         </div>
       )}
-      <Field label="Nova senha do administrador" required hint="Ao menos 8 caracteres.">
+      <Field label="Nova senha do administrador" htmlFor="plataforma-senha" required hint="Ao menos 8 caracteres.">
         <Input
+          id="plataforma-senha"
           type="password"
           autoComplete="new-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
           placeholder="Senha com 8+ caracteres"
+        />
+      </Field>
+      <Field label="Confirmar senha" htmlFor="plataforma-confirmar-senha" required>
+        <Input
+          id="plataforma-confirmar-senha"
+          type="password"
+          autoComplete="new-password"
+          value={confirmarSenha}
+          onChange={(e) => setConfirmarSenha(e.target.value)}
+          placeholder="Repita a senha"
         />
       </Field>
     </Modal>

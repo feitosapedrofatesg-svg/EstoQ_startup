@@ -1,5 +1,13 @@
 # Histórico de mudanças do EstoQ
 
+## 18/10/2026 — confirmação na criação e alteração de senha
+
+Cadastro público, criação/edição de usuários e redefinição pela PLATAFORMA exigem
+senhas iguais antes de enviar. Na edição, os dois campos vazios mantêm a senha.
+A confirmação é apenas local ao formulário, não é gravada nem enviada na API.
+Testes de interface cobrem divergência, confirmação ausente, preservação da senha
+existente e envio correto. O login permanece com um campo de senha.
+
 ## 18/10/2026 — preparação de banco vazio no Supabase
 
 Referência de ambiente para Session pooler, schema privado `estoq_v2`, scripts de

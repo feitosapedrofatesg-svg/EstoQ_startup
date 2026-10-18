@@ -1,33 +1,18 @@
 package com.estoq.business.auth;
 
-import java.time.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.estoq.core.exceptions.BusinessException;
-
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Locale;
 import org.springframework.scheduling.annotation.Scheduled;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.Locale;
 
-@Slf4j
 @Component
 public class LoginAttemptService {
-
     private final int maxTentativas;
     private final Duration janela;
-    private final Clock clock;
-    private final Map<String, Deque<Instant>> falhas = new HashMap<>();
+    private final LimiteRequisicoes limites;
 
     @Autowired
     public LoginAttemptService(@Value("${estoq.login.max-tentativas:5}") int maxTentativas,
@@ -35,59 +20,41 @@ public class LoginAttemptService {
         this(maxTentativas, janelaMinutos, Clock.systemUTC());
     }
 
-    LoginAttemptService(int maxTentativas, long janelaMinutos, Clock clock) {
+    LoginAttemptService(int maxTentativas, long janelaMinutos, Clock relogio) {
         this.maxTentativas = maxTentativas;
         this.janela = Duration.ofMinutes(janelaMinutos);
-        this.clock = clock;
+        this.limites = new LimiteRequisicoes(relogio);
     }
 
-    synchronized int chavesAtivas() {
-        return falhas.size();
-    }
+    synchronized int chavesAtivas() { return limites.tamanho(); }
 
     public synchronized void verificar(String email, String ip) {
-        var fila = falhas.get(chave(email, ip));
-        if (fila == null) {
-            return;
-        }
-        expire(fila);
-        if (fila.size() >= maxTentativas) {
-            throw new BusinessException("Muitas tentativas de login. Tente novamente em alguns minutos.", HttpStatus.TOO_MANY_REQUESTS);
-        }
+        limites.verificar(chave(email, ip), maxTentativas);
     }
 
-    /** Reserva antes de autenticar: requisições paralelas também consomem o limite. */
+    /** Reservar antes do BCrypt limita pedidos paralelos e e-mails variados. */
     public synchronized void reservar(String email, String ip) {
         verificar(email, ip);
+        limites.verificar("conta:" + normalizar(email), Math.max(15, maxTentativas * 3));
+        limites.verificar("ip:" + ip, Math.max(100, maxTentativas * 20));
+        limites.reservar("ip:" + ip, Math.max(100, maxTentativas * 20), janela);
+        limites.reservar("conta:" + normalizar(email), Math.max(15, maxTentativas * 3), janela);
         registrarFalha(email, ip);
     }
 
-    @Scheduled(fixedDelay = 60_000)
-    public synchronized void limparExpiradas() {
-        falhas.values().forEach(this::expire);
-        falhas.values().removeIf(Deque::isEmpty);
-    }
-
     public synchronized void registrarFalha(String email, String ip) {
-        falhas.computeIfAbsent(chave(email, ip), k -> new ArrayDeque<>()).addLast(clock.instant());
+        limites.reservar(chave(email, ip), maxTentativas, janela);
     }
 
     public synchronized void registrarSucesso(String email, String ip) {
-        falhas.remove(chave(email, ip));
+        limites.remover(chave(email, ip));
+        limites.remover("conta:" + normalizar(email));
     }
 
-    private void expire(Deque<Instant> fila) {
-        var corte = clock.instant().minus(janela);
-        while (!fila.isEmpty() && fila.peekFirst().isBefore(corte)) {
-            fila.removeFirst();
-        }
-    }
+    @Scheduled(fixedDelay = 60_000)
+    public synchronized void limparExpiradas() { limites.limparExpiradas(); }
+    public synchronized void limpar() { limites.limpar(); }
 
-    public synchronized void limpar() {
-        falhas.clear();
-    }
-
-    private String chave(String email, String ip) {
-        return (email == null ? "" : email.trim().toLowerCase(Locale.ROOT)) + "|" + (ip == null ? "" : ip);
-    }
+    private String chave(String email, String ip) { return "par:" + normalizar(email) + "|" + ip; }
+    private String normalizar(String email) { return email == null ? "" : email.trim().toLowerCase(Locale.ROOT); }
 }

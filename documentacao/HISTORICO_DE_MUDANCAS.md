@@ -1,5 +1,9 @@
 # Histórico de mudanças do EstoQ
 
+## 18/10/2026 — revisão de segurança e estoque
+
+Correções de fuso, impressão do balanço, saldo disponível na reposição, reconciliação de alertas, proteção do último ADMIN, validações, auditoria administrativa e consultas de notas/relatórios. Dependências atualizadas e scanner no CI. API, migração V8 e operação descritas no [anexo da revisão](REVISAO_SEGURANCA_2026_10_18.md).
+
 Revisão: **12/10/2026**. Registro das entregas recentes, conferido no Git.
 O commit `6bdddad` registra a correção de horários; a revisão atual acrescenta
 a reorganização e as correções de responsividade descritas abaixo.

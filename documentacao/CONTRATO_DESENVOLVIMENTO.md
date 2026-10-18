@@ -1,5 +1,7 @@
 # Contrato de desenvolvimento — backend em camadas
 
+Atualização posterior: [correções de 18/10/2026](REVISAO_SEGURANCA_2026_10_18.md). O conteúdo abaixo preserva a revisão histórica correspondente ao Word.
+
 Revisão: **12/10/2026**, consolidando o código até `6bdddad`.
 Correspondente ao documento Word `EstoQ_Prompt_Backend_Modular_Camadas_v1.0.docx`.
 

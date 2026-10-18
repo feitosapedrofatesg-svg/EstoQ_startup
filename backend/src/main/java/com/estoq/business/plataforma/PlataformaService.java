@@ -1,7 +1,10 @@
 package com.estoq.business.plataforma;
 
+import com.estoq.business.auditoria.AuditoriaPlataformaModel;
+import com.estoq.business.auditoria.IAuditoriaPlataformaRepository;
+import com.estoq.business.auth.UsuarioAtual;
+
 import com.estoq.business.restaurantes.IRestauranteRepository;
-import com.estoq.business.restaurantes.RestauranteModel;
 import com.estoq.business.usuarios.IUsuarioRepository;
 import com.estoq.business.usuarios.Perfil;
 import com.estoq.core.exceptions.BusinessException;
@@ -28,32 +31,44 @@ public class PlataformaService {
     private final IRestauranteRepository restaurantes;
     private final IUsuarioRepository usuarios;
     private final PasswordEncoder encoder;
+    private final UsuarioAtual usuarioAtual;
+    private final IAuditoriaPlataformaRepository auditoria;
 
     public List<RestauranteDTO> listar() {
+        var contagens = new java.util.HashMap<Long, Long>();
+        usuarios.contarPorRestaurante().forEach(c -> contagens.put(c.getRestauranteId(), c.getQuantidade()));
         return restaurantes.findAll(Sort.by("id")).stream()
                 .map(r -> new RestauranteDTO(r.getId(), r.getNome(), r.isAtivo(), r.getDataHoraCriacao(),
-                        usuarios.countByRestauranteId(r.getId())))
+                        contagens.getOrDefault(r.getId(), 0L)))
                 .toList();
     }
 
     @Transactional
     public void atualizarStatus(Long id, boolean ativo) {
-        var restaurante = encontrar(id);
+        var restaurante = restaurantes.bloquearAdministracao(id)
+                .orElseThrow(() -> new BusinessException("Restaurante não encontrado.", HttpStatus.NOT_FOUND));
         restaurante.setAtivo(ativo);
         restaurantes.flush();
+        auditar(id, ativo ? "RESTAURANTE_REATIVADO" : "RESTAURANTE_SUSPENSO", null);
     }
 
     @Transactional
     public void redefinirSenhaAdmin(Long id, String senha) {
-        encontrar(id);
+        restaurantes.bloquearAdministracao(id)
+                .orElseThrow(() -> new BusinessException("Restaurante não encontrado.", HttpStatus.NOT_FOUND));
         var admin = usuarios.findFirstByRestauranteIdAndPerfilAndAtivoTrueOrderByIdAsc(id, Perfil.ADMIN)
                 .orElseThrow(() -> new BusinessException("Restaurante sem administrador ativo.", HttpStatus.NOT_FOUND));
         admin.setSenha(encoder.encode(senha));
         usuarios.flush();
+        auditar(id, "SENHA_ADMIN_REDEFINIDA", admin.getId());
     }
 
-    private RestauranteModel encontrar(Long id) {
-        return restaurantes.findById(id)
-                .orElseThrow(() -> new BusinessException("Restaurante não encontrado.", HttpStatus.NOT_FOUND));
+    private void auditar(Long restauranteId, String acao, Long usuarioAlvoId) {
+        var registro = new AuditoriaPlataformaModel();
+        registro.setUsuarioId(usuarioAtual.obter().getId());
+        registro.setRestauranteId(restauranteId);
+        registro.setAcao(acao);
+        registro.setUsuarioAlvoId(usuarioAlvoId);
+        auditoria.save(registro);
     }
 }

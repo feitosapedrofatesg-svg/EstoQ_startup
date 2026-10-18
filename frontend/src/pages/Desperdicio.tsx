@@ -19,7 +19,7 @@ import {
   Modal,
   StatusBadge,
 } from "../components/UI";
-import { fmtNum, fmtDate, fmtDateTime, fmtMoney, diasAtrasISO } from "../lib/format";
+import { fmtNum, fmtDate, fmtDateTime, fmtMoney } from "../lib/format";
 import type {
   EstoqueDTO,
   LoteDTO,
@@ -71,17 +71,10 @@ export function Desperdicio() {
     useFetch<ProdutoAbertoDTO[]>("/api/produtos-abertos?finalizado=false", [], true);
 
   const periodoInvalido = !!inicio && !!fim && inicio > fim;
-  // A API usa fim exclusivo; incluir todo o último dia selecionado.
-  const fimExclusivo = fim
-    ? (() => {
-        const d = new Date(`${fim}T12:00:00`);
-        d.setDate(d.getDate() + 1);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      })()
-    : diasAtrasISO(-1);
+  // O servidor converte as datas locais para um intervalo UTC com fim exclusivo.
   const { data: registros, loading: loadingRegistros, error: erroRegistros, refresh: refreshRegistros } =
     useFetch<MovimentacaoDTO[]>(periodoInvalido ? null :
-      `/api/movimentacoes?tipo=DESPERDICIO&inicio=${inicio || "1970-01-01"}T00:00:00&fim=${fimExclusivo}T00:00:00`, [], true);
+      `/api/movimentacoes?tipo=DESPERDICIO&dataInicio=${inicio || "1970-01-01"}&dataFim=${fim}`, [], true);
 
   const lotesVisiveis = useMemo(() => (lotes ?? []).filter((l) =>
     l.quantidadeAtual > 0 && (situacao !== "VENCIDOS" || l.vencido) &&

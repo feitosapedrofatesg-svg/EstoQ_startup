@@ -1,5 +1,7 @@
 package com.estoq.business.parametrosCmv;
 
+import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +23,7 @@ public class ParametroCmvController {
     }
 
     @PutMapping
-    public ParametroCmvDTO salvar(@RequestBody ParametroCmvDTO dto) {
+    public ParametroCmvDTO salvar(@Valid @RequestBody ParametroCmvDTO dto) {
         return service.salvar(dto);
     }
 }

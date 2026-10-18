@@ -17,6 +17,14 @@ public interface IUsuarioRepository extends IGenericRepository<UsuarioModel> {
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
     long countByPerfilAndAtivoTrue(Perfil perfil);
+    @Query("select u.restauranteId as restauranteId, count(u) as quantidade from UsuarioModel u group by u.restauranteId")
+    java.util.List<ContagemRestaurante> contarPorRestaurante();
+
+    interface ContagemRestaurante {
+        Long getRestauranteId();
+        long getQuantidade();
+    }
+
     long countByRestauranteId(Long restauranteId);
     Optional<UsuarioModel> findFirstByRestauranteIdAndPerfilAndAtivoTrueOrderByIdAsc(Long restauranteId, Perfil perfil);
 }

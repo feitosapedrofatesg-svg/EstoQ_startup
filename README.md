@@ -5,6 +5,10 @@ desperdício, balanço físico e custo da mercadoria vendida (CMV) em restaurant
 
 Projeto Integrador · SENAI FATESG · ADS · 2026
 
+As correções de segurança, horários e estoque de 18/10/2026 estão descritas em
+[Revisão de segurança](documentacao/REVISAO_SEGURANCA_2026_10_18.md).
+Site: https://estoq-ph-feit0sa.vercel.app
+
 ## O que resolve
 
 O app controla o ciclo de vida completo de ingredientes: entrada no estoque,
@@ -20,7 +24,7 @@ NUTRICIONISTA (CMV e relatórios). O perfil PLATAFORMA administra restaurantes e
 | Camada | Tecnologia |
 |---|---|
 | Linguagem | Java 21 |
-| Framework | Spring Boot 4.0.6, Spring Security, Spring Data JPA |
+| Framework | Spring Boot 4.0.8, Spring Security, Spring Data JPA |
 | Banco | PostgreSQL 16 (Docker) |
 | Padrão arquitetônico | PIAds3 (core genérico + módulos business autocontidos) |
 | Frontend | React 18, TypeScript, Vite 7 e React Router 7 |
@@ -34,7 +38,7 @@ autocontido com seu controller → service → repository.
 Os horários dos registros são gravados em UTC, independentemente do fuso do
 servidor. A API usa `LocalDateTime` sem offset; a interface interpreta esses
 horários como UTC e exibe no fuso do navegador. Datas sem horário, como validade
-e agendamento de balanço, preservam o dia informado.
+e agendamento de balanço, preservam o dia informado. Os filtros por dia usam o fuso de operação `America/Sao_Paulo`, convertendo os limites para UTC.
 
 ## Estrutura
 
@@ -157,6 +161,8 @@ pg_restore --dbname estoq_restore --schema estoq_v2 --no-owner --no-privileges \
 | `ESTOQ_BACKUP_HOST` (opcional) | herda `DATABASE_URL` | Host PostgreSQL para backup |
 | `ESTOQ_BACKUP_PORTA` (opcional) | herda `DATABASE_URL` | Porta PostgreSQL para backup |
 | `SEED_ENABLED` | false | Habilitar seed (dev: true) |
+
+O cadastro público permite dez tentativas por origem a cada hora (`estoq.cadastro.max-tentativas`). O limite de login também restringe conta e origem separadamente; as estruturas têm expiração e teto de memória.
 
 As variáveis `ESTOQ_BACKUP_*` são opcionais: quando ausentes, o backup usa os valores de
 `DATABASE_URL` (e `localhost`/`estoq`/`estoq_startup` como último recurso).
@@ -309,3 +315,13 @@ mais recentes. Embalagens abertas usam a última movimentação, ou a abertura s
 não houver movimentação, como ordem de exibição. A central retira imediatamente
 o alerta marcado como visto, restaura-o se houver falha e bloqueia os botões
 durante a gravação e por 500 ms após a resposta para proteger cliques repetidos.
+
+## Verificação de dependências
+
+```bash
+mvn -B -f backend/pom.xml dependency:list -DincludeScope=runtime -DoutputFile=target/dependencias.txt
+python3 scripts/verificar_dependencias.py backend/target/dependencias.txt
+npm audit --prefix frontend --audit-level=high
+```
+
+A consulta ao OSV exige internet e usa somente nomes e versões dos pacotes. A CI executa essas verificações. Ausência de avisos conhecidos não substitui os testes e a revisão de segurança.

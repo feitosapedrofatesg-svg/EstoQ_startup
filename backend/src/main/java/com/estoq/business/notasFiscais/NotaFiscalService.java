@@ -60,6 +60,10 @@ public class NotaFiscalService {
         nota.setAvisos(String.join("\n",avisos));
         var valores = rateio.calcular(dados);
         var ativos = catalogo.findAllByAtivoTrue();
+        var vinculosLidos = vinculos.findByDocumentoFornecedorAndCodigoInAndAtivoTrue(dados.documentoFornecedor(),
+                dados.itens().stream().map(DadosNota.ItemLido::codigo).toList());
+        var porCodigo = new HashMap<String, VinculoFornecedorModel>();
+        vinculosLidos.forEach(v -> porCodigo.put(v.getCodigo(), v));
         for(int i=0;i<dados.itens().size();i++) {
             var lido = dados.itens().get(i);
             var item = new ItemNotaFiscalModel();
@@ -70,7 +74,7 @@ public class NotaFiscalService {
             item.setValorEntrada(valores.get(i));
             item.setValorRateado(valores.get(i).subtract(lido.valorBruto().subtract(lido.desconto())));
             item.setValidade(lido.validade()); item.setIncerto(lido.incerto());
-            associador.sugerir(item,dados.documentoFornecedor(),ativos);
+            associador.sugerir(item,ativos,porCodigo.get(item.getCodigo()));
             nota.getItens().add(item);
         }
         sugerirCategorias(nota);
@@ -113,6 +117,11 @@ public class NotaFiscalService {
         if (dto.itens().stream().anyMatch(i -> i.selecionado() && i.produtoId()==null && i.categoriaId()==null))
             categoriaAutomatica.prepararConfirmacao();
         var novosNaNota = new HashMap<String,Long>();
+        var catalogoAtual = new ArrayList<>(catalogo.findAllByAtivoTrue());
+        var vinculosAtuais = new HashMap<String, VinculoFornecedorModel>();
+        vinculos.findByDocumentoFornecedorAndCodigoInAndAtivoTrue(nota.getDocumentoFornecedor(),
+                nota.getItens().stream().map(ItemNotaFiscalModel::getCodigo).toList())
+                .forEach(v -> vinculosAtuais.put(v.getCodigo(), v));
         for (var item : nota.getItens()) {
             var escolha = decisoes.get(item.getId());
             item.setSelecionado(escolha.selecionado());
@@ -122,16 +131,17 @@ public class NotaFiscalService {
             Long produtoId = escolha.produtoId();
             if (produtoId==null) {
                 Long categoriaId = escolha.categoriaId()!=null ? escolha.categoriaId()
-                    : categoriaAutomatica.resolver(escolha.nomeProduto(),catalogo.findAllByAtivoTrue());
+                    : categoriaAutomatica.resolver(escolha.nomeProduto(),catalogoAtual);
                 var chaveProduto = AssociadorProdutoNota.normalizar(escolha.nomeProduto()) + "|" + escolha.unidadeEstoque() + "|" + categoriaId;
                 produtoId = novosNaNota.get(chaveProduto);
                 if (produtoId==null) {
-                    var iguais = catalogo.findAllByAtivoTrue().stream().filter(p -> AssociadorProdutoNota.normalizar(p.getNome())
+                    var iguais = catalogoAtual.stream().filter(p -> AssociadorProdutoNota.normalizar(p.getNome())
                             .equals(AssociadorProdutoNota.normalizar(escolha.nomeProduto())) && p.getUnidadeMedida()==escolha.unidadeEstoque()).toList();
                     if (!iguais.isEmpty()) throw new ConflictException("Já existe um produto com esse nome e unidade. Selecione-o na revisão.");
                     var novo = new ProdutoDTO(); novo.setNome(escolha.nomeProduto()); novo.setCategoriaId(categoriaId);
                     novo.setUnidadeMedida(escolha.unidadeEstoque()); novo.setCodigoBarras(item.getCodigoBarras());
                     produtoId = produtos.criar(novo).getId(); novosNaNota.put(chaveProduto,produtoId);
+                    catalogoAtual.add(produtos.encontrar(produtoId));
                 }
             }
             var produto = produtos.encontrar(produtoId);
@@ -146,7 +156,7 @@ public class NotaFiscalService {
             item.setQuantidadeEntrada(quantidade); item.setValorEntrada(escolha.valorEntrada());
             item.setValidade(escolha.validade()); item.setEmbalagemConfirmada(true);
             item.setMovimentacaoId(resultado.movimentacoes().getFirst().id());
-            salvarVinculo(nota,item);
+            salvarVinculo(nota,item,vinculosAtuais);
         }
         nota.setConfirmada(true); nota.setUsuarioId(usuarioAtual.obter().getId());
         repository.flush();
@@ -154,8 +164,8 @@ public class NotaFiscalService {
         return adapter.toDto(nota);
     }
 
-    private void salvarVinculo(NotaFiscalModel nota, ItemNotaFiscalModel item) {
-        var vinculo = vinculos.findByDocumentoFornecedorAndCodigoAndAtivoTrue(nota.getDocumentoFornecedor(),item.getCodigo()).orElseGet(VinculoFornecedorModel::new);
+    private void salvarVinculo(NotaFiscalModel nota, ItemNotaFiscalModel item, Map<String, VinculoFornecedorModel> atuais) {
+        var vinculo = atuais.computeIfAbsent(item.getCodigo(), codigo -> new VinculoFornecedorModel());
         vinculo.setDocumentoFornecedor(nota.getDocumentoFornecedor()); vinculo.setCodigo(item.getCodigo());
         vinculo.setDescricao(item.getDescricao()); vinculo.setUnidadeNota(item.getUnidadeNota());
         vinculo.setProdutoId(item.getProdutoId()); vinculo.setFator(item.getFator()); vinculo.setUnidadeEstoque(item.getUnidadeEstoque());

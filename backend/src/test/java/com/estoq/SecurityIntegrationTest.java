@@ -49,6 +49,19 @@ class SecurityIntegrationTest {
         }
     }
 
+    @Test
+    void configuracaoInvalidaRetorna400EProntidaoNaoCriaSessao() throws Exception {
+        var admin = login("admin@test.local", "Teste@12345", 200);
+        mvc.perform(post("/api/configuracoes-balanco").session(admin).with(csrf())
+                .contentType("application/json").content("{\"periodicidade\":null}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/parametros-cmv").session(admin).with(csrf())
+                .contentType("application/json").content("{\"percentualIdeal\":30.001}"))
+                .andExpect(status().isBadRequest());
+        var saude = mvc.perform(get("/api/saude/pronto")).andExpect(status().isOk()).andReturn();
+        org.junit.jupiter.api.Assertions.assertNull(saude.getRequest().getSession(false));
+    }
+
     private MockHttpSession login(String email, String senha, int status) throws Exception {
         return (MockHttpSession) mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json")
                 .content("{\"email\":\"" + email + "\",\"senha\":\"" + senha + "\"}"))

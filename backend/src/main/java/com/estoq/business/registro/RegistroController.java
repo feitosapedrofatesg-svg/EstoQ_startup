@@ -1,6 +1,11 @@
 package com.estoq.business.registro;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import jakarta.validation.Valid;
+
+import com.estoq.business.auth.LimiteRequisicoes;
+
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,9 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class RegistroController {
 
     private final RegistroService service;
+    private final LimiteRequisicoes limites;
+    @Value("${estoq.cadastro.max-tentativas:10}")
+    private int maxTentativas;
 
     @PostMapping
-    public ResponseEntity<Void> registrar(@Valid @RequestBody RegistroRequestDTO dto) {
+    public ResponseEntity<Void> registrar(@Valid @RequestBody RegistroRequestDTO dto,
+            jakarta.servlet.http.HttpServletRequest request) {
+        limites.reservar("cadastro:" + request.getRemoteAddr(), maxTentativas, java.time.Duration.ofHours(1));
         service.registrar(dto);
         return ResponseEntity.status(201).build();
     }

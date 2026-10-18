@@ -1,5 +1,10 @@
 package com.estoq.business.relatorios;
 
+import com.estoq.business.produtos.ProdutoModel;
+import com.estoq.core.exceptions.FieldValidationException;
+
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.consumos.ConsumoModel;
 import com.estoq.business.desperdicios.DesperdicioModel;
 import com.estoq.business.desperdicios.DesperdicioClassificacao;
@@ -27,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
@@ -36,13 +40,13 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RelatorioService {
+
+    private final HorarioOperacao horario;
 
     private final EstoqueService estoque;
     private final LoteService lotes;
@@ -70,19 +74,17 @@ public class RelatorioService {
 
     public List<DesperdicioDTO> desperdicio(LocalDateTime inicio, LocalDateTime fim) {
         posicaoHistorica.validarPeriodo(inicio, fim);
-        return movimentos.desperdiciosAntesDe(fim).stream()
-                .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
+        return movimentos.desperdiciosEntre(inicio, fim).stream()
                 .map(d -> new DesperdicioDTO(d.getDataHora(), DesperdicioClassificacao.motivo(d), DesperdicioClassificacao.descricao(d),
                         d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), DesperdicioClassificacao.quantidade(d),
-                        DesperdicioClassificacao.valor(d)))
+                        DesperdicioClassificacao.valor(d), d.getProduto().getUnidadeMedida().name()))
                 .toList();
     }
 
     public List<DesperdicioAgregadoDTO> desperdicioAgregado(LocalDateTime inicio, LocalDateTime fim) {
         posicaoHistorica.validarPeriodo(inicio, fim);
         var agregado = new HashMap<String, DesperdicioAgregadoDTO>();
-        movimentos.desperdiciosAntesDe(fim).stream()
-                .filter(d -> d.getDataHora().compareTo(inicio) >= 0)
+        movimentos.desperdiciosEntre(inicio, fim).stream()
                 .forEach(d -> {
                     var chave = d.getProduto().getId() + ":" + DesperdicioClassificacao.motivo(d).name();
                     var atual = agregado.get(chave);
@@ -103,18 +105,19 @@ public class RelatorioService {
 
     public List<ConsumoMedioDTO> consumoMedio(LocalDateTime inicio, LocalDateTime fim) {
         posicaoHistorica.validarPeriodo(inicio, fim);
-        var dias = Math.max(1, ChronoUnit.DAYS.between(inicio, fim));
+        var dias = Math.max(1, ChronoUnit.DAYS.between(horario.diaLocal(inicio), horario.diaLocal(fim)));
         var porProduto = new TreeMap<Long, BigDecimal>();
-        movimentos.consumosAntesDe(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0)
-                .forEach(m -> porProduto.merge(m.getProduto().getId(), m.getQuantidade(), BigDecimal::add));
-        var nomes = estoque.listar(false, false).stream()
-                .collect(Collectors.toMap(EstoqueDTO::produtoId, Function.identity()));
+        var nomes = new HashMap<Long, ProdutoModel>();
+        for (var movimento : movimentos.consumosEntre(inicio, fim)) {
+            var produto = movimento.getProduto();
+            porProduto.merge(produto.getId(), movimento.getQuantidade(), BigDecimal::add);
+            nomes.put(produto.getId(), produto);
+        }
         return porProduto.entrySet().stream().map(e -> {
             var dto = nomes.get(e.getKey());
             var total = s(e.getValue());
-            var nome = dto == null ? "?" : dto.produtoNome();
-            var unidade = dto == null ? "" : dto.unidadeMedida().name();
+            var nome = dto.getNome();
+            var unidade = dto.getUnidadeMedida().name();
             return new ConsumoMedioDTO(e.getKey(), nome, unidade, total, dias,
                     total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP));
         }).toList();
@@ -123,11 +126,10 @@ public class RelatorioService {
     public List<ConsumoDiaSemanaDTO> consumoPorDiaSemana(LocalDateTime inicio, LocalDateTime fim) {
         posicaoHistorica.validarPeriodo(inicio, fim);
         var totalPorDia = new HashMap<DayOfWeek, BigDecimal>();
-        movimentos.consumosAntesDe(fim).stream()
-                .filter(m -> m.getDataHora().compareTo(inicio) >= 0)
-                .forEach(m -> totalPorDia.merge(m.getDataHora().getDayOfWeek(), m.getQuantidade(), BigDecimal::add));
+        movimentos.consumosEntre(inicio, fim).stream()
+                .forEach(m -> totalPorDia.merge(horario.diaLocal(m.getDataHora()).getDayOfWeek(), m.getCustoConsumo(), BigDecimal::add));
         var diasPorDia = new HashMap<DayOfWeek, Long>();
-        for (var dia = inicio.toLocalDate(); dia.isBefore(fim.toLocalDate()); dia = dia.plusDays(1)) {
+        for (var dia = horario.diaLocal(inicio); dia.isBefore(horario.diaLocal(fim)); dia = dia.plusDays(1)) {
             diasPorDia.merge(dia.getDayOfWeek(), 1L, Long::sum);
         }
         var resultado = new ArrayList<ConsumoDiaSemanaDTO>();
@@ -194,9 +196,9 @@ public class RelatorioService {
     public List<CmvMensalDTO> cmvPorMes(LocalDateTime inicio, LocalDateTime fim) {
         posicaoHistorica.validarPeriodo(inicio, fim);
         var resultado = new ArrayList<CmvMensalDTO>();
-        for (var mes = YearMonth.from(inicio); !mes.isAfter(YearMonth.from(fim.minusNanos(1))); mes = mes.plusMonths(1)) {
-            var inicioMes = mes.atDay(1).atStartOfDay();
-            var fimMes = mes.plusMonths(1).atDay(1).atStartOfDay();
+        for (var mes = YearMonth.from(horario.diaLocal(inicio)); !mes.isAfter(YearMonth.from(horario.diaLocal(fim.minusNanos(1)))); mes = mes.plusMonths(1)) {
+            var inicioMes = horario.inicioUtc(mes.atDay(1));
+            var fimMes = horario.inicioUtc(mes.plusMonths(1).atDay(1));
             var resumo = calcularCmv(inicio.isAfter(inicioMes) ? inicio : inicioMes,
                     fim.isBefore(fimMes) ? fim : fimMes, null);
             resultado.add(new CmvMensalDTO(mes, resumo.cmv(), resumo.valorCompras(), resumo.valorDesperdicio()));
@@ -205,8 +207,10 @@ public class RelatorioService {
     }
 
     public List<ReposicaoSugeridaDTO> reposicaoSugerida(Integer dias) {
+        if (dias != null && (dias < 1 || dias > 365))
+            throw new FieldValidationException("dias", "Informe de 1 a 365 dias para reposição.");
         var reposDias = dias != null && dias > 0 ? dias : 7;
-        var saldos = estoque.posicoes();
+        var saldos = estoque.posicoesDisponiveis();
         var resultado = new ArrayList<ReposicaoSugeridaDTO>();
         for (var produto : produtos.findAllByAtivoTrue()) {
             var par = produto.getParametro();

@@ -1,5 +1,9 @@
 package com.estoq.business.relatorios;
 
+import com.estoq.core.exceptions.FieldValidationException;
+
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.core.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,15 +23,19 @@ import static com.estoq.business.relatorios.DocumentoRelatorioPdf.*;
 @Service
 @RequiredArgsConstructor
 public class RelatorioPdfService {
+
+    private final HorarioOperacao horario;
     private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Locale BRASIL = Locale.forLanguageTag("pt-BR");
     private final RelatorioService relatorios;
 
     public byte[] gerar(String tipo, LocalDate inicio, LocalDate fim, long dias, BigDecimal receitaBase) {
-        var periodoInicio = inicio == null ? LocalDate.now().minusDays(30) : inicio;
-        var periodoFim = fim == null ? LocalDate.now() : fim;
-        var de = periodoInicio.atStartOfDay();
-        var ate = periodoFim.atStartOfDay().plusDays(1);
+        var periodoInicio = inicio == null ? horario.hoje().minusDays(30) : inicio;
+        var periodoFim = fim == null ? horario.hoje() : fim;
+        var de = horario.inicioUtc(periodoInicio);
+        var ate = horario.inicioUtc(periodoFim.plusDays(1));
+        if (!de.isBefore(ate) || java.time.temporal.ChronoUnit.DAYS.between(de, ate) > 3660)
+            throw new FieldValidationException("periodo", "Informe um intervalo válido de até dez anos.");
         String periodo = "Período: " + periodoInicio.format(DATA) + " a " + periodoFim.format(DATA);
         String observacao = null;
         Destaque total = null;
@@ -74,14 +82,12 @@ public class RelatorioPdfService {
                 titulo = "Desperdício no período";
                 colunas = List.of(c("Data e hora", 1.9f), c("Produto", 3), c("Motivo", 2.8f), n("Quantidade", 1.5f), n("Prejuízo", 1.9f));
                 var perdas = relatorios.desperdicio(de, ate);
-                var unidades = perdas.isEmpty() ? java.util.Map.<Long, String>of() : relatorios.estoqueAtual().stream()
-                        .collect(java.util.stream.Collectors.toMap(com.estoq.business.produtos.EstoqueDTO::produtoId, p -> p.unidadeMedida().name()));
                 var valorTotal = BigDecimal.ZERO;
                 for (var d : perdas) {
                     // A descrição é opcional; o motivo cadastrado continua identificando a perda.
                     String motivo = d.descricaoMotivo();
                     if (motivo == null || motivo.isBlank()) motivo = d.motivo() == null ? "Não informado" : d.motivo().name().replace('_', ' ');
-                    linhas.add(java.util.Arrays.asList(d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), d.produtoNome(), motivo, qtd(d.quantidade(), unidades.get(d.produtoId())), moeda(d.valorPrejuizo())));
+                    linhas.add(java.util.Arrays.asList(d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), d.produtoNome(), motivo, qtd(d.quantidade(), d.unidadeMedida()), moeda(d.valorPrejuizo())));
                     valorTotal = valorTotal.add(valorMonetario(d.valorPrejuizo()));
                 }
                 total = new Destaque("Prejuízo total no período", moeda(valorTotal));
@@ -89,9 +95,10 @@ public class RelatorioPdfService {
             }
             case "consumo-medio" -> {
                 titulo = "Consumo médio";
-                var janela = Math.max(1, dias);
-                var inicioConsumo = ate.minusDays(janela);
-                periodo = "Período: " + inicioConsumo.toLocalDate().format(DATA) + " a " + periodoFim.format(DATA);
+                if (dias < 1 || dias > 3660)
+                    throw new FieldValidationException("dias", "Informe de 1 a 3660 dias.");
+                var inicioConsumo = horario.inicioUtc(periodoFim.plusDays(1).minusDays(dias));
+                periodo = "Período: " + horario.diaLocal(inicioConsumo).format(DATA) + " a " + periodoFim.format(DATA);
                 colunas = List.of(c("Produto", 4), n("Total consumido", 2.5f), n("Dias", 1), n("Média por dia", 2.5f));
                 for (var c : relatorios.consumoMedio(inicioConsumo, ate)) linhas.add(java.util.Arrays.asList(c.produtoNome(), qtd(c.totalConsumidoPeriodo(), c.unidadeMedida()), Long.toString(c.diasPeriodo()), qtd(c.consumoMedioDiario(), c.unidadeMedida())));
             }
@@ -127,7 +134,7 @@ public class RelatorioPdfService {
             default -> throw new BusinessException("Relatório PDF não suportado: " + tipo, HttpStatus.BAD_REQUEST);
         }
         if (List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "reposicao-sugerida").contains(tipo)) {
-            periodo = "Posição atual em " + LocalDate.now().format(DATA) + " (não é um estoque histórico)";
+            periodo = "Posição atual em " + horario.hoje().format(DATA) + " (não é um estoque histórico)";
         }
         try { return new LayoutRelatorioPdf().gerar(new DocumentoRelatorioPdf(titulo, periodo, colunas, linhas, resumo, observacao, total)); }
         catch (IOException e) { throw new BusinessException("Falha ao gerar o PDF.", HttpStatus.INTERNAL_SERVER_ERROR); }

@@ -231,7 +231,8 @@ class BalancoCmvIntegrationTest {
 
     @Test
     void cmvHistoricoNaoMudaComConsumoPosteriorEProdutoDesativado() {
-        var inicio = LocalDateTime.of(2026, 1, 1, 0, 0);
+        // Janeiro no fuso operacional começa às 03h UTC.
+        var inicio = LocalDateTime.of(2026, 1, 1, 3, 0);
         var fim = inicio.plusMonths(1);
         movimentos.findAll().forEach(m -> m.setDataHora(inicio));
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
@@ -444,11 +445,29 @@ class BalancoCmvIntegrationTest {
         assertEquals(0, new BigDecimal("20").compareTo(agregado.getFirst().valorPrejuizo()));
         var consumoDia = relatorios.consumoPorDiaSemana(inicio, fim);
         assertEquals(7, consumoDia.size());
-        var comConsumo = consumoDia.stream().filter(d -> d.quantidadeTotal().signum() > 0).findFirst().orElseThrow();
-        assertEquals(0, new BigDecimal("2").compareTo(comConsumo.quantidadeTotal()));
+        var comConsumo = consumoDia.stream().filter(d -> d.valorTotal().signum() > 0).findFirst().orElseThrow();
+        assertEquals(0, new BigDecimal("40").compareTo(comConsumo.valorTotal()));
         var somaMensal = relatorios.cmvPorMes(inicio, fim).stream().map(CmvMensalDTO::cmv).reduce(BigDecimal.ZERO,
                 BigDecimal::add);
         assertEquals(0, new BigDecimal("60").compareTo(somaMensal));
+    }
+
+    @Test
+    void custoSemanalSomaReaisMesmoComProdutosEmUnidadesDiferentes() {
+        var bebida = new ProdutoDTO(); bebida.setNome("Suco"); bebida.setUnidadeMedida(UnidadeMedida.L);
+        bebida.setCategoriaId(produtos.encontrar(produtoId).getCategoria().getId());
+        var bebidaId = produtos.criar(bebida).getId();
+        entradas.registrarEntrada(new EntradaRequestDTO(bebidaId, BigDecimal.ONE, new BigDecimal("20"),
+                UnidadeMedida.L, LocalDate.now().plusDays(30), null, false));
+        consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
+        consumos.registrarConsumo(new ConsumoRequestDTO(bebidaId, null, new BigDecimal("0.5"), null, null));
+        movimentos.findAll().stream().filter(m -> m instanceof com.estoq.business.consumos.ConsumoModel)
+                .forEach(m -> m.setDataHora(LocalDateTime.of(2026, 10, 18, 1, 0)));
+        movimentos.flush();
+        var dias = relatorios.consumoPorDiaSemana(LocalDateTime.of(2026, 10, 17, 3, 0), LocalDateTime.of(2026, 10, 18, 3, 0));
+        assertEquals(1, dias.size());
+        assertEquals(java.time.DayOfWeek.SATURDAY, dias.getFirst().diaSemana());
+        assertEquals(0, new BigDecimal("50").compareTo(dias.getFirst().valorTotal()));
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.estoq.business.configuracoesBalanco;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.core.exceptions.BusinessException;
@@ -20,6 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ConfiguracaoBalancoService {
+
+    private final HorarioOperacao horario;
 
     private final DadosAlteradosService sincronizacao;
     private final IConfiguracaoBalancoRepository repository;
@@ -48,7 +52,7 @@ public class ConfiguracaoBalancoService {
         }
         entity.setPeriodicidade(dto.periodicidade());
         entity.setDiaExecucao(dto.diaExecucao());
-        entity.setProximaExecucao(calcularProxima(dto.periodicidade(), dto.diaExecucao(), LocalDate.now()));
+        entity.setProximaExecucao(calcularProxima(dto.periodicidade(), dto.diaExecucao(), horario.hoje()));
         repository.saveAndFlush(entity);
         sincronizacao.registrar(entity);
         return toDto(entity);
@@ -64,6 +68,8 @@ public class ConfiguracaoBalancoService {
     }
 
     private void validar(PeriodicidadeBalanco periodicidade, Integer dia) {
+        if (periodicidade == null)
+            throw new FieldValidationException("periodicidade", "Informe a periodicidade do balanço.");
         switch (periodicidade) {
             case DIARIA -> {
                 if (dia != null) {
@@ -106,6 +112,6 @@ public class ConfiguracaoBalancoService {
     }
 
     public boolean estaVencida(ConfiguracaoBalancoModel c) {
-        return c.getProximaExecucao() != null && !c.getProximaExecucao().isAfter(LocalDate.now());
+        return c.getProximaExecucao() != null && !c.getProximaExecucao().isAfter(horario.hoje());
     }
 }

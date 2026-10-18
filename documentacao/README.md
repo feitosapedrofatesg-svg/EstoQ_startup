@@ -1,6 +1,6 @@
 # Documentação do EstoQ
 
-Revisão: **12/10/2026**. Inclui as entregas de responsividade e consumo rápido.
+Revisão do índice: **18/10/2026**. Inclui as entregas de responsividade e consumo rápido.
 
 O EstoQ é uma aplicação web multitenant para estoque, consumo, desperdício,
 balanço e CMV de restaurantes. Cada restaurante compartilha seus dados entre
@@ -10,6 +10,7 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 
 | Documento | Conteúdo |
 | --- | --- |
+| [Correções de segurança e estoque](REVISAO_SEGURANCA_2026_10_18.md) | Anexo de 18/10 com mudanças, API e tarefas operacionais. |
 | [Constituição](CONSTITUICAO.md) | Requisitos, regras e permissões consolidados; correspondente ao Word. |
 | [Contrato de desenvolvimento](CONTRATO_DESENVOLVIMENTO.md) | Padrão de camadas, responsabilidades e critérios para evoluir o código. |
 | [Resumo do sistema](RESUMO_SESSAO_BACKEND.md) | Arquitetura, módulos, regras, execução local e validação. |
@@ -28,7 +29,7 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 
 ## Formatos e manutenção
 
-Os três arquivos Word foram revisados junto com suas referências em Markdown:
+Os três arquivos Word preservam a revisão de 12/10/2026. O anexo de 18/10 acima registra as correções posteriores e deve ser lido junto deles. Na revisão original, foram revisados junto com suas referências em Markdown:
 `EstoQ_Constituicao_do_Projeto_v1.0.docx`,
 `EstoQ_Prompt_Backend_Modular_Camadas_v1.0.docx` e
 `RESUMO_SESSAO_BACKEND.docx`. Os nomes históricos foram mantidos para preservar

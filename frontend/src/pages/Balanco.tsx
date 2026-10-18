@@ -1,3 +1,4 @@
+import { imprimirBalanco } from "../components/balanco/ImprimirBalanco";
 import { ProximoBalanco } from "../components/ProximoBalanco";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
@@ -39,67 +40,6 @@ const STATUS_LABEL: Record<BalancoDTO["status"], string> = {
   CONCLUIDO: "Concluído",
 };
 
-function printBalanco(b: BalancoDTO) {
-  const counted = b.itens.filter((i) => i.quantidadeFisica !== null).length;
-  const escopo = b.tipo === "PARCIAL" && b.categoriaNomes?.length
-    ? ` &mdash; categorias: ${b.categoriaNomes.join(", ")}`
-    : "";
-  const rows = b.itens
-    .map((i) => {
-      const sys = i.quantidadeSistema !== null ? fmtNum(i.quantidadeSistema) : "—";
-      const cnt =
-        i.quantidadeFisica !== null
-          ? `${fmtNum(i.quantidadeFisica)} ${i.unidadeMedida.toLowerCase()}`
-          : "—";
-      const diff =
-        i.diferenca !== null
-          ? `${i.diferenca > 0 ? "+" : ""}${fmtNum(i.diferenca)} ${i.unidadeMedida.toLowerCase()}`
-          : "—";
-      const adj = b.status === "CONCLUIDO" ? (i.ajusteAplicado ? "Ajustado" : "Pendente") : "";
-      return `<tr>
-        <td>${i.produtoNome}</td>
-        <td>${sys} ${i.unidadeMedida.toLowerCase()}</td>
-        <td>${cnt}</td>
-        <td>${diff}</td>
-        ${adj !== "" ? `<td>${adj}</td>` : ""}
-      </tr>`;
-    })
-    .join("");
-
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8"><title>Balanço #${b.id}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:system-ui,-apple-system,sans-serif;color:#1a1a2e;padding:24px}
-  h1{font-size:20px;margin-bottom:4px}
-  .meta{color:#64748b;font-size:13px;margin-bottom:18px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0}
-  th{font-weight:600;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
-  td:nth-child(n+2),th:nth-child(n+2){text-align:right}
-  .neg{color:#dc2626}.pos{color:#16a34a}
-  .footer{margin-top:18px;font-size:11px;color:#94a3b8}
-  @media print{body{padding:12px}}
-</style></head>
-<body>
-  <h1>Balanço #${b.id}</h1>
-  <p class="meta">${STATUS_LABEL[b.status]} &mdash; ${fmtDateTime(b.dataHora)} &mdash; ${b.tipo}${escopo} &mdash; ${b.usuarioNome}</p>
-  <table>
-    <thead><tr><th>Produto</th><th>Sistema</th><th>Contado</th><th>Diferença</th>${b.status === "CONCLUIDO" ? "<th>Ajustado</th>" : ""}</tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <p class="footer">${counted} de ${b.itens.length} itens contados &mdash; gerado em ${new Date().toLocaleString("pt-BR")}</p>
-</body></html>`;
-  const w = window.open("", "_blank", "width=720,height=600");
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
-  }
-}
 
 export function Balanco() {
   const { isAdmin, canMove } = useAuth();
@@ -276,7 +216,10 @@ export function Balanco() {
                         variant="ghost"
                         icon="printer"
                         aria-label={`Imprimir balanço ${b.id}`}
-                        onClick={() => printBalanco(b)}
+                        onClick={() => {
+                          try { imprimirBalanco(b); }
+                          catch (erro) { toast.error("Não foi possível imprimir", (erro as Error).message); }
+                        }}
                       />
                       {b.status === "PENDENTE" && canMove && (
                         <Button

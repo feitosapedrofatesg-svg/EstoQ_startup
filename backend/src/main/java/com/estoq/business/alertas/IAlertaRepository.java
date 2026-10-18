@@ -12,6 +12,10 @@ import java.util.Optional;
 
 public interface IAlertaRepository extends IGenericRepository<AlertaModel> {
 
+    @EntityGraph(attributePaths = { "produto", "produto.parametro", "lote" })
+    @Query("select a from AlertaModel a where a.ativo=true and a.produto.id in :ids")
+    List<AlertaModel> findParaProdutos(List<Long> ids);
+
     @Modifying(flushAutomatically = true)
     @Query(value = """
             delete from alertas where restaurante_id=:restauranteId and ativo=true and visualizado=false

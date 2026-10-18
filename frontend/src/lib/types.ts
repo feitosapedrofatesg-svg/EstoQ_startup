@@ -293,6 +293,7 @@ export interface DesperdicioDTO {
   loteCodigo: string | null;
   quantidade: number;
   valorPrejuizo: number;
+  unidadeMedida: string;
 }
 
 export interface DesperdicioAgregadoDTO {
@@ -314,8 +315,8 @@ export interface ConsumoMedioDTO {
 
 export interface ConsumoDiaSemanaDTO {
   diaSemana: string;
-  quantidadeTotal: number;
-  quantidadeMedia: number;
+  valorTotal: number;
+  valorMedio: number;
 }
 
 export interface ReposicaoSugeridaDTO {

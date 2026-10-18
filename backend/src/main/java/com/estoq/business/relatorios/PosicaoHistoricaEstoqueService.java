@@ -31,8 +31,8 @@ public class PosicaoHistoricaEstoqueService {
     }
 
     public void validarPeriodo(LocalDateTime inicio, LocalDateTime fim) {
-        if (inicio == null || fim == null || !inicio.isBefore(fim)) {
-            throw new FieldValidationException("periodo", "Informe um intervalo válido para o relatório.");
+        if (inicio == null || fim == null || !inicio.isBefore(fim) || java.time.temporal.ChronoUnit.DAYS.between(inicio, fim) > 3660) {
+            throw new FieldValidationException("periodo", "Informe um intervalo válido de até dez anos para o relatório.");
         }
     }
 }

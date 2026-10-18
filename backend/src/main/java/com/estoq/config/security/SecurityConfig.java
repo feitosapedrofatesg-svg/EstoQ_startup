@@ -83,7 +83,7 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(a -> a
                                                 // O pedido original já foi autorizado; o encerramento SSE pode ocorrer após logout.
                                                 .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                                                .requestMatchers("/api/auth/csrf", "/api/auth/login", "/api/registro",
+                                                .requestMatchers("/api/saude/vivo", "/api/saude/pronto", "/api/auth/csrf", "/api/auth/login", "/api/registro",
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()

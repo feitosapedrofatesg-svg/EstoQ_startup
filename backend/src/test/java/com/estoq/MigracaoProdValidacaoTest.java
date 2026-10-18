@@ -85,7 +85,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("7", flyway.info().current().getVersion().toString());
+            assertEquals("8", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -196,7 +196,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(7, resultado.migrationsExecuted, "V1 até V7 devem executar no banco legado");
+        assertEquals(8, resultado.migrationsExecuted, "V1 até V8 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {
@@ -227,7 +227,7 @@ class MigracaoProdValidacaoTest {
             try (ResultSet rs = st.executeQuery("select count(*) from pg_constraint "
                     + "where contype = 'f' and confrelid = 'restaurantes'::regclass")) {
                 rs.next();
-                assertEquals(22, rs.getInt(1));
+                assertEquals(23, rs.getInt(1)); // V8 acrescenta a referência da auditoria da plataforma.
             }
             try (ResultSet rs = st.executeQuery("select conname from pg_constraint "
                     + "where conrelid = 'operacoes_consumo'::regclass and contype = 'u'")) {

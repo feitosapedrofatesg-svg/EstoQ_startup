@@ -41,7 +41,7 @@ export function Consumo() {
   const hoje = hojeISO();
   const { data: registros, loading: loadingRegistros, refresh: refreshRegistros, setData: setRegistros } =
     useFetch<MovimentacaoDTO[]>(
-      `/api/movimentacoes?tipo=CONSUMO&inicio=${hoje}T00:00:00&fim=${hoje}T23:59:59`
+      `/api/movimentacoes?tipo=CONSUMO&dataInicio=${hoje}&dataFim=${hoje}`
     );
 
   const custoHoje = useMemo(

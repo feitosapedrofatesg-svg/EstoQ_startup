@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ILoteRepository extends IGenericRepository<LoteModel> {
+        @EntityGraph(attributePaths = { "produto", "produto.parametro" })
+        @Query("select l from LoteModel l where l.ativo=true and l.produto.id in :ids")
+        List<LoteModel> findParaAlertas(List<Long> ids);
+
         @Query("select l from LoteModel l join fetch l.produto p where p.id in :ids and l.ativo=true "
                 + "and l.quantidadeAtual>0 order by l.dataValidade asc nulls last, l.dataEntrada, l.id")
         List<LoteModel> findParaConsumoEmLote(List<Long> ids);

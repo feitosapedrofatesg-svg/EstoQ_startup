@@ -100,7 +100,7 @@ alteracao após commit. Conexão é renovada após um minuto. O header atual
 necessariamente a última correção ou SHA publicado.
 
 Testes que criam restaurantes/movimentos devem rodar em ambiente próprio.
-`scripts/e2e_validacao.sh` é mutável: não executá-lo como health check de produção.
+`scripts/e2e_validacao.sh` executa integração local com backend e PostgreSQL descartáveis. Não utiliza senha de produção nem cria restaurantes no site publicado.
 Na produção, prefira verificação de leitura com sessão autorizada.
 
 ## Limitações e recuperação
@@ -120,3 +120,5 @@ efêmero; detalhes em [BACKUP_E_RESTAURACAO.md](BACKUP_E_RESTAURACAO.md).
 Para rollback, escolha uma versão compatível no histórico dos provedores.
 Rollback do código não desfaz migração nem dados. Verifique compatibilidade do
 schema e dos payloads antes de promover a versão anterior.
+
+Os endpoints de saúde novos são `/api/saude/vivo` e `/api/saude/pronto`. Consulte o [anexo de 18/10](REVISAO_SEGURANCA_2026_10_18.md) antes da publicação.

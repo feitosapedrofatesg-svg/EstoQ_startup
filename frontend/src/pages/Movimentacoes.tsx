@@ -68,8 +68,8 @@ export function Movimentacoes() {
   const qs = new URLSearchParams();
   if (tipo !== "TODOS") qs.set("tipo", tipo);
   if (produtoId) qs.set("produtoId", produtoId);
-  if (inicio) qs.set("inicio", `${inicio}T00:00:00`);
-  if (fim) qs.set("fim", `${fim}T23:59:59`);
+  if (inicio) qs.set("dataInicio", inicio);
+  if (fim) qs.set("dataFim", fim);
 
   const { data, loading, error, refresh } = useFetch<MovimentacaoDTO[]>(
     `/api/movimentacoes?${qs.toString()}`

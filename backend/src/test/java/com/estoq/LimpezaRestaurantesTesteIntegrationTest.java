@@ -36,6 +36,8 @@ class LimpezaRestaurantesTesteIntegrationTest {
             // O retrato é anterior ao cadastro do restaurante que será preservado.
             s.execute("CREATE TEMP TABLE alvos_limpeza AS SELECT id,nome,data_hora_criacao AS criacao FROM restaurantes");
             s.execute("INSERT INTO restaurantes(nome,ativo,data_hora_criacao,version) VALUES ('Novo',true,now(),0)");
+            s.execute("INSERT INTO auditoria_plataforma(usuario_id,restaurante_id,acao,ativo,data_hora_criacao,version) "
+                + "VALUES (1,1,'RESTAURANTE_SUSPENSO',true,now(),0),(1,2,'RESTAURANTE_REATIVADO',true,now(),0)");
         }
     }
 
@@ -57,6 +59,8 @@ class LimpezaRestaurantesTesteIntegrationTest {
                 assertEquals(0,contar(c,"SELECT count(*) FROM restaurantes WHERE id=1"));
                 assertEquals(1,contar(c,"SELECT count(*) FROM restaurantes WHERE id=2 AND ativo"));
                 assertEquals(1,contar(c,"SELECT count(*) FROM usuarios WHERE perfil='PLATAFORMA' AND senha='hash-preservado'"));
+                assertEquals(1,contar(c,"SELECT count(*) FROM auditoria_plataforma WHERE restaurante_id=2"));
+                assertEquals(0,contar(c,"SELECT count(*) FROM auditoria_plataforma WHERE restaurante_id=1"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM produtos"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM entradas"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM movimentacoes"));

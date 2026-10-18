@@ -1,5 +1,9 @@
 package com.estoq.business.dashboard;
 
+import com.estoq.core.exceptions.FieldValidationException;
+
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.lotes.LoteDTO;
 import com.estoq.business.produtos.EstoqueDTO;
 import com.estoq.business.produtosAbertos.ProdutoAbertoDTO;
@@ -35,6 +39,8 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class RelatoriosController {
+
+    private final HorarioOperacao horario;
 
     private final RelatorioService relatorios;
     private final RelatorioPdfService pdfs;
@@ -79,8 +85,10 @@ public class RelatoriosController {
     public List<ConsumoMedioDTO> consumoMedio(
             @RequestParam(defaultValue = "30") long dias,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
-        var fimAt = (fim == null ? LocalDate.now() : fim).atStartOfDay().plusDays(1);
-        return relatorios.consumoMedio(fimAt.minusDays(Math.max(1, dias)), fimAt);
+        if (dias < 1 || dias > 3660)
+            throw new FieldValidationException("dias", "Informe de 1 a 3660 dias.");
+        var fimAt = horario.inicioUtc((fim == null ? horario.hoje() : fim).plusDays(1));
+        return relatorios.consumoMedio(horario.inicioUtc((fim == null ? horario.hoje() : fim).plusDays(1).minusDays(dias)), fimAt);
     }
 
     @GetMapping("/api/relatorios/consumo/dia-semana")
@@ -145,14 +153,14 @@ public class RelatoriosController {
         return dashboard.resumo(definirInicio(inicio), definirFim(fim), receitaBase);
     }
 
-    private static LocalDateTime definirInicio(LocalDate inicio) {
+    private LocalDateTime definirInicio(LocalDate inicio) {
         if (inicio != null) {
-            return inicio.atStartOfDay();
+            return horario.inicioUtc(inicio);
         }
-        return LocalDate.now().minusDays(30).atStartOfDay();
+        return horario.inicioUtc(horario.hoje().minusDays(30));
     }
 
-    private static LocalDateTime definirFim(LocalDate fim) {
-        return (fim == null ? LocalDate.now() : fim).atStartOfDay().plusDays(1);
+    private LocalDateTime definirFim(LocalDate fim) {
+        return horario.inicioUtc((fim == null ? horario.hoje() : fim).plusDays(1));
     }
 }

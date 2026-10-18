@@ -1,5 +1,9 @@
 package com.estoq.business.consumos;
 
+import com.estoq.business.produtosAbertos.ProdutoAbertoModel;
+
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.auth.UsuarioAtual;
 import com.estoq.business.lotes.*;
 import com.estoq.business.produtos.*;
@@ -12,7 +16,6 @@ import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ConsumoLoteService {
+
+    private final HorarioOperacao horario;
     private final UsuarioAtual usuarios;
     private final IRestauranteRepository restaurantes;
     private final IOperacaoConsumoRepository operacoes;
@@ -53,7 +58,7 @@ public class ConsumoLoteService {
         var catalogo = produtos.findAllByAtivoTrueAndIdIn(ids).stream()
                 .collect(Collectors.toMap(ProdutoModel::getId, Function.identity()));
         var candidatos = lotes.findParaConsumoEmLote(ids);
-        var embalagens = candidatos.isEmpty() ? List.<com.estoq.business.produtosAbertos.ProdutoAbertoModel>of()
+        var embalagens = candidatos.isEmpty() ? List.<ProdutoAbertoModel>of()
                 : abertos.findParaBaixaEmLote(candidatos.stream().map(LoteModel::getId).toList());
         var porLote = embalagens.stream().collect(Collectors.groupingBy(a -> a.getLote().getId()));
         var porProduto = candidatos.stream().collect(Collectors.groupingBy(l -> l.getProduto().getId()));
@@ -62,7 +67,7 @@ public class ConsumoLoteService {
             var produto = catalogo.get(item.produtoId());
             if (produto == null) throw new FieldValidationException("itens", "Produto indisponível: " + item.produtoId());
             var disponiveis = porProduto.getOrDefault(item.produtoId(), List.of()).stream()
-                    .filter(l -> item.loteId() == null ? l.estaDisponivel(LocalDate.now()) : l.getId().equals(item.loteId())).toList();
+                    .filter(l -> item.loteId() == null ? l.estaDisponivel(horario.hoje()) : l.getId().equals(item.loteId())).toList();
             try {
                 movimentos.addAll(consumos.baixarConsumo(item, disponiveis, usuario,
                         (l, qtd) -> baixa.baixar(l, qtd, porLote.getOrDefault(l.getId(), List.of()))));

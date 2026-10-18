@@ -1,5 +1,7 @@
 package com.estoq.business.lotes;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.business.produtos.ProdutoModel;
@@ -21,6 +23,8 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class LoteService {
 
+    private final HorarioOperacao horario;
+
     private final DadosAlteradosService sincronizacao;
     private final ILoteRepository repository;
     private final LoteAdapter adapter;
@@ -41,12 +45,12 @@ public class LoteService {
     }
 
     public List<LoteDTO> disponiveis(Long produtoId) {
-        return repository.findDisponiveisBaixa(produtoId, LocalDate.now()).stream().map(adapter::toDto).toList();
+        return repository.findDisponiveisBaixa(produtoId, horario.hoje()).stream().map(adapter::toDto).toList();
     }
 
     public List<LoteDTO> vencidos() {
         return repository.listarEstoque().stream()
-                .filter(l -> l.getQuantidadeAtual().signum() > 0 && l.estaVencido(LocalDate.now()))
+                .filter(l -> l.getQuantidadeAtual().signum() > 0 && l.estaVencido(horario.hoje()))
                 .map(adapter::toDto).toList();
     }
 
@@ -56,10 +60,10 @@ public class LoteService {
 
     public boolean proximoVencimento(LoteModel lote) {
         var par = lote.getProduto().getParametro();
-        if (par == null || !par.isAtivo() || !lote.estaDisponivel(LocalDate.now())) {
+        if (par == null || !par.isAtivo() || !lote.estaDisponivel(horario.hoje())) {
             return false;
         }
-        var dias = lote.diasParaVencimento(LocalDate.now());
+        var dias = lote.diasParaVencimento(horario.hoje());
         return dias != null && dias <= par.getDiasAlertaVencimento();
     }
 
@@ -70,7 +74,7 @@ public class LoteService {
         lote.setQuantidadeInicial(inicial);
         lote.setQuantidadeAtual(saldo);
         lote.setPrecoUnitario(preco);
-        lote.setDataEntrada(LocalDate.now());
+        lote.setDataEntrada(horario.hoje());
         lote.setDataValidade(validade);
         lote.setCodigo("PENDENTE-" + UUID.randomUUID());
         repository.saveAndFlush(lote);

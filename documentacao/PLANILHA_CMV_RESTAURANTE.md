@@ -227,8 +227,7 @@ Validações de `EntradaValidation` que vão travar a primeira tentativa:
 - `UnidadeMedida` = `KG, G, L, ML, UN`
 
 Fluxo de chamadas, seguindo o padrão de auth de
-[`scripts/e2e_validacao.sh`](../scripts/e2e_validacao.sh) (cookie jar com
-`-b`/`-c` no `GET /api/auth/csrf`, header `X-CSRF-TOKEN` em todo POST não-GET):
+[`scripts/e2e_validacao.sh`](../scripts/e2e_validacao.sh) agora executa as suítes locais com banco descartável. O fluxo HTTP histórico abaixo descreve sessão com CSRF; não exige executar operações em produção:
 
 ```
 POST /api/registro            (se a loja ainda não existir)

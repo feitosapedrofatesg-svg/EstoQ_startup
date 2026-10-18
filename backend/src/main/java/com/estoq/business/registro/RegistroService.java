@@ -1,5 +1,7 @@
 package com.estoq.business.registro;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.categorias.CategoriaPadraoService;
 import com.estoq.business.configuracoesBalanco.ConfiguracaoBalancoModel;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
@@ -32,6 +33,8 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class RegistroService {
+
+    private final HorarioOperacao horario;
 
     private final IRestauranteRepository restaurantes;
     private final IUsuarioRepository usuarios;
@@ -74,7 +77,7 @@ public class RegistroService {
         var config = new ConfiguracaoBalancoModel();
         config.setPeriodicidade(PeriodicidadeBalanco.MENSAL);
         config.setDiaExecucao(1);
-        config.setProximaExecucao(LocalDate.now().withDayOfMonth(1).plusMonths(1));
+        config.setProximaExecucao(horario.hoje().withDayOfMonth(1).plusMonths(1));
         config.setRestauranteId(restauranteId);
         configuracoesBalanco.saveAndFlush(config);
     }

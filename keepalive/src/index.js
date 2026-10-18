@@ -1,7 +1,7 @@
 // Keep-alive do estoQ: impede o Render free de dormir (sleep após ~15 min
 // sem tráfego). Chama o healthCheckPath do serviço — que é público e sem
-// efeito colateral (só gera CSRF em memória, não consulta o banco).
-const ALVO = "https://estoq-backend-jv04.onrender.com/api/auth/csrf";
+// efeito colateral (não cria sessão nem consulta o banco).
+const ALVO = "https://estoq-backend-jv04.onrender.com/api/saude/vivo";
 
 export default {
   // Disparado pelo cron do wrangler.toml a cada 10 minutos.

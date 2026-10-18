@@ -1,5 +1,7 @@
 package com.estoq.config.seed;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.configuracoesBalanco.ConfiguracaoBalancoModel;
 import com.estoq.business.configuracoesBalanco.IConfiguracaoBalancoRepository;
 import com.estoq.business.configuracoesBalanco.PeriodicidadeBalanco;
@@ -21,7 +23,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -30,6 +31,8 @@ import java.time.ZoneOffset;
 @Profile("dev")
 @RequiredArgsConstructor
 public class SeedDataConfig {
+
+    private final HorarioOperacao horario;
 
     private final IUsuarioRepository usuarios;
     private final IRestauranteRepository restaurantes;
@@ -58,7 +61,7 @@ public class SeedDataConfig {
                 var config = new ConfiguracaoBalancoModel();
                 config.setPeriodicidade(PeriodicidadeBalanco.MENSAL);
                 config.setDiaExecucao(1);
-                config.setProximaExecucao(LocalDate.now().withDayOfMonth(1).plusMonths(1));
+                config.setProximaExecucao(horario.hoje().withDayOfMonth(1).plusMonths(1));
                 config.setRestauranteId(tenant);
                 configuracoes.saveAndFlush(config);
             }

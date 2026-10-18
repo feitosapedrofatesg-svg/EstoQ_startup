@@ -1,5 +1,7 @@
 package com.estoq.business.produtosAbertos;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.auth.UsuarioAtual;
 import com.estoq.business.consumos.ConsumoModel;
 import com.estoq.business.desperdicios.DesperdicioModel;
@@ -21,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -31,6 +32,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProdutoAbertoService {
+
+    private final HorarioOperacao horario;
 
     private final IProdutoAbertoRepository repository;
     private final ProdutoAbertoAdapter adapter;
@@ -60,7 +63,7 @@ public class ProdutoAbertoService {
         if (!lote.getProduto().getId().equals(d.produtoId())) {
             throw new FieldValidationException("loteId", "O lote não pertence ao produto.");
         }
-        if (!lote.estaDisponivel(LocalDate.now())) {
+        if (!lote.estaDisponivel(horario.hoje())) {
             throw new ConflictException("Lote vencido, sem validade ou indisponível.");
         }
         baixa.conferirVersao(lote, d.versionLote());
@@ -90,7 +93,7 @@ public class ProdutoAbertoService {
     public ProdutoAbertoDTO consumirProdutoAberto(Long id, ConsumirProdutoAbertoRequestDTO d) {
         var a = prepararBaixa(id, d.quantidade(), d.version(), d.versionLote());
         var lote = a.getLote();
-        if (!lote.estaDisponivel(LocalDate.now())) {
+        if (!lote.estaDisponivel(horario.hoje())) {
             throw new ConflictException("O lote do item aberto está vencido, sem validade ou indisponível.");
         }
         var anterior = lote.getQuantidadeAtual();

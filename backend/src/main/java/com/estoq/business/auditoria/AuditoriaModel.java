@@ -32,6 +32,9 @@ public class AuditoriaModel extends TenantEntity {
     @Column(name = "usuario_nome", length = 120)
     private String usuarioNome;
 
+    @Column(name = "usuario_id")
+    private Long usuarioId;
+
     @Column(name = "data_hora")
     private LocalDateTime dataHora;
 }

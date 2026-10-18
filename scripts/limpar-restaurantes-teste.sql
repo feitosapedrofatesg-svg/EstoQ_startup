@@ -1,7 +1,7 @@
 -- Executado somente pelo utilitário administrativo, dentro de uma transação.
 -- alvos_limpeza contém exclusivamente os IDs congelados durante a inspeção.
 DO $$
-DECLARE conhecidas text[] := ARRAY['itens_nota_fiscal','vinculos_fornecedor','notas_fiscais','operacoes_consumo','cmv_receitas_periodo','alertas','auditoria','ajustes','consumos','desperdicios','entradas','movimentacoes','itens_balanco','balancos','produtos_abertos','parametros_estoque','lotes','produtos','categorias','configuracoes_balanco','parametros_cmv','usuarios'];
+DECLARE conhecidas text[] := ARRAY['itens_nota_fiscal','vinculos_fornecedor','notas_fiscais','operacoes_consumo','cmv_receitas_periodo','alertas','auditoria','auditoria_plataforma','ajustes','consumos','desperdicios','entradas','movimentacoes','itens_balanco','balancos','produtos_abertos','parametros_estoque','lotes','produtos','categorias','configuracoes_balanco','parametros_cmv','usuarios'];
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns
         WHERE table_schema=current_schema() AND column_name='restaurante_id'
@@ -10,7 +10,7 @@ BEGIN
     END IF;
 END $$;
 -- Bloqueia escritas durante a validação e exclusão; leituras continuam disponíveis.
-LOCK TABLE restaurantes, balanco_categorias, itens_nota_fiscal, vinculos_fornecedor, notas_fiscais, operacoes_consumo, cmv_receitas_periodo, alertas, auditoria, ajustes, consumos, desperdicios, entradas, movimentacoes, itens_balanco, balancos, produtos_abertos, parametros_estoque, lotes, produtos, categorias, configuracoes_balanco, parametros_cmv, usuarios IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE restaurantes, balanco_categorias, itens_nota_fiscal, vinculos_fornecedor, notas_fiscais, operacoes_consumo, cmv_receitas_periodo, alertas, auditoria, auditoria_plataforma, ajustes, consumos, desperdicios, entradas, movimentacoes, itens_balanco, balancos, produtos_abertos, parametros_estoque, lotes, produtos, categorias, configuracoes_balanco, parametros_cmv, usuarios IN SHARE ROW EXCLUSIVE MODE;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM usuarios WHERE perfil='PLATAFORMA' AND ativo=true) THEN
@@ -67,6 +67,7 @@ DELETE FROM notas_fiscais WHERE restaurante_id IN (SELECT id FROM alvos_limpeza)
 DELETE FROM operacoes_consumo WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM cmv_receitas_periodo WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM alertas WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
+DELETE FROM auditoria_plataforma WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM auditoria WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 -- Herança JOINED: dados antigos podem ter tenant somente na movimentação mãe.
 DELETE FROM ajustes WHERE id IN

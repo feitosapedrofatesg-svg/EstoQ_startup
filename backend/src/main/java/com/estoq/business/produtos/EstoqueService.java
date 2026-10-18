@@ -1,5 +1,7 @@
 package com.estoq.business.produtos;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.lotes.ILoteRepository;
 import com.estoq.business.produtosAbertos.IProdutoAbertoRepository;
 
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class EstoqueService {
 
+    private final HorarioOperacao horario;
+
     private final ILoteRepository lotes;
     private final IProdutoRepository produtos;
     private final IProdutoAbertoRepository abertos;
@@ -38,9 +42,14 @@ public class EstoqueService {
                 .collect(Collectors.toMap(ILoteRepository.PosicaoProduto::getProdutoId, Function.identity()));
     }
 
+    public Map<Long, ILoteRepository.PosicaoProduto> posicoesDisponiveis() {
+        return lotes.posicoesDisponiveis(horario.hoje()).stream()
+                .collect(Collectors.toMap(ILoteRepository.PosicaoProduto::getProdutoId, Function.identity()));
+    }
+
     public List<EstoqueDTO> listar(boolean somenteAbertos, boolean somenteBaixo) {
         var saldos = posicoes();
-        var disponiveis = lotes.posicoesDisponiveis(java.time.LocalDate.now()).stream()
+        var disponiveis = lotes.posicoesDisponiveis(horario.hoje()).stream()
                 .collect(Collectors.toMap(ILoteRepository.PosicaoProduto::getProdutoId,
                         ILoteRepository.PosicaoProduto::getSaldo));
         var idsAbertos = new HashSet<>(abertos.produtosComAbertos());
@@ -51,7 +60,7 @@ public class EstoqueService {
             BigDecimal minimo = par == null ? null : par.getEstoqueMinimo();
             BigDecimal medio = par == null ? null : par.getEstoqueMedio();
             BigDecimal maximo = par == null ? null : par.getEstoqueMaximo();
-            boolean abaixo = par != null && minimo != null && saldo.compareTo(minimo) < 0;
+            boolean abaixo = par != null && minimo != null && disponiveis.getOrDefault(p.getId(), BigDecimal.ZERO).compareTo(minimo) < 0;
             return new EstoqueDTO(p.getId(), p.getNome(), p.getCategoria().getNome(), p.getUnidadeMedida(), saldo,
                     disponiveis.getOrDefault(p.getId(), BigDecimal.ZERO),
                     money(pos == null ? null : pos.getValor()), minimo, medio, maximo, abaixo,

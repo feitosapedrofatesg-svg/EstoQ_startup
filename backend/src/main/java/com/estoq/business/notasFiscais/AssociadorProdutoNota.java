@@ -1,20 +1,18 @@
 package com.estoq.business.notasFiscais;
 
+import com.estoq.core.exceptions.FieldValidationException;
+
 import com.estoq.business.produtos.*;
 import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.List;
 import java.util.regex.Pattern;
 
 @Component
-@RequiredArgsConstructor
 public class AssociadorProdutoNota {
-    private final IVinculoFornecedorRepository vinculos;
 
-    public void sugerir(ItemNotaFiscalModel item, String fornecedor, List<ProdutoModel> catalogo) {
-        var vinculo = vinculos.findByDocumentoFornecedorAndCodigoAndAtivoTrue(fornecedor,item.getCodigo()).orElse(null);
+    public void sugerir(ItemNotaFiscalModel item, List<ProdutoModel> catalogo, VinculoFornecedorModel vinculo) {
         ProdutoModel produto = null;
         if (vinculo!=null) produto = catalogo.stream().filter(p -> p.getId().equals(vinculo.getProdutoId())).findFirst().orElse(null);
         if (produto==null) {
@@ -51,7 +49,7 @@ public class AssociadorProdutoNota {
         try {
             item.setFator(origem==null ? BigDecimal.ONE : ConversorUnidade.converter(conteudo,origem,item.getUnidadeEstoque()));
             item.setEmbalagemConfirmada(unidadeDireta!=null);
-        } catch (com.estoq.core.exceptions.FieldValidationException e) {
+        } catch (FieldValidationException e) {
             item.setFator(BigDecimal.ONE); item.setEmbalagemConfirmada(false);
         }
     }

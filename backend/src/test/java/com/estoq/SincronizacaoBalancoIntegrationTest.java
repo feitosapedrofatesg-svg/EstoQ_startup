@@ -102,6 +102,34 @@ class SincronizacaoBalancoIntegrationTest {
         contado = balancos.buscar(iniciado.id());
     }
 
+    @Test void desativacoesSimultaneasPreservamUmAdministrador() throws Exception {
+        var servico = app.getBean(UsuarioService.class);
+        var segundo = servico.criar(new UsuarioCreateDTO("Segundo administrador", "segundo" + System.nanoTime() + "@teste.local", SENHA, Perfil.ADMIN));
+        var outro = UsuarioPrincipal.of(app.getBean(IUsuarioRepository.class).findById(segundo.id()).orElseThrow());
+        var partida = new CountDownLatch(1);
+        var resultados = new java.util.concurrent.atomic.AtomicInteger();
+        var conflitos = new java.util.concurrent.atomic.AtomicInteger();
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var tarefas = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+            for (var operador : java.util.List.of(admin, outro)) tarefas.add(executor.submit(() -> {
+                autenticar(operador);
+                try {
+                    aguardar(partida);
+                    servico.desativar(operador.id());
+                    resultados.incrementAndGet();
+                } catch (com.estoq.core.exceptions.ConflictException erro) {
+                    conflitos.incrementAndGet();
+                } finally { SecurityContextHolder.clearContext(); }
+            }));
+            partida.countDown();
+            for (var tarefa : tarefas) tarefa.get(15, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        autenticar(admin);
+        assertEquals(1, resultados.get());
+        assertEquals(1, conflitos.get());
+        assertEquals(1, app.getBean(IUsuarioRepository.class).countByPerfilAndAtivoTrue(Perfil.ADMIN));
+    }
+
     @AfterEach void limpar() { SecurityContextHolder.clearContext(); }
 
     ConfirmarBalancoRequestDTO confirmacao(BalancoDTO b) {

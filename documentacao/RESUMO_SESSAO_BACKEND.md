@@ -1,5 +1,7 @@
 # EstoQ — resumo do sistema implementado
 
+Atualização posterior: [correções de 18/10/2026](REVISAO_SEGURANCA_2026_10_18.md). O conteúdo abaixo preserva a revisão histórica correspondente ao Word.
+
 Revisão: **12/10/2026** · Código de referência: `6bdddad`.
 Projeto acadêmico de ADS, 4º período, SENAI FATESG. Repositório local:
 `/home/pedro/EstoQ`. A arquitetura segue o padrão PIAds3 em camadas.

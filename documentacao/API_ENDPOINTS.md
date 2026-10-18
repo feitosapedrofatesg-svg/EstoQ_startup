@@ -230,3 +230,7 @@ limite de cinco minutos e impede duas execuções simultâneas na instância.
 
 `/v3/api-docs` e `/swagger-ui/**` dependem da habilitação por configuração;
 dev habilita, produção mantém desabilitado por padrão.
+
+## Ajustes de 18/10/2026
+
+Consulte o [anexo de correções](REVISAO_SEGURANCA_2026_10_18.md#api-ajustada): filtros locais `dataInicio`/`dataFim`, custos semanais `valorTotal`/`valorMedio`, unidade no desperdício e endpoints públicos de saúde.

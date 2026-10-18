@@ -1,5 +1,7 @@
 package com.estoq.business.movimentacoesEstoque;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.core.exceptions.FieldValidationException;
 
 import lombok.RequiredArgsConstructor;
@@ -15,10 +17,11 @@ import java.util.List;
 public class MovimentacaoConsultaService {
 
     private final MovimentacaoRegistroService registros;
+    private final HorarioOperacao horario;
 
     public List<MovimentacaoDTO> listar(Long produtoId, Long loteId, Long usuarioId, TipoMovimentacao tipo,
             LocalDateTime inicio, LocalDateTime fim) {
-        var ini = inicio == null ? LocalDateTime.now(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay() : inicio;
+        var ini = inicio == null ? horario.inicioUtc(horario.hoje().withDayOfMonth(1)) : inicio;
         var ate = fim == null ? LocalDateTime.now(ZoneOffset.UTC) : fim;
         if (ini.isAfter(ate)) {
             throw new FieldValidationException("inicio", "Início deve ser anterior ao fim.");

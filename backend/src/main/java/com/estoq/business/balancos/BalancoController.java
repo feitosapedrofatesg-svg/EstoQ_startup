@@ -72,13 +72,13 @@ public class BalancoController {
     }
 
     @PostMapping("/api/configuracoes-balanco")
-    public ResponseEntity<ConfiguracaoBalancoDTO> criarConfiguracao(@RequestBody ConfiguracaoBalancoDTO dto) {
+    public ResponseEntity<ConfiguracaoBalancoDTO> criarConfiguracao(@Valid @RequestBody ConfiguracaoBalancoDTO dto) {
         return ResponseEntity.status(201).body(configuracoes.salvar(dto));
     }
 
     @PutMapping("/api/configuracoes-balanco/{id}")
     public ConfiguracaoBalancoDTO atualizarConfiguracao(@PathVariable Long id,
-            @RequestBody ConfiguracaoBalancoDTO dto) {
+            @Valid @RequestBody ConfiguracaoBalancoDTO dto) {
         return configuracoes.salvar(new ConfiguracaoBalancoDTO(id, dto.version(), dto.periodicidade(),
                 dto.diaExecucao(), dto.proximaExecucao()));
     }

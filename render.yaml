@@ -6,6 +6,8 @@ services:
     branch: main
     dockerfilePath: backend/Dockerfile
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_USER
@@ -35,4 +37,4 @@ services:
       - key: ESTOQ_BACKUP_PORTA
         sync: false
     autoDeploy: true
-    healthCheckPath: /api/auth/csrf
+    healthCheckPath: /api/saude/pronto

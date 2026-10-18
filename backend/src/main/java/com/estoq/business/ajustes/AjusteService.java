@@ -1,5 +1,7 @@
 package com.estoq.business.ajustes;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.balancos.BalancoModel;
 import com.estoq.business.itensBalanco.ItemBalancoModel;
 import com.estoq.business.lotes.BaixaLoteService;
@@ -15,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AjusteService {
+
+    private final HorarioOperacao horario;
 
     private final ILoteRepository lotes;
     private final LoteService loteService;
@@ -77,7 +80,7 @@ public class AjusteService {
 
     private void aplicarSuperavit(BalancoModel balanco, ItemBalancoModel item, BigDecimal sobra, UsuarioModel usuario) {
         var produto = item.getProduto();
-        var candidatos = lotes.findDisponiveisBaixa(produto.getId(), LocalDate.now());
+        var candidatos = lotes.findDisponiveisBaixa(produto.getId(), horario.hoje());
         LoteModel lote = candidatos.isEmpty() ? null : candidatos.getFirst();
         if (lote == null) {
             lote = loteService.criar(produto, sobra, sobra, BigDecimal.ZERO, null);

@@ -1,5 +1,7 @@
 package com.estoq.business.consumos;
 
+import com.estoq.core.helpers.HorarioOperacao;
+
 import com.estoq.business.auth.UsuarioAtual;
 import com.estoq.business.lotes.BaixaLoteService;
 import com.estoq.business.lotes.ILoteRepository;
@@ -16,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -26,6 +27,8 @@ import com.estoq.business.usuarios.UsuarioModel;
 @Service
 @RequiredArgsConstructor
 public class ConsumoService {
+
+    private final HorarioOperacao horario;
 
     private final ProdutoService produtos;
     private final LoteService lotes;
@@ -39,7 +42,7 @@ public class ConsumoService {
         produtos.encontrar(d.produtoId());
         baixa.validarQuantidade(d.quantidade());
         List<LoteModel> candidatos = d.loteId() == null
-                ? repository.findDisponiveisBaixa(d.produtoId(), LocalDate.now())
+                ? repository.findDisponiveisBaixa(d.produtoId(), horario.hoje())
                 : List.of(lotes.encontrar(d.loteId()));
         var movs = baixarConsumo(d, candidatos, usuarioAtual.obter(), baixa::baixar);
         return registros.concluir(d.produtoId(), movs);
@@ -65,7 +68,7 @@ public class ConsumoService {
             if (!lote.getProduto().getId().equals(d.produtoId())) {
                 throw new FieldValidationException("loteId", "O lote não pertence ao produto.");
             }
-            if (!lote.estaDisponivel(LocalDate.now())) {
+            if (!lote.estaDisponivel(horario.hoje())) {
                 throw new ConflictException("Lote vencido, sem validade ou indisponível para consumo.");
             }
             baixa.conferirVersao(lote, d.versionLote());

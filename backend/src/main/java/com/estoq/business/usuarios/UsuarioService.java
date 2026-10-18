@@ -1,5 +1,9 @@
 package com.estoq.business.usuarios;
 
+import com.estoq.business.auditoria.AuditService;
+import com.estoq.business.auth.UsuarioAtual;
+import com.estoq.business.restaurantes.IRestauranteRepository;
+
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.core.exceptions.BusinessException;
@@ -27,6 +31,9 @@ public class UsuarioService {
     private final IUsuarioValidation validation;
     private final UsuarioAdapter adapter;
     private final PasswordEncoder encoder;
+    private final IRestauranteRepository restaurantes;
+    private final UsuarioAtual usuarioAtual;
+    private final AuditService auditoria;
 
     public Page<UsuarioResponseDTO> listar(Pageable p, String q) {
         return (q == null || q.isBlank() ? repository.findAll(p) : repository.pesquisar(q.trim(), p)).map(adapter::toDto);
@@ -38,6 +45,8 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioResponseDTO criar(UsuarioCreateDTO dto) {
+        var responsavel = usuarioAtual.obter();
+        bloquearRestaurante(responsavel.getRestauranteId());
         if (dto.perfil() == Perfil.PLATAFORMA) {
             throw new BusinessException("O perfil PLATAFORMA não pode ser criado pela loja.", HttpStatus.BAD_REQUEST);
         }
@@ -49,11 +58,14 @@ public class UsuarioService {
         validation.validate(u);
         repository.saveAndFlush(u);
         sincronizacao.registrar(u);
+        auditar("USUARIO_CRIADO", u, responsavel);
         return adapter.toDto(u);
     }
 
     @Transactional
     public UsuarioResponseDTO atualizar(Long id, UsuarioUpdateDTO dto) {
+        var responsavel = usuarioAtual.obter();
+        bloquearRestaurante(responsavel.getRestauranteId());
         UsuarioModel u = encontrar(id);
         if (!Objects.equals(u.getVersion(), dto.version())) {
             throw new ConflictException();
@@ -74,16 +86,29 @@ public class UsuarioService {
         validation.validate(u);
         repository.flush();
         sincronizacao.registrar(u);
+        auditar("USUARIO_ATUALIZADO", u, responsavel);
         return adapter.toDto(u);
     }
 
     @Transactional
     public void desativar(Long id) {
+        var responsavel = usuarioAtual.obter();
+        bloquearRestaurante(responsavel.getRestauranteId());
         UsuarioModel u = encontrar(id);
         protegerUltimoAdmin(u);
         u.setAtivo(false);
         repository.flush();
         sincronizacao.registrar(u);
+        auditar("USUARIO_DESATIVADO", u, responsavel);
+    }
+
+    private void bloquearRestaurante(Long restauranteId) {
+        if (restauranteId != null && restauranteId > 0)
+            restaurantes.bloquearAdministracao(restauranteId).orElseThrow(ConflictException::new);
+    }
+
+    private void auditar(String tipo, UsuarioModel alvo, UsuarioModel responsavel) {
+        auditoria.registrar(tipo, "USUARIO", alvo.getId().toString(), "Alteração administrativa de usuário.", responsavel);
     }
 
     private UsuarioModel encontrar(Long id) {

@@ -24,6 +24,7 @@ public class AuditService {
         a.setEntidadeId(entidadeId);
         a.setDescricao(descricao != null && descricao.length() > 400 ? descricao.substring(0, 400) : descricao);
         a.setUsuarioNome(usuario != null ? usuario.getNome() : "sistema");
+        a.setUsuarioId(usuario == null ? null : usuario.getId());
         a.setDataHora(LocalDateTime.now(ZoneOffset.UTC));
         repository.save(a);
     }

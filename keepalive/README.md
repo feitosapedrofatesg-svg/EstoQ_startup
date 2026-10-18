@@ -2,7 +2,7 @@
 
 Worker de cron que mantém o backend do Render (plano free) acordado.
 O Render free dorme após ~15 min sem tráfego; chamar o `healthCheckPath`
-(`/api/auth/csrf`) a cada 10 minutos reseta o timer de idle.
+(`/api/saude/vivo`, sem criar sessão) a cada 10 minutos reseta o timer de idle.
 
 ## Deploy (uma vez)
 

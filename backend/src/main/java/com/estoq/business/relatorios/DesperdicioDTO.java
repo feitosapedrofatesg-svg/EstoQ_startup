@@ -6,5 +6,5 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record DesperdicioDTO(LocalDateTime dataHora, MotivoDesperdicio motivo, String descricaoMotivo,
-        Long produtoId, String produtoNome, String loteCodigo, BigDecimal quantidade, BigDecimal valorPrejuizo) {
+        Long produtoId, String produtoNome, String loteCodigo, BigDecimal quantidade, BigDecimal valorPrejuizo, String unidadeMedida) {
 }

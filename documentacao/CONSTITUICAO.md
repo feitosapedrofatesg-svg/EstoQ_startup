@@ -1,5 +1,7 @@
 # Constituição do projeto EstoQ
 
+Atualização posterior: [correções de 18/10/2026](REVISAO_SEGURANCA_2026_10_18.md). O conteúdo abaixo preserva a revisão histórica correspondente ao Word.
+
 Revisão **1.1 — 12/10/2026**. Correspondente ao Word; requisitos originais preservados e consolidação atual na seção 17.
 
 EstoQ

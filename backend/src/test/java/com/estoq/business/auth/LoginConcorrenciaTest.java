@@ -8,6 +8,30 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LoginConcorrenciaTest {
     @Test
+    void variarEmailNaoContornaLimiteDaOrigem() {
+        var servico = new LoginAttemptService(5, 15);
+        for (int i = 0; i < 100; i++) servico.reservar("pessoa" + i + "@teste.com", "origem");
+        assertThrows(BusinessException.class, () -> servico.reservar("outra@teste.com", "origem"));
+        assertDoesNotThrow(() -> servico.reservar("outra@teste.com", "outra-origem"));
+    }
+
+    @Test
+    void variarOrigemNaoContornaLimiteDaConta() {
+        var servico = new LoginAttemptService(5, 15);
+        for (int i = 0; i < 15; i++) servico.reservar("alvo@teste.com", "origem" + i);
+        assertThrows(BusinessException.class, () -> servico.reservar("ALVO@teste.com", "outra"));
+    }
+
+    @Test
+    void limiteDeMemoriaRecusaChavesNovasSemApagarBloqueiosAtivos() {
+        var limites = new LimiteRequisicoes();
+        for (int i = 0; i < 10_000; i++) limites.reservar("chave" + i, 1, Duration.ofMinutes(15));
+        assertThrows(BusinessException.class, () -> limites.reservar("nova", 1, Duration.ofMinutes(15)));
+        assertThrows(BusinessException.class, () -> limites.reservar("chave0", 1, Duration.ofMinutes(15)));
+        assertEquals(10_000, limites.tamanho());
+    }
+
+    @Test
     void reservaNoMaximoCincoTentativasSimultaneas() throws Exception {
         var servico = new LoginAttemptService(5, 15);
         var partida = new CountDownLatch(1);

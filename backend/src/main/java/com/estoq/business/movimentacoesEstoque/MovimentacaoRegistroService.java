@@ -1,5 +1,7 @@
 package com.estoq.business.movimentacoesEstoque;
 
+import org.springframework.transaction.annotation.Propagation;
+
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 import com.estoq.business.sincronizacao.GrupoDados;
 import com.estoq.business.auditoria.AuditService;
@@ -63,6 +65,7 @@ public class MovimentacaoRegistroService {
     }
 
     /** Um flush e um aviso por grupo, sem recalcular saldos para cada produto. */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void concluirVarios(List<? extends MovimentacaoEstoqueModel> movs) {
         entityManager.flush();
         events.publishEvent(new EstoqueVariosAlteradosEvent(movs.stream().map(m -> m.getProduto().getId()).distinct().toList()));

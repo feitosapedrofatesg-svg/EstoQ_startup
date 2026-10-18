@@ -250,7 +250,7 @@ function CmvMensal({ inicio, fim }: PeriodoRelatorios) {
   const bars = useMemo(
     () =>
       (data ?? []).map((d) => ({
-        label: d.periodo.slice(3, 5) + "/" + d.periodo.slice(0, 4),
+        label: d.periodo.slice(5, 7) + "/" + d.periodo.slice(0, 4),
         value: d.cmv,
         hint: `Compras ${fmtMoney(d.valorCompras)}`,
       })),
@@ -270,7 +270,7 @@ function CmvMensal({ inicio, fim }: PeriodoRelatorios) {
             {(data ?? []).map((d) => (
               <tr key={d.periodo}>
                 <td>
-                  <strong>{d.periodo.slice(3, 5)}/{d.periodo.slice(0, 4)}</strong>
+                  <strong>{d.periodo.slice(5, 7)}/{d.periodo.slice(0, 4)}</strong>
                 </td>
                 <td>{fmtMoney(d.cmv)}</td>
                 <td>{fmtMoney(d.valorCompras)}</td>
@@ -300,17 +300,16 @@ function Desperdicio({ inicio, fim }: PeriodoRelatorios) {
   );
 
   const porMotivo = useMemo(() => {
-    const map = new Map<string, { quantidade: number; prejuizo: number }>();
+    const map = new Map<string, { prejuizo: number }>();
     for (const g of agreg ?? []) {
-      const cur = map.get(g.motivo) ?? { quantidade: 0, prejuizo: 0 };
-      cur.quantidade += g.quantidade;
+      const cur = map.get(g.motivo) ?? { prejuizo: 0 };
       cur.prejuizo += g.valorPrejuizo;
       map.set(g.motivo, cur);
     }
     return [...map.entries()].map(([motivo, v]) => ({
       label: motivo.replaceAll("_", " "),
       value: Math.round(v.prejuizo * 100) / 100,
-      sub: `${fmtNum(v.quantidade)} unidades perdidas`,
+      sub: "Prejuízo no período",
     }));
   }, [agreg]);
 
@@ -342,7 +341,7 @@ function Desperdicio({ inicio, fim }: PeriodoRelatorios) {
                   </td>
                   <td className="muted-cell">{d.loteCodigo ?? "—"}</td>
                   <td>{d.motivo.replaceAll("_", " ")}</td>
-                  <td>{fmtNum(d.quantidade)}</td>
+                  <td>{fmtNum(d.quantidade)} {d.unidadeMedida?.toLowerCase()}</td>
                   <td className="text-bad">{fmtMoney(d.valorPrejuizo)}</td>
                 </tr>
               ))}
@@ -365,8 +364,8 @@ function ConsumoMedio({ inicio, fim }: PeriodoRelatorios) {
     () =>
       (diaSemana ?? []).map((d) => ({
         label: fmtDiaSemana(d.diaSemana).slice(0, 3),
-        value: d.quantidadeMedia,
-        hint: `Total ${fmtNum(d.quantidadeTotal)}`,
+        value: d.valorMedio,
+        hint: `Total ${fmtMoney(d.valorTotal)}`,
       })),
     [diaSemana]
   );
@@ -377,12 +376,12 @@ function ConsumoMedio({ inicio, fim }: PeriodoRelatorios) {
       <p className="muted">Média diária por produto nos {dias} dias do período selecionado.</p>
       {consumo && consumo.length > 0 && (
         <>
-          <h3 className="section-title">Por dia da semana</h3>
+          <h3 className="section-title">Custo médio por dia da semana</h3>
           <BarChart
             data={bars}
             accent={[maxIdx]}
-            unit="média"
-            ariaLabel="Consumo médio por dia da semana"
+            unit="R$"
+            ariaLabel="Custo médio de consumo por dia da semana"
           />
           <ListaComRolagem quantidade={consumo.length}>
             <DataTable caption="Consumo médio diário por produto" headers={["Produto", "Total no período", "Média/dia"]}>

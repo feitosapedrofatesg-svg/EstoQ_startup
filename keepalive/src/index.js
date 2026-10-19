@@ -1,7 +1,10 @@
 // Keep-alive do estoQ: impede o Render free de dormir (sleep após ~15 min
-// sem tráfego). Chama a verificação do processo — que é pública e sem
-// efeito colateral (não cria sessão nem consulta o banco).
-const ALVO = "https://estoq-backend-jv04.onrender.com/api/saude/vivo";
+// sem tráfego) e mantém o banco Supabase free ativo (projetos free pausam
+// após 7 dias sem atividade). Usa a verificação de prontidão, que é pública
+// e sem efeito colateral (não cria sessão).
+//
+// Alvo anterior (Oregon, desativado em 18/10/2026): estoq-backend-jv04.onrender.com
+const ALVO = "https://estoq-backend-va.onrender.com/api/saude/pronto";
 
 export default {
   // Disparado pelo cron do wrangler.toml a cada 10 minutos.

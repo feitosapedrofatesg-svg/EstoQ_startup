@@ -1,9 +1,14 @@
+# Blueprint espelho do serviço em produção.
+# Criado manualmente em 18/10/2026 (migração Oregon -> Virgínia, para ficar na
+# mesma região do banco Supabase us-east-1). Detalhes em
+# documentacao/MIGRACAO_REGIAO_VIRGINIA.md.
 services:
   - type: web
-    name: estoq-backend
+    name: estoq-backend-va
     runtime: docker
     repo: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
     branch: main
+    region: virginia
     dockerfilePath: backend/Dockerfile
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -32,9 +37,7 @@ services:
         sync: false
       - key: ESTOQ_BACKUP_DIR
         value: /tmp/estoq-backups
-      - key: ESTOQ_BACKUP_HOST
-        sync: false
-      - key: ESTOQ_BACKUP_PORTA
-        sync: false
+      - key: ESTOQ_BACKUP_SCHEMA
+        value: estoq_v2
     autoDeploy: true
-    healthCheckPath: /api/saude/vivo
+    healthCheckPath: /api/auth/csrf

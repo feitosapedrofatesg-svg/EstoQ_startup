@@ -1,5 +1,14 @@
 # Histórico de mudanças do EstoQ
 
+## 19/10/2026 — estoque mínimo padrão de 3
+
+Produtos novos recebem mínimo 3 na unidade de cadastro, inclusive na importação
+de notas, que usa ProdutoService. Médio e máximo começam em 3 para respeitar a
+ordem dos níveis. O formulário permite personalizar ou informar zero.
+A migração V9 atualiza uma única vez os mínimos existentes zerados, preserva
+mínimos personalizados e eleva médio/máximo apenas quando necessário.
+Versões dos parâmetros alterados são incrementadas para proteger edições abertas.
+
 ## 19/10/2026 — botão compacto de recalcular CMV
 
 Botão Recalcular com 132 × 44 px, mantendo cores, tipografia, ícone, sombra e

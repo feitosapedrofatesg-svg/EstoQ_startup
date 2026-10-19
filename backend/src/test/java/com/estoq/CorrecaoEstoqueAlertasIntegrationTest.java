@@ -53,6 +53,37 @@ class CorrecaoEstoqueAlertasIntegrationTest {
 
     @AfterEach void limpar() { SecurityContextHolder.clearContext(); }
 
+    @Test void novosProdutosSinalizamAbaixoDeTresNaUnidadeDeCadastro() {
+        long categoriaId = catalogo.findByIdAndAtivoTrue(produtoId).orElseThrow().getCategoria().getId();
+        for (var unidade : UnidadeMedida.values()) {
+            var dto = new ProdutoDTO(); dto.setNome("Produto " + unidade); dto.setUnidadeMedida(unidade);
+            dto.setCategoriaId(categoriaId);
+            long id = produtos.criar(dto).getId();
+            entradas.registrarEntrada(new EntradaRequestDTO(id, new BigDecimal("2"), new BigDecimal("10"),
+                    unidade, dia.plusDays(30), null, false));
+            assertTrue(estoque.listar(false, true).stream().anyMatch(p -> p.produtoId().equals(id)));
+            assertTrue(alertas.listar(false, Perfil.ADMIN).stream()
+                    .anyMatch(a -> a.tipo() == TipoAlerta.ESTOQUE_BAIXO && a.produtoId().equals(id)));
+            entradas.registrarEntrada(new EntradaRequestDTO(id, BigDecimal.ONE, new BigDecimal("5"),
+                    unidade, dia.plusDays(30), null, false));
+            assertTrue(estoque.listar(false, true).stream().noneMatch(p -> p.produtoId().equals(id)));
+            assertTrue(alertas.listar(false, Perfil.ADMIN).stream()
+                    .noneMatch(a -> a.tipo() == TipoAlerta.ESTOQUE_BAIXO && a.produtoId().equals(id)));
+        }
+    }
+
+    @Test void editarProdutoPreservaMinimoPersonalizadoInclusiveZero() {
+        var produto = catalogo.findByIdAndAtivoTrue(produtoId).orElseThrow();
+        var parametro = produto.getParametro();
+        for (var minimo : java.util.List.of(new BigDecimal("7"), BigDecimal.ZERO)) {
+            parametro.setEstoqueMinimo(minimo); parametro.setEstoqueMedio(new BigDecimal("8"));
+            parametro.setEstoqueMaximo(new BigDecimal("9")); catalogo.flush();
+            var dto = produtos.buscar(produtoId); dto.setNome("Arroz atualizado " + minimo);
+            produtos.atualizar(produtoId, dto);
+            assertEquals(0, minimo.compareTo(produtos.encontrar(produtoId).getParametro().getEstoqueMinimo()));
+        }
+    }
+
     @Test void vencimentoMudaSemNovaMovimentacaoENaoReabreAvisoVisto() {
         var movimento = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, new BigDecimal("10"), new BigDecimal("100"),
                 UnidadeMedida.KG, dia.plusDays(1), null, false)).movimentacoes().getFirst();

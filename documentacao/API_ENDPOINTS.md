@@ -57,6 +57,12 @@ páginas; não resolve o limite pedindo uma página arbitrariamente enorme.
 Unidades: `KG`, `G`, `L`, `ML`, `UN`. Produtos podem ter múltiplos lotes.
 Consulta auxiliar ADMIN: `GET /api/parametros-estoque/por-produto/{produtoId}`.
 
+Cada produto novo recebe parâmetros com mínimo/médio/máximo em 3 na unidade de
+cadastro. Os níveis continuam editáveis, respeitando mínimo ≤ médio ≤ máximo;
+mínimo zero desativa o alerta de estoque baixo. A V9 atualiza uma única vez os
+mínimos antigos zerados, preservando os personalizados e elevando os demais
+níveis somente quando necessário. Um zero escolhido após a V9 é preservado.
+
 ## Estoque e lotes
 
 | Método | Rota | Permissão / notas |

@@ -31,7 +31,7 @@ class SupabasePreparacaoIntegrationTest {
                 var flyway = Flyway.configure().dataSource(url, "postgres", "postgres")
                         .schemas("estoq_v2").locations("classpath:db/migration").load();
                 flyway.migrate();
-                assertEquals("8", flyway.info().current().getVersion().toString());
+                assertEquals("9", flyway.info().current().getVersion().toString());
                 for (String perfil : new String[]{"anon", "authenticated", "service_role"}) {
                     try (var resultado = sql.executeQuery("SELECT has_schema_privilege('" + perfil + "','estoq_v2','USAGE')")) {
                         resultado.next(); assertFalse(resultado.getBoolean(1));

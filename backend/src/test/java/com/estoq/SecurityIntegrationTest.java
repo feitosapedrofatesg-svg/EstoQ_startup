@@ -133,4 +133,18 @@ class SecurityIntegrationTest {
         mvc.perform(post("/api/auth/logout").session(admin).with(csrf())).andExpect(status().isNoContent());
         assertTrue(admin.isInvalid());
     }
+
+    @Test
+    void apenasAdminENutricionistaRegistramFaturamentoDiario() throws Exception {
+        for (String perfil : new String[] { "admin", "nutricionista", "cozinha", "plataforma" }) {
+            var session = login(perfil + "@test.local", "Teste@12345", 200);
+            boolean permitido = perfil.equals("admin") || perfil.equals("nutricionista");
+            mvc.perform(get("/api/relatorios/faturamento-diario?inicio=2026-10-10&fim=2026-10-10").session(session))
+                    .andExpect(status().is(permitido ? 200 : 403));
+            mvc.perform(put("/api/relatorios/faturamento-diario").session(session).with(csrf())
+                    .contentType("application/json").content("{\"data\":\"2026-10-10\",\"valor\":0,\"version\":"
+                            + (perfil.equals("nutricionista") ? "0" : "null") + "}"))
+                    .andExpect(status().is(permitido ? 200 : 403));
+        }
+    }
 }

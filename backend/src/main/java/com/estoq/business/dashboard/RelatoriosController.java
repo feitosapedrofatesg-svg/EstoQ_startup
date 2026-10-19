@@ -11,6 +11,9 @@ import com.estoq.business.relatorios.CmvMensalDTO;
 import com.estoq.business.relatorios.CmvReceitaBaseDTO;
 import com.estoq.business.relatorios.CmvReceitaBaseService;
 import com.estoq.business.relatorios.CmvResumoDTO;
+import com.estoq.business.relatorios.FaturamentoDiarioDTO;
+import com.estoq.business.relatorios.FaturamentoPeriodoDTO;
+import jakarta.validation.Valid;
 import com.estoq.business.relatorios.ConsumoDiaSemanaDTO;
 import com.estoq.business.relatorios.ConsumoMedioDTO;
 import com.estoq.business.relatorios.DesperdicioAgregadoDTO;
@@ -125,6 +128,18 @@ public class RelatoriosController {
         return relatorios.cmvPorMes(definirInicio(inicio), definirFim(fim));
     }
 
+    @GetMapping("/api/relatorios/faturamento-diario")
+    public FaturamentoPeriodoDTO faturamentoDiario(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+        return receitasCmv.faturamento(inicio, fim);
+    }
+
+    @PutMapping("/api/relatorios/faturamento-diario")
+    public FaturamentoDiarioDTO salvarFaturamentoDiario(@Valid @RequestBody FaturamentoDiarioDTO dto) {
+        return receitasCmv.salvarDia(dto);
+    }
+
     @GetMapping("/api/relatorios/reposicao-sugerida")
     public List<ReposicaoSugeridaDTO> reposicaoSugerida(
             @RequestParam(required = false) Integer dias) {
@@ -150,7 +165,9 @@ public class RelatoriosController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
             @RequestParam(required = false) BigDecimal receitaBase) {
-        return dashboard.resumo(definirInicio(inicio), definirFim(fim), receitaBase);
+        var diaFinal = fim == null ? horario.hoje() : fim;
+        var diaInicial = inicio == null ? diaFinal.minusDays(29) : inicio;
+        return dashboard.resumo(horario.inicioUtc(diaInicial), horario.inicioUtc(diaFinal.plusDays(1)), receitaBase);
     }
 
     private LocalDateTime definirInicio(LocalDate inicio) {

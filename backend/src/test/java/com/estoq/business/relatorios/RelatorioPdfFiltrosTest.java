@@ -36,7 +36,8 @@ class RelatorioPdfFiltrosTest {
         var receita = new BigDecimal("25000");
         when(relatorios.calcularCmv(inicio, fim, receita)).thenReturn(new CmvResumoDTO(inicio, fim,
                 new BigDecimal("12345.67"), new BigDecimal("5000"), new BigDecimal("9345.67"), new BigDecimal("8000"), receita,
-                new BigDecimal("32"), new BigDecimal("30"), new BigDecimal("2"), new BigDecimal("7500"), new BigDecimal("500"), new BigDecimal("6.25"), BigDecimal.ZERO));
+                new BigDecimal("32"), new BigDecimal("30"), new BigDecimal("2"), new BigDecimal("7500"), new BigDecimal("500"), new BigDecimal("6.25"), BigDecimal.ZERO,
+                BigDecimal.ZERO, 1, true));
         var bytes = new RelatorioPdfService(new com.estoq.core.helpers.HorarioOperacao(), relatorios).gerar("cmv", dia, dia, 1, receita);
         verify(relatorios).calcularCmv(inicio, fim, receita);
         try (var pdf = Loader.loadPDF(bytes)) {

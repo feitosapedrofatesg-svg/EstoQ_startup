@@ -321,9 +321,77 @@ class BalancoCmvIntegrationTest {
         var fim = LocalDate.now(FUSO);
         receitasCmv.salvar(new CmvReceitaBaseDTO(inicio, fim, new BigDecimal("100")));
 
-        var resumo = dashboard.resumo(inicio.atStartOfDay(), fim.plusDays(1).atStartOfDay(), null);
+        var horario = new com.estoq.core.helpers.HorarioOperacao();
+        var resumo = dashboard.resumo(horario.inicioUtc(inicio), horario.inicioUtc(fim.plusDays(1)), null);
 
         assertEquals(0, BigDecimal.ZERO.compareTo(resumo.cmvPercentual()));
+    }
+
+    @Test
+    void faturamentoDiarioAlimentaMesmoPercentualNoRelatorioENoDashboard() {
+        var hoje = LocalDate.now(FUSO);
+        var horario = new com.estoq.core.helpers.HorarioOperacao();
+        consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
+        desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, BigDecimal.ONE,
+                MotivoDesperdicio.DETERIORACAO, null, null, null));
+        for (int i = 0; i < 3; i++) {
+            receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(
+                    hoje.minusDays(i), i == 1 ? BigDecimal.ZERO : new BigDecimal("100"), null));
+        }
+        var inicio = horario.inicioUtc(hoje.minusDays(2));
+        var fim = horario.inicioUtc(hoje.plusDays(1));
+        var relatorio = relatorios.calcularCmv(inicio, fim, null);
+        var resumo = dashboard.resumo(inicio, fim, null);
+        assertEquals(0, new BigDecimal("60").compareTo(relatorio.cmv()));
+        assertEquals(0, new BigDecimal("200").compareTo(relatorio.receitaBase()));
+        assertEquals(0, new BigDecimal("30").compareTo(relatorio.cmvPercentual()));
+        assertEquals(relatorio.cmvPercentual(), resumo.cmvPercentual());
+        assertEquals(0, resumo.diasFaturamentoPendentes());
+        assertTrue(!resumo.receitaPorPeriodo());
+        // Corrigir um dia substitui seu valor e impede gravar com uma versão antiga.
+        var dia = receitasCmv.faturamento(hoje, hoje).dias().getFirst();
+        receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(hoje, new BigDecimal("300"), dia.version()));
+        assertThrows(ConflictException.class, () -> receitasCmv.salvarDia(dia));
+        assertEquals(0, new BigDecimal("400").compareTo(receitasCmv.faturamento(hoje.minusDays(2), hoje).totalInformado()));
+    }
+
+    @Test
+    void faturamentoAusenteEZeroTemSignificadosDiferentes() {
+        var hoje = LocalDate.now(FUSO);
+        var horario = new com.estoq.core.helpers.HorarioOperacao();
+        assertEquals(1, receitasCmv.faturamento(hoje, hoje).diasPendentes());
+        assertNull(receitasCmv.faturamento(hoje, hoje).receitaBase());
+        var zero = receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(hoje, BigDecimal.ZERO, null));
+        var periodo = receitasCmv.faturamento(hoje, hoje);
+        assertEquals(0, periodo.diasPendentes());
+        assertEquals(1, periodo.diasInformados());
+        assertEquals(0, periodo.receitaBase().signum());
+        assertNull(relatorios.calcularCmv(horario.inicioUtc(hoje), horario.inicioUtc(hoje.plusDays(1)), null).cmvPercentual());
+        receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(hoje, null, zero.version()));
+        assertEquals(1, receitasCmv.faturamento(hoje, hoje).diasPendentes());
+        assertThrows(FieldValidationException.class, () -> receitasCmv.salvarDia(
+                new com.estoq.business.relatorios.FaturamentoDiarioDTO(hoje, new BigDecimal("-1"), null)));
+    }
+
+    @Test
+    void totaisLegadosNaoSaoDistribuidosNemSomadosAosDias() {
+        var inicio = LocalDate.of(2026, 9, 10);
+        var fim = inicio.plusDays(2);
+        receitasCmv.salvar(new CmvReceitaBaseDTO(inicio, fim, new BigDecimal("1000")));
+        var periodo = receitasCmv.faturamento(inicio, fim);
+        assertTrue(periodo.receitaPorPeriodo());
+        assertEquals(3, periodo.diasPendentes());
+        assertEquals(0, periodo.totalInformado().signum());
+        assertEquals(0, new BigDecimal("1000").compareTo(periodo.receitaBase()));
+        assertNull(receitasCmv.faturamento(inicio, fim.minusDays(1)).receitaBase());
+        receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(inicio, new BigDecimal("100"), null));
+        assertTrue(receitasCmv.faturamento(inicio, fim).receitaPorPeriodo());
+        receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(inicio.plusDays(1), new BigDecimal("200"), null));
+        receitasCmv.salvarDia(new com.estoq.business.relatorios.FaturamentoDiarioDTO(fim, BigDecimal.ZERO, null));
+        periodo = receitasCmv.faturamento(inicio, fim);
+        assertTrue(!periodo.receitaPorPeriodo());
+        assertEquals(0, new BigDecimal("300").compareTo(periodo.receitaBase()));
+        assertEquals(0, new BigDecimal("1000").compareTo(receitasCmv.obter(inicio, fim).receitaBase()));
     }
 
     @Test

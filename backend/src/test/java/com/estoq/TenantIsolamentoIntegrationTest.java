@@ -82,6 +82,48 @@ class TenantIsolamentoIntegrationTest {
     }
 
     @Test
+    void faturamentoDiarioIsolaLojasEExigeVersaoNaCorrecao() throws Exception {
+        registrar("Diário A", "diario-a@teste.com", "Teste@12345");
+        registrar("Diário B", "diario-b@teste.com", "Teste@12345");
+        var a = login("diario-a@teste.com", "Teste@12345");
+        var b = login("diario-b@teste.com", "Teste@12345");
+        String rota = "/api/relatorios/faturamento-diario";
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":1500}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(0));
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-11").session(a))
+                .andExpect(jsonPath("$.totalInformado").value(1500))
+                .andExpect(jsonPath("$.diasPendentes").value(1))
+                .andExpect(jsonPath("$.receitaBase").isEmpty());
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(b))
+                .andExpect(jsonPath("$.totalInformado").value(0))
+                .andExpect(jsonPath("$.diasPendentes").value(1));
+        mvc.perform(put(rota).session(b).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":900}"))
+                .andExpect(status().isOk());
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":1600,\"version\":0}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":1700,\"version\":0}"))
+                .andExpect(status().isConflict());
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(a))
+                .andExpect(jsonPath("$.receitaBase").value(1600))
+                .andExpect(jsonPath("$.diasInformados").value(1));
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(b))
+                .andExpect(jsonPath("$.receitaBase").value(900));
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":null,\"valor\":100}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-12\",\"valor\":-1}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-12\",\"valor\":1.123}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void lojaBNaoEnxergaNadaDaLojaA() throws Exception {
         registrar("Cantina A", "adm-a@teste.com", "LojaA@12345");
         registrar("Cantina B", "adm-b@teste.com", "LojaB@12345");

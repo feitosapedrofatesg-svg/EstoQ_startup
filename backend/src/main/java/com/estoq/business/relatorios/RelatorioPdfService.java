@@ -115,10 +115,19 @@ public class RelatorioPdfService {
                 linhas.add(java.util.Arrays.asList("Desperdício", moeda(cmv.valorDesperdicio())));
                 linhas.add(java.util.Arrays.asList("Perdas não explicadas", moeda(cmv.valorPerdasNaoExplicadas())));
                 if (cmv.receitaBase() != null) {
-                    linhas.add(java.util.Arrays.asList("Receita base informada", moeda(cmv.receitaBase())));
+                    linhas.add(java.util.Arrays.asList("Faturamento do período", moeda(cmv.receitaBase())));
                     linhas.add(java.util.Arrays.asList("Percentual ideal de CMV", percentual(cmv.percentualIdeal())));
                 }
                 observacao = "CMV = estoque inicial + compras - estoque final. Valores apurados pelo sistema para o período consultado.";
+                if (cmv.receitaPorPeriodo()) {
+                    observacao += " Faturamento informado como total do período, preservado do cadastro anterior.";
+                } else if (cmv.diasFaturamentoPendentes() > 0) {
+                    linhas.add(java.util.Arrays.asList("Faturamento diário já informado", moeda(cmv.faturamentoInformado())));
+                    linhas.add(java.util.Arrays.asList("Dias sem faturamento informado", Integer.toString(cmv.diasFaturamentoPendentes())));
+                    observacao += " Percentual pendente: complete o faturamento dos dias do período.";
+                } else if (cmv.receitaBase() != null && cmv.receitaBase().signum() == 0) {
+                    observacao += " Percentual indisponível: faturamento total igual a zero.";
+                }
             }
             case "cmv-mensal" -> {
                 titulo = "CMV mês a mês";

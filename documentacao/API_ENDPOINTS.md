@@ -204,6 +204,8 @@ Sem datas, as rotas de período usam os padrões definidos no controller.
 | GET | `/api/relatorios/cmv/mensal` | CMV por mês. |
 | GET | `/api/relatorios/cmv/receita-base` | Período obrigatório. |
 | PUT | `/api/relatorios/cmv/receita-base` | Salva receita informada por período. |
+| GET | `/api/relatorios/faturamento-diario` | Lista dias e total com início/fim inclusivos. |
+| PUT | `/api/relatorios/faturamento-diario` | Salva ou corrige data/valor usando version. |
 | GET | `/api/relatorios/reposicao-sugerida` | `dias` opcional. |
 | GET | `/api/relatorios/pdf/{tipo}` | PDF com os filtros correspondentes. |
 | GET | `/api/dashboard/resumo` | Indicadores e CMV. |
@@ -215,6 +217,10 @@ Tipos PDF: `estoque-atual`, `proximos-vencimento`, `vencidos`, `produtos-abertos
 CMV = estoque inicial + compras − estoque final. Sem receita válida não calcula
 percentual. Perdas não explicadas = CMV − (consumo registrado + desperdício).
 A receita base por período não significa integração com vendas/PDV.
+
+O CMV resolve automaticamente o faturamento diário completo ou o total antigo do
+intervalo exato, sem somar as duas bases. Dias pendentes não são dias com R$ 0.
+Regras, campos e compatibilidade em [Faturamento diário](FATURAMENTO_DIARIO.md).
 
 ## Backup e documentação interativa
 

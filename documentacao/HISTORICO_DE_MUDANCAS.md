@@ -1,5 +1,12 @@
 # Histórico de mudanças do EstoQ
 
+## 19/10/2026 — base diária de faturamento para CMV
+
+Faturamento salvo por restaurante/data com correção por versão, distinção entre
+zero e pendência e soma automática para os relatórios, dashboard e PDF. Totais
+antigos por período ficam preservados, sem rateio nem dupla contagem. APIs e
+publicação descritas em [Faturamento diário](FATURAMENTO_DIARIO.md).
+
 ## 18/10/2026 — confirmação na criação e alteração de senha
 
 Cadastro público, criação/edição de usuários e redefinição pela PLATAFORMA exigem

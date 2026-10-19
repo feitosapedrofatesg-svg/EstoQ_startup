@@ -2,6 +2,7 @@ package com.estoq.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import javax.sql.DataSource;
@@ -13,9 +14,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SaudeController {
     private final DataSource banco;
+    @Value("${RENDER_GIT_COMMIT:local}")
+    private String versao = "local";
 
     @GetMapping("/api/saude/vivo")
-    public Map<String, String> vivo() { return Map.of("status", "ok"); }
+    public Map<String, String> vivo() { return Map.of("status", "ok", "versao", versao); }
 
     @GetMapping("/api/saude/pronto")
     public ResponseEntity<Map<String, String>> pronto() {

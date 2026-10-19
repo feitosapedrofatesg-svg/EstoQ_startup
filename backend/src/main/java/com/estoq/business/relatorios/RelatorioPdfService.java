@@ -169,7 +169,7 @@ public class RelatorioPdfService {
                 totais.adicionar("CMV total do período", moeda(cmv.cmv()));
                 observacao = "CMV = estoque inicial + compras - estoque final. Valores apurados pelo sistema para o período consultado.";
                 if (cmv.receitaPorPeriodo()) {
-                    observacao += " Faturamento informado como total do período, preservado do cadastro anterior.";
+                    observacao += " Faturamento informado como total do período.";
                 } else if (cmv.diasFaturamentoPendentes() > 0) {
                     linhas.add(java.util.Arrays.asList("Faturamento diário já informado", moeda(cmv.faturamentoInformado())));
                     linhas.add(java.util.Arrays.asList("Dias sem faturamento informado", Integer.toString(cmv.diasFaturamentoPendentes())));

@@ -50,13 +50,26 @@ elimina a viagem transcontinental que acontecia a **cada consulta ao banco**.
 | | `/api/saude/vivo` (sem banco) | `/api/saude/pronto` (com banco) | custo do banco por consulta |
 |---|---|---|---|
 | Antes (Oregon) | 0,41–0,44s | 0,63–0,80s | **+0,19–0,37s** |
-| Depois (Virgínia) | 0,48–0,67s | 0,48–0,79s | **~0,00–0,12s** |
+| Depois (Virgínia) | 0,30–0,67s | 0,48–0,79s | **~0,00–0,12s** |
 
 Leitura: o tempo absoluto ainda é dominado pela distância do usuário até o
 servidor (parecida nas duas regiões) — o ganho estrutural é **backend↔banco**,
 que é o que multiplica dentro de cada tela: antes **cada** ida ao banco custava
 ~0,2–0,4s; agora custa ~0. Telas que fazem 5–15 consultas sentem a diferença
 direto.
+
+### Medições após a troca (site já servindo da Virgínia)
+
+| Endpoint no site | Antes (Oregon) | Depois (Virgínia) |
+|---|---|---|
+| `estoq-oficial.vercel.app/api/saude/pronto` | 0,52–1,05s | **0,30–0,34s** |
+| `estoq-ph-feit0sa.vercel.app/api/saude/pronto` | 0,75–1,09s | **0,29–0,49s** |
+
+Verificação final: o serviço antigo foi suspenso às **23:28** (passou a
+retornar HTTP 503) e, mesmo assim, os dois domínios do site e o **login
+completo** (Vercel → backend novo → Supabase) continuaram funcionando — prova
+de que tudo roda no backend novo. Amostras isoladas variam por causa da CPU
+dividida do plano Free; o ganho aparece acumulado nas telas.
 
 ## Keep-alive (Cloudflare) — agora com papel duplo
 
@@ -71,7 +84,7 @@ O worker continua sendo publicado manualmente: `cd keepalive && wrangler deploy`
 
 ## Serviço antigo (Oregon)
 
-- **Suspenso** (não apagado) para permitir rollback rápido se algo aparecer.
+- **Suspenso em 18/10/2026 às 23:28** (não apagado) para permitir rollback rápido.
 - Reativar: dashboard do Render → serviço `estoq-backend` → *Resume*, ou
   `POST /v1/services/srv-daoqm0mgekts73emglrg/resume` na API.
 - **Apagar definitivamente** depois de alguns dias de observação sem problemas

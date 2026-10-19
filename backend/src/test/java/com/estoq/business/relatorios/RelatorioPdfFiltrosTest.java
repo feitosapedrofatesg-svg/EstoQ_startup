@@ -45,7 +45,7 @@ class RelatorioPdfFiltrosTest {
             assertTrue(texto.contains("R$ 8.000,00"));
             assertTrue(texto.contains("R$ 25.000,00"));
             assertTrue(texto.contains("32%"));
-            assertTrue(texto.contains("Faturamento informado como total do período."));
+            assertTrue(texto.replaceAll("\\s+", " ").contains("Faturamento informado como total do período."));
             assertFalse(texto.contains("cadastro anterior"));
         }
     }

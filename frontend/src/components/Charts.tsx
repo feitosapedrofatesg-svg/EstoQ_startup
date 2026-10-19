@@ -121,10 +121,10 @@ export function CmvGauge({
       </div>
       <div className="gauge__legend">
         <span>
-          Atual: <strong>{percentual ? `${percentual.toLocaleString("pt-BR")}%` : "—"}</strong>
+          Atual: <strong>{percentual != null ? `${percentual.toLocaleString("pt-BR")}%` : "—"}</strong>
         </span>
         <span>
-          Meta: <strong>{ideal ? `${ideal.toLocaleString("pt-BR")}%` : "—"}</strong>
+          Meta: <strong>{ideal != null ? `${ideal.toLocaleString("pt-BR")}%` : "—"}</strong>
         </span>
       </div>
     </div>

@@ -4,7 +4,8 @@ import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
 import { PageHeader, Card, StatCard, Badge, EmptyState, LinkButton, Button } from "../components/UI";
 import { CmvGauge } from "../components/Charts";
-import { fmtMoney, fmtPct, fmtDateTime, fmtDataHoje, diasAtrasISO, hojeISO } from "../lib/format";
+import { AvisoFaturamento, FaturamentoDiario } from "../components/FaturamentoDiario";
+import { fmtMoney, fmtPct, fmtDate, fmtDateTime, fmtDataHoje, diasAtrasISO, hojeISO } from "../lib/format";
 import type { AlertaDTO, DashboardResumoDTO } from "../lib/types";
 import { useToast } from "../store/toast";
 
@@ -26,7 +27,9 @@ const ALERT_LABEL: Record<AlertaDTO["tipo"], string> = {
 
 export function Dashboard() {
   const { user, isAdmin, isCozinha, canReport, canMove } = useAuth();
-  const periodo = new URLSearchParams({ inicio: diasAtrasISO(30), fim: hojeISO() });
+  const inicio = diasAtrasISO(29);
+  const fim = hojeISO();
+  const periodo = new URLSearchParams({ inicio, fim });
   const { data, loading, error, refresh } = useFetch<DashboardResumoDTO>(`/api/dashboard/resumo?${periodo}`, [], true);
   const canSeeAlerts = isAdmin || isCozinha;
   const { data: alerts, refresh: refreshAlerts } = useFetch<AlertaDTO[]>(
@@ -108,14 +111,17 @@ export function Dashboard() {
             <Card title="CMV — custo da mercadoria vendida">
               {canReport ? (
                 <div className="cmv-block">
-                  <div className="cmv-block__money">{fmtMoney(data.cmvPeriodo)}</div>
-                  <p className="muted">nos últimos 30 dias</p>
+                  <div className="cmv-block__money" aria-label="CMV percentual dos últimos 30 dias">{fmtPct(data.cmvPercentual)}</div>
+                  <p className="muted">nos últimos 30 dias: {fmtDate(inicio)} a {fmtDate(fim)}</p>
                   <CmvGauge
                     percentual={data.cmvPercentual}
                     ideal={data.cmvIdeal}
                     label="Percentual de CMV"
                   />
+                  <AvisoFaturamento {...data} />
                   <div className="cmv-block__rows">
+                    <div className="cmv-row"><span>Custo das mercadorias no período</span><strong>{fmtMoney(data.cmvPeriodo)}</strong></div>
+                    <div className="cmv-row"><span>Faturamento usado no cálculo</span><strong>{data.receitaBase == null ? "Pendente" : fmtMoney(data.receitaBase)}</strong></div>
                     <div className="cmv-row">
                       <span>Desperdício no período</span>
                       <strong>{fmtMoney(data.valorDesperdicioPeriodo)}</strong>
@@ -131,6 +137,8 @@ export function Dashboard() {
                       <strong>{fmtPct(data.diferencaCmvParaMeta)}</strong>
                     </div>
                   </div>
+                  <FaturamentoDiario key={`${inicio}|${fim}`} inicio={inicio} fim={fim} />
+                  <LinkButton to={`/relatorios?${periodo}`} variant="outline" icon="chart">Ver relatório destes 30 dias</LinkButton>
                 </div>
               ) : (
                 <EmptyState

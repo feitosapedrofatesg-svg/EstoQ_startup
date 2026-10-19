@@ -248,6 +248,9 @@ export interface CmvResumoDTO {
   cmv: number;
   receitaBase: number | null;
   cmvPercentual: number | null;
+  faturamentoInformado: number;
+  diasFaturamentoPendentes: number;
+  receitaPorPeriodo: boolean;
   percentualIdeal: number | null;
   diferencaPercentualParaMeta: number | null;
   valorConsumoRegistrado: number;
@@ -282,6 +285,16 @@ export interface DashboardResumoDTO {
   cmvIdeal: number | null;
   diferencaCmvParaMeta: number | null;
   perdasNaoExplicadasPeriodo: number;
+  receitaBase: number | null;
+  faturamentoInformado: number;
+  diasFaturamentoPendentes: number;
+  receitaPorPeriodo: boolean;
+}
+
+export interface FaturamentoDiarioDTO { data: string; valor: number | null; version: number | null }
+export interface FaturamentoPeriodoDTO {
+  inicio: string; fim: string; totalInformado: number; diasInformados: number; diasPendentes: number;
+  receitaBase: number | null; receitaPorPeriodo: boolean; dias: FaturamentoDiarioDTO[];
 }
 
 export interface DesperdicioDTO {

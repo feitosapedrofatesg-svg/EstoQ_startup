@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useFetch } from "../lib/hooks";
 import { api, downloadBlob } from "../lib/api";
 import {
@@ -12,6 +12,8 @@ import {
   EmptyState,
 } from "../components/UI";
 import { BarChart, HBars, CmvGauge } from "../components/Charts";
+import { AvisoFaturamento, FaturamentoDiario } from "../components/FaturamentoDiario";
+import { useSearchParams } from "react-router-dom";
 import {
   fmtMoney,
   fmtPct,
@@ -19,11 +21,9 @@ import {
   fmtDateTime,
   fmtDiaSemana,
   hojeISO,
-  parseDecimal,
 } from "../lib/format";
 import type {
   CmvMensalDTO,
-  CmvReceitaBaseDTO,
   CmvResumoDTO,
   ConsumoDiaSemanaDTO,
   ConsumoMedioDTO,
@@ -37,8 +37,14 @@ import { ListaComRolagem } from "../responsividade/tablet/ListaComRolagem";
 
 export function Relatorios() {
   const toast = useToast();
-  const [inicio, setInicio] = useState(hojeISO);
-  const [fim, setFim] = useState(hojeISO);
+  const [parametros] = useSearchParams();
+  const de = parametros.get("inicio");
+  const ate = parametros.get("fim");
+  const dataValida = (d: string | null) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d)
+    && !Number.isNaN(Date.parse(d)) && new Date(d).toISOString().slice(0, 10) === d;
+  const periodoValido = dataValida(de) && dataValida(ate) && de! <= ate!;
+  const [inicio, setInicio] = useState(() => periodoValido ? de! : hojeISO());
+  const [fim, setFim] = useState(() => periodoValido ? ate! : hojeISO());
   const periodo = { inicio, fim };
 
   return (
@@ -76,7 +82,7 @@ const CMV_ROWS = (d: CmvResumoDTO) => [
   { label: "+ Compras no período", value: fmtMoney(d.valorCompras) },
   { label: "− Estoque no fim do período", value: fmtMoney(d.valorEstoqueFinal) },
   { label: "CMV do período", value: fmtMoney(d.cmv), strong: true },
-  { label: "Receita base (informada)", value: fmtMoney(d.receitaBase ?? 0) },
+  { label: "Faturamento usado no cálculo", value: d.receitaBase == null ? "Pendente" : fmtMoney(d.receitaBase) },
 ];
 
 interface PeriodoRelatorios { inicio: string; fim: string }
@@ -87,65 +93,8 @@ function diasPeriodo({ inicio, fim }: PeriodoRelatorios) {
 }
 
 function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { setInicio: (data: string) => void; setFim: (data: string) => void }) {
-  const [receitaBase, setReceitaBase] = useState<number | null>(null);
-  const [tmpReceita, setTmpReceita] = useState("");
-  const [carregandoReceita, setCarregandoReceita] = useState(true);
-  const [salvandoReceita, setSalvandoReceita] = useState(false);
-  const toast = useToast();
-  const toastRef = useRef(toast);
-  toastRef.current = toast;
-  const periodoRef = useRef(`${inicio}|${fim}`);
-  periodoRef.current = `${inicio}|${fim}`;
-
-  useEffect(() => {
-    let ativo = true;
-    const chavePeriodo = `${inicio}|${fim}`;
-    const periodo = new URLSearchParams({ inicio, fim }).toString();
-    setCarregandoReceita(true);
-    setReceitaBase(null);
-    setTmpReceita("");
-    api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?${periodo}`)
-      .then((salva) => {
-        if (!ativo || periodoRef.current !== chavePeriodo) return;
-        setReceitaBase(salva.receitaBase);
-        setTmpReceita(salva.receitaBase === null ? "" : String(salva.receitaBase).replace(".", ","));
-      })
-      .catch((e) => {
-        if (ativo) toastRef.current.error("Não foi possível carregar a receita base", (e as Error).message);
-      })
-      .finally(() => {
-        if (ativo) setCarregandoReceita(false);
-      });
-    return () => {
-      ativo = false;
-    };
-  }, [inicio, fim]);
-
-  const salvarReceita = async () => {
-    const chavePeriodo = `${inicio}|${fim}`;
-    setSalvandoReceita(true);
-    try {
-      const salva = await api.put<CmvReceitaBaseDTO>("/api/relatorios/cmv/receita-base", {
-        inicio,
-        fim,
-        receitaBase: parseDecimal(tmpReceita),
-      });
-      if (periodoRef.current === chavePeriodo) setReceitaBase(salva.receitaBase);
-    } catch (e) {
-      toast.error("Não foi possível salvar a receita base", (e as Error).message);
-    } finally {
-      setSalvandoReceita(false);
-    }
-  };
-
-  const qs = new URLSearchParams();
-  qs.set("inicio", inicio);
-  qs.set("fim", fim);
-  if (receitaBase !== null) qs.set("receitaBase", String(receitaBase));
-
-  const { data, loading, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs.toString()}`);
-  const dataAtual = !carregandoReceita && data?.receitaBase === receitaBase ? data : null;
-  const calculando = carregandoReceita || loading || (data !== null && dataAtual === null);
+  const qs = new URLSearchParams({ inicio, fim });
+  const { data: dataAtual, loading: calculando, error, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs}`);
 
   return (
     <Section title="Período dos relatórios e CMV">
@@ -158,21 +107,6 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
             <Input id="relatorios-fim" type="date" min={inicio} value={fim} onChange={e => { if (e.target.value && e.target.value >= inicio) setFim(e.target.value); }} />
           </Field>
         </div>
-        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do período (R$)" htmlFor="cmv-receita">
-          <div className="input-group">
-            <input
-              id="cmv-receita"
-              className="input"
-              inputMode="decimal"
-              placeholder="Opcional, para calcular o % do CMV"
-              value={tmpReceita}
-              onChange={(e) => setTmpReceita(e.target.value)}
-              onBlur={() => void salvarReceita()}
-              disabled={carregandoReceita || salvandoReceita}
-            />
-            <span className="input-group__suffix">R$</span>
-          </div>
-        </Field>
         <Button
           className="cmv-filters__refresh"
           variant="accent"
@@ -184,6 +118,7 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
         </Button>
       </div>
 
+      {error && <p className="alertbanner alertbanner--bad" role="alert">{error}</p>}
       {calculando && (
         <p className="muted">Calculando…</p>
       )}
@@ -203,6 +138,7 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
             </div>
           </div>
 
+          <AvisoFaturamento {...dataAtual} />
           <div className="cmv-table-cols">
             <table className="table table--narrow">
               <tbody>
@@ -241,6 +177,7 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
           </div>
         </>
       )}
+      <FaturamentoDiario key={`${inicio}|${fim}`} inicio={inicio} fim={fim} historico />
     </Section>
   );
 }
@@ -469,10 +406,6 @@ function Pdfs({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<ty
     setBusy(tipo);
     try {
       const qs = new URLSearchParams({ inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
-      if (tipo === "cmv") {
-        const receita = await api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?inicio=${inicio}&fim=${fim}`);
-        if (receita.receitaBase !== null) qs.set("receitaBase", String(receita.receitaBase));
-      }
       const blob = await api.blob(`/api/relatorios/pdf/${tipo}?${qs}`);
       const estampa = `${inicio}-a-${fim}`;
       downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);

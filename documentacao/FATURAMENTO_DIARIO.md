@@ -60,3 +60,19 @@ sem consultar o banco nem criar sessão. O valor local é `local`.
 
 O gerador de PDF identifica dias pendentes, total zero e base histórica por período.
 Registros financeiros reais e senhas não são necessários para os testes.
+
+## Uso nas telas
+
+Em Visão geral ou Relatórios, selecionar o dia, informar seu faturamento e clicar
+em **Salvar faturamento**. O botão só envia quando há alteração. Reabrir a tela
+carrega o valor salvo. A seção **Ver dias do período** em Relatórios mostra cada
+data, seu valor ou a indicação Não informado, com atalho para editar.
+
+Atualizações automáticas preservam o rascunho e a versão original. Em conflito,
+o usuário confere a mensagem e usa **Recarregar faturamento** antes de corrigir.
+O campo vazio salvo torna o dia pendente; não equivale a registrar R$ 0.
+
+O destaque da Visão geral é o percentual; o custo em reais continua em linha
+separada. O atalho **Ver relatório destes 30 dias** mantém o intervalo. Abrir
+Relatórios pelo menu continua usando hoje. O indicador mostra 0% quando o custo
+for zero e houver faturamento positivo, em vez de ocultar esse percentual.

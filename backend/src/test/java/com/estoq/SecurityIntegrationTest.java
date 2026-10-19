@@ -139,6 +139,10 @@ class SecurityIntegrationTest {
         for (String perfil : new String[] { "admin", "nutricionista", "cozinha", "plataforma" }) {
             var session = login(perfil + "@test.local", "Teste@12345", 200);
             boolean permitido = perfil.equals("admin") || perfil.equals("nutricionista");
+            for (String tipo : new String[] { "faturamento", "consumo-dia-semana" }) {
+                mvc.perform(get("/api/relatorios/pdf/" + tipo + "?inicio=2026-10-10&fim=2026-10-10").session(session))
+                        .andExpect(status().is(permitido ? 200 : 403));
+            }
             mvc.perform(get("/api/relatorios/faturamento-diario?inicio=2026-10-10&fim=2026-10-10").session(session))
                     .andExpect(status().is(permitido ? 200 : 403));
             mvc.perform(put("/api/relatorios/faturamento-diario").session(session).with(csrf())

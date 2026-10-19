@@ -212,7 +212,11 @@ Sem datas, as rotas de período usam os padrões definidos no controller.
 | GET/PUT | `/api/parametros-cmv` | Meta: ID/versão/`percentualIdeal`. |
 
 Tipos PDF: `estoque-atual`, `proximos-vencimento`, `vencidos`, `produtos-abertos`,
-`desperdicio`, `consumo-medio`, `cmv`, `cmv-mensal`, `reposicao-sugerida`.
+`desperdicio`, `consumo-medio`, `consumo-dia-semana`, `faturamento`, `cmv`,
+`cmv-mensal`, `reposicao-sugerida`. Todos estão disponíveis no bloco Exportar em PDF.
+Os fechamentos somam valores monetários exibidos e quantidades por unidade, sem
+somar médias ou percentuais. Faturamento identifica dias pendentes e total parcial.
+Detalhes em [Relatórios em PDF](RELATORIOS_PDF.md).
 
 CMV = estoque inicial + compras − estoque final. Sem receita válida não calcula
 percentual. Perdas não explicadas = CMV − (consumo registrado + desperdício).

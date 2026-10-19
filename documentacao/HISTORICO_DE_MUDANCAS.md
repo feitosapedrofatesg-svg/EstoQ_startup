@@ -1,5 +1,14 @@
 # Histórico de mudanças do EstoQ
 
+## 19/10/2026 — faturamento e totais nos PDFs
+
+Exportações de faturamento diário e consumo por dia da semana; CMV mensal e
+embalagens abertas disponibilizados na interface. Todos os relatórios possuem
+fechamento com valores monetários, contagens ou quantidades por unidade.
+Faturamento parcial preserva pendências e separa a referência histórica, sem
+dupla contagem. Layout permite vários totais com paginação.
+Regras em [Relatórios em PDF](RELATORIOS_PDF.md).
+
 ## 19/10/2026 — base diária de faturamento para CMV
 
 Faturamento salvo por restaurante/data com correção por versão, distinção entre

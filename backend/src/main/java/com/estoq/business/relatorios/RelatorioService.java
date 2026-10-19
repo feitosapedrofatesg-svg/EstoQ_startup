@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -71,6 +72,10 @@ public class RelatorioService {
 
     public List<ProdutoAbertoDTO> produtosAbertos() {
         return abertos.listar(null, false);
+    }
+
+    public FaturamentoPeriodoDTO faturamento(LocalDate inicio, LocalDate fim) {
+        return receitasCmv.faturamento(inicio, fim);
     }
 
     public List<DesperdicioDTO> desperdicio(LocalDateTime inicio, LocalDateTime fim) {

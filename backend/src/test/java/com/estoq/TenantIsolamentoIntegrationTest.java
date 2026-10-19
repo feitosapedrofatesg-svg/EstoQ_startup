@@ -10,12 +10,15 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,6 +115,17 @@ class TenantIsolamentoIntegrationTest {
                 .andExpect(jsonPath("$.diasInformados").value(1));
         mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(b))
                 .andExpect(jsonPath("$.receitaBase").value(900));
+        String pdfRota = "/api/relatorios/pdf/faturamento?inicio=2026-10-10&fim=2026-10-11";
+        for (var sessao : java.util.List.of(a, b)) {
+            byte[] bytes = mvc.perform(get(pdfRota).session(sessao)).andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PDF)).andReturn().getResponse().getContentAsByteArray();
+            try (var pdf = org.apache.pdfbox.Loader.loadPDF(bytes)) {
+                String texto = new org.apache.pdfbox.text.PDFTextStripper().getText(pdf);
+                assertTrue(texto.contains(sessao == a ? "R$ 1.600,00" : "R$ 900,00"));
+                assertFalse(texto.contains(sessao == a ? "R$ 900,00" : "R$ 1.600,00"));
+                assertTrue(texto.contains("(parcial)"));
+            }
+        }
         mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"data\":null,\"valor\":100}"))
                 .andExpect(status().isBadRequest());

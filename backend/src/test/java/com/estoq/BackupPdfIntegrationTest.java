@@ -97,8 +97,13 @@ class BackupPdfIntegrationTest {
 
     @Test
     void todosOsTiposMantemFormatoPdfEPeriodo() throws Exception {
-        for (var tipo : List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "desperdicio", "consumo-medio", "cmv", "cmv-mensal", "reposicao-sugerida")) {
+        for (var tipo : List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "desperdicio", "consumo-medio", "consumo-dia-semana", "faturamento", "cmv", "cmv-mensal", "reposicao-sugerida")) {
             var bytes = pdfs.gerar(tipo, LocalDate.now(FUSO).minusDays(7), LocalDate.now(FUSO), 8, new BigDecimal("1000"));
+            String pasta = System.getProperty("estoq.pdf.validacao");
+            if (pasta != null) {
+                java.nio.file.Files.createDirectories(java.nio.file.Path.of(pasta));
+                java.nio.file.Files.write(java.nio.file.Path.of(pasta, "integracao-" + tipo + ".pdf"), bytes);
+            }
             try (var documento = org.apache.pdfbox.Loader.loadPDF(bytes)) {
                 var texto = new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
                 assertTrue(texto.contains("EstoQ"), tipo);

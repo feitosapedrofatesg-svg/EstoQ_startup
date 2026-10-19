@@ -323,9 +323,9 @@ function ProdutoForm({
   const [submitting, setSubmitting] = useState(false);
 
   // parâmetros de estoque (admin)
-  const [minimo, setMinimo] = useState<number | null>(param?.estoqueMinimo ?? null);
-  const [medio, setMedio] = useState<number | null>(param?.estoqueMedio ?? null);
-  const [maximo, setMaximo] = useState<number | null>(param?.estoqueMaximo ?? null);
+  const [minimo, setMinimo] = useState<number | null>(param?.estoqueMinimo ?? (prod ? null : 3));
+  const [medio, setMedio] = useState<number | null>(param?.estoqueMedio ?? (prod ? null : 3));
+  const [maximo, setMaximo] = useState<number | null>(param?.estoqueMaximo ?? (prod ? null : 3));
   const [consumo, setConsumo] = useState<number | null>(param?.consumoMedioDiario ?? null);
   const [diasReposicao, setDiasReposicao] = useState<number | null>(param?.tempoReposicaoDias ?? null);
   const [periodo] = useState<number | null>(param?.periodoAnaliseDias ?? null);
@@ -357,10 +357,10 @@ function ProdutoForm({
           produtoId: prod?.id ?? savedProd.id,
           tempoReposicaoDias: diasReposicao ?? 0,
           periodoAnaliseDias: periodo ?? 30,
-          consumoMedioDiario: consumo,
-          estoqueMinimo: minimo,
-          estoqueMedio: medio,
-          estoqueMaximo: maximo,
+          consumoMedioDiario: consumo ?? 0,
+          estoqueMinimo: minimo ?? 0,
+          estoqueMedio: medio ?? 0,
+          estoqueMaximo: maximo ?? 0,
           diasAlertaVencimento: diasAlerta ?? 7,
         };
         // Todo produto recebe parâmetros no backend; consultamos o registro correto pelo produto.
@@ -392,8 +392,8 @@ function ProdutoForm({
     >
       {error && <div className="alertbanner alertbanner--bad" role="alert">{error}</div>}
       <div className="form-grid-2">
-        <Field label="Nome" required>
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Tomate italiano" />
+        <Field label="Nome" htmlFor="produto-nome" required>
+          <Input id="produto-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Tomate italiano" />
         </Field>
         <Field label="Unidade de medida" required>
           <Select value={unidadeMedida} onChange={(e) => setUnidadeMedida(e.target.value as UnidadeMedida)}>
@@ -412,12 +412,12 @@ function ProdutoForm({
         <>
           <h3 className="section-title">Parâmetros de estoque</h3>
           <p className="muted section-sub">
-            Base para os alertas de reposição e estoque baixo. Deixe em branco para não sinalizar.
+            Base para os alertas de reposição e estoque baixo. Novos produtos começam com os níveis em 3 na unidade de cadastro. Use 0 no mínimo para não sinalizar estoque baixo.
           </p>
           <div className="form-grid-3">
-            <NumberField label="Estoque mínimo" value={minimo} onValue={setMinimo} min={0} placeholder="Ex.: 2" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
-            <NumberField label="Estoque médio" value={medio} onValue={setMedio} min={0} placeholder="Ex.: 4" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
-            <NumberField label="Estoque máximo" value={maximo} onValue={setMaximo} min={0} placeholder="Ex.: 8" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
+            <NumberField label="Estoque mínimo" htmlFor="produto-estoque-minimo" value={minimo} onValue={setMinimo} min={0} placeholder="Ex.: 3" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
+            <NumberField label="Estoque médio" htmlFor="produto-estoque-medio" value={medio} onValue={setMedio} min={0} placeholder="Ex.: 4" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
+            <NumberField label="Estoque máximo" htmlFor="produto-estoque-maximo" value={maximo} onValue={setMaximo} min={0} placeholder="Ex.: 8" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
             <NumberField label="Consumo médio diário" value={consumo} onValue={setConsumo} min={0} placeholder="Ex.: 0,4" suffix={unidadeMedida === "UN" ? "UN/dia" : `${unidadeMedida}/dia`} />
             <NumberField label="Tempo de reposição (dias)" value={diasReposicao} onValue={setDiasReposicao} min={0} placeholder="Ex.: 2" />
             <NumberField label="Dias de alerta de validade" value={diasAlerta} onValue={setDiasAlerta} min={0} placeholder="Ex.: 7" />

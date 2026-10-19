@@ -1145,10 +1145,13 @@ code {
 }
 
 .cmv-filters__refresh {
-  align-self: stretch;
-  min-width: 142px;
-  min-height: 100%;
-  padding-inline: 18px;
+  align-self: center;
+  justify-self: start;
+  width: 132px;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding-inline: 12px;
 }
 
 .modal__body .form-grid-2,

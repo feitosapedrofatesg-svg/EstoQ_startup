@@ -1,5 +1,12 @@
 # Histórico de mudanças do EstoQ
 
+## 19/10/2026 — botão compacto de recalcular CMV
+
+Botão Recalcular com 132 × 44 px, mantendo cores, tipografia, ícone, sombra e
+estrutura dos filtros. No celular permanece abaixo das datas e à direita.
+Tamanho estável durante o carregamento e área de toque de 44 px.
+Sem alteração nos cálculos ou na API.
+
 ## 19/10/2026 — faturamento e totais nos PDFs
 
 Exportações de faturamento diário e consumo por dia da semana; CMV mensal e

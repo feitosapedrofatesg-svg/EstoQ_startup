@@ -396,9 +396,13 @@ function Pdfs({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<ty
     { tipo: "estoque-atual", label: "Estoque atual" },
     { tipo: "proximos-vencimento", label: "Próximos vencimentos" },
     { tipo: "vencidos", label: "Vencidos" },
+    { tipo: "produtos-abertos", label: "Embalagens abertas" },
     { tipo: "consumo-medio", label: "Consumo médio" },
+    { tipo: "consumo-dia-semana", label: "Consumo por dia da semana" },
     { tipo: "reposicao-sugerida", label: "Reposição sugerida" },
+    { tipo: "faturamento", label: "Faturamento" },
     { tipo: "cmv", label: "CMV" },
+    { tipo: "cmv-mensal", label: "CMV mensal" },
     { tipo: "desperdicio", label: "Desperdício" },
   ];
 
@@ -419,7 +423,7 @@ function Pdfs({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<ty
 
   return (
     <Section title="Exportar em PDF">
-      <p className="muted">CMV, desperdício e consumo usam o período acima. Estoque, vencimentos e reposição mostram a situação atual.</p>
+      <p className="muted">Faturamento, CMV, CMV mensal, desperdício e consumo usam o período acima. Estoque, vencimentos, embalagens abertas e reposição mostram a situação atual. Os PDFs incluem totais em dinheiro ou quantidades por unidade, conforme os dados do relatório.</p>
       <div className="pdf-grid">
         {docs.map((d) => (
           <Button

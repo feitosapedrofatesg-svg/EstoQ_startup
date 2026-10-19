@@ -37,4 +37,14 @@ test("um período atualiza os relatórios e os PDFs sem filtros independentes", 
   expect(pdf?.searchParams.get("fim")).toBe("2026-08-15");
   expect(pdf?.searchParams.has("receitaBase")).toBe(false);
   await expect(page.getByRole("cell", { name: "Faturamento usado no cálculo", exact: true })).toBeVisible();
+  for (const [tipo, label] of [["faturamento", "Faturamento"], ["cmv-mensal", "CMV mensal"],
+    ["produtos-abertos", "Embalagens abertas"], ["consumo-dia-semana", "Consumo por dia da semana"]]) {
+    const arquivo = page.waitForEvent("download");
+    await page.getByRole("button", { name: label, exact: true }).click();
+    expect((await arquivo).suggestedFilename()).toBe(`estoQ-${tipo}-2026-08-10-a-2026-08-15.pdf`);
+    const consulta = consultas.find(u => u.pathname.endsWith(`/pdf/${tipo}`));
+    expect(consulta?.searchParams.get("inicio")).toBe("2026-08-10");
+    expect(consulta?.searchParams.get("fim")).toBe("2026-08-15");
+    expect(consulta?.searchParams.get("dias")).toBe("6");
+  }
 });

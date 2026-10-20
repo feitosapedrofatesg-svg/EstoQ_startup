@@ -15,6 +15,28 @@ function CampoDecimal({ id, label, value, onValue }: { id: string; label: string
 }
 const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
 
+const ORIGENS_CATEGORIA: Record<string, string> = {
+  FORNECEDOR: "Histórico do fornecedor", CODIGO_BARRAS: "Código de barras", NOME_EXATO: "Nome exato",
+  CATALOGO: "Catálogo do restaurante", DESCRICAO: "Descrição da nota", NAO_IDENTIFICADA: "Sem sugestão segura",
+  REVISAO: "Escolha na revisão",
+};
+
+function atualizarItem(item: ItemNotaFiscalDTO, campos: Partial<ItemNotaFiscalDTO>): ItemNotaFiscalDTO {
+  const atualizado = { ...item, ...campos };
+  if ("produtoId" in campos || "categoriaId" in campos) {
+    atualizado.origemCategoria = "REVISAO";
+    atualizado.revisarCategoria = !atualizado.categoriaId;
+    atualizado.motivoCategoria = atualizado.categoriaId ? "Categoria escolhida na revisão da nota."
+      : "Confira a categoria. Sem escolha, o sistema tenta reconhecer o nome ou usa Sem classificação.";
+  } else if ("nomeProduto" in campos) {
+    atualizado.categoriaId = null;
+    atualizado.origemCategoria = null;
+    atualizado.revisarCategoria = true;
+    atualizado.motivoCategoria = "O nome foi alterado. Confira a categoria antes de confirmar.";
+  }
+  return atualizado;
+}
+
 export function NotasFiscais() {
   const [params, setParams] = useSearchParams();
   const inicioLista = useRef<HTMLDivElement>(null);
@@ -70,7 +92,7 @@ export function NotasFiscais() {
   }, [notaId]);
 
   const alterar = (id: number, campos: Partial<ItemNotaFiscalDTO>) => {
-    setItens(anteriores => anteriores.map(i => i.id === id ? { ...i, ...campos } : i));
+    setItens(anteriores => anteriores.map(i => i.id === id ? atualizarItem(i, campos) : i));
     setCustosConferidos(false);
   };
   const analisar = async () => {
@@ -164,7 +186,7 @@ export function NotasFiscais() {
           <Field label="Categoria para todos os produtos novos" htmlFor="nota-categoria-geral">
             <Select id="nota-categoria-geral" defaultValue="" onChange={e => {
               const categoriaId = Number(e.target.value) || null;
-              setItens(prev => prev.map(i => !i.produtoId ? { ...i, categoriaId } : i)); setCustosConferidos(false);
+              setItens(prev => prev.map(i => !i.produtoId ? atualizarItem(i, { categoriaId }) : i)); setCustosConferidos(false);
             }}><option value="">Usar classificação automática</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
@@ -190,6 +212,15 @@ export function NotasFiscais() {
               <option value="">Automática · Sem classificação se não reconhecido</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </Select></Field>
           </div>}
+          {!nota.confirmada && item.motivoCategoria && <AlertBanner tone={item.revisarCategoria ? "warn" : "info"}>
+            <strong>{item.revisarCategoria ? "Conferir categoria" : "Categoria sugerida"}</strong>
+            {item.origemCategoria && <> · {ORIGENS_CATEGORIA[item.origemCategoria] ?? "Sugestão automática"}</>}
+            <p>{item.motivoCategoria}</p>
+            {item.produtoId && <p>Categoria do catálogo: <strong>{produtos.find(p => p.id === item.produtoId)?.categoriaNome
+              ?? categorias?.find(c => c.id === item.categoriaId)?.nome ?? "Carregando…"}</strong>.
+              {item.revisarCategoria && <> Para alterar o cadastro, <LinkButton to="/catalogo" variant="outline" size="sm">Abrir catálogo</LinkButton></>}
+            </p>}
+          </AlertBanner>}
           <div className="form-grid-2">
             <CampoDecimal label="Quantidade na nota" id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota })} />
             <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, embalagemConfirmada: false })}>

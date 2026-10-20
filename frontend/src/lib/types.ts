@@ -362,6 +362,7 @@ export interface ItemNotaFiscalDTO {
   produtoId: number | null; categoriaId: number | null; nomeProduto: string; unidadeEstoque: UnidadeMedida;
   fator: number; quantidadeEntrada: number | null; validade: string | null;
   selecionado: boolean; embalagemConfirmada: boolean; incerto: boolean; movimentacaoId: number | null;
+  origemCategoria?: string | null; motivoCategoria?: string | null; revisarCategoria?: boolean;
 }
 export interface NotaFiscalDTO {
   id: number; version: number; chave: string; fornecedor: string; documentoFornecedor: string;

@@ -1,5 +1,15 @@
 # Histórico de mudanças do EstoQ
 
+## 19/10/2026 — categorias de itens da nota fiscal
+
+Abreviações de bebidas e prioridade do tipo sobre sabor corrigem H2O de limão.
+Histórico de fornecedor exige descrição/unidade compatíveis para reutilizar produto
+e fator. Sugestões mostram origem, motivo e aviso em casos ambíguos; a revisão
+continua com uma única conferência final. Reanálise de rascunho recalcula sugestões
+e invalida versões antigas. V10 adiciona explicações sem alterar notas confirmadas.
+Produtos existentes mantêm a categoria cadastrada e indicam divergências para
+correção no Catálogo. Sem novas dependências ou serviços externos.
+
 ## 19/10/2026 — estoque mínimo padrão de 3
 
 Produtos novos recebem mínimo 3 na unidade de cadastro, inclusive na importação

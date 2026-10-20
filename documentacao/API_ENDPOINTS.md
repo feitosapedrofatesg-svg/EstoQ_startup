@@ -186,6 +186,13 @@ Ver [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md).
 Item de confirmação: `id`, `selecionado`, `produtoId`, `nomeProduto`,
 `categoriaId`, `unidadeEstoque`, `quantidadeNota`, `fator`, `valorEntrada`,
 `validade`, `embalagemConfirmada`, `leituraConferida`, conforme a decisão.
+O item retornado na análise/consulta inclui `origemCategoria`, `motivoCategoria`
+(opcionais em dados antigos) e `revisarCategoria`. Origens: `FORNECEDOR`,
+`CODIGO_BARRAS`, `NOME_EXATO`, `CATALOGO`, `DESCRICAO`, `NAO_IDENTIFICADA`, `REVISAO`.
+São explicações, não novos campos obrigatórios de confirmação. Reanalisar um
+rascunho recalcula as sugestões e incrementa `version`; confirmação antiga recebe
+409. Notas confirmadas não são reanalisadas nem duplicadas.
+
 A conferência final vale globalmente; inconsistências continuam sendo validadas.
 O serviço bloqueia a nota e confirma tudo em uma transação; repetição não duplica
 estoque. A chave fiscal é única por restaurante. Ver o documento de importação.

@@ -10,7 +10,8 @@ public class NotaFiscalAdapter {
                 i.getDescricao(),i.getUnidadeNota(),i.getQuantidadeNota(),i.getValorBruto(),i.getDesconto(),
                 i.getValorRateado(),i.getValorEntrada(),i.getProdutoId(),i.getCategoriaId(),i.getNomeProduto(),
                 i.getUnidadeEstoque(),i.getFator(),i.getQuantidadeEntrada(),i.getValidade(),i.isSelecionado(),
-                i.isEmbalagemConfirmada(),i.isIncerto(),i.getMovimentacaoId())).toList();
+                i.isEmbalagemConfirmada(),i.isIncerto(),i.getMovimentacaoId(),
+                i.getOrigemCategoria(),i.getMotivoCategoria(),i.isRevisarCategoria())).toList();
         return new NotaFiscalDTO(nota.getId(),nota.getVersion(),nota.getChave(),nota.getFornecedor(),
                 nota.getDocumentoFornecedor(),nota.getNumero(),nota.getSerie(),nota.getEmissao(),nota.getValorTotal(),
                 nota.isConfirmada(),nota.getAvisos()==null || nota.getAvisos().isBlank() ? List.of() : List.of(nota.getAvisos().split("\n")),itens);

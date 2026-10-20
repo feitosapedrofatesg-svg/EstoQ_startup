@@ -14,7 +14,7 @@ public class AssociadorCategoriaNota {
     private static final List<Regra> REGRAS = List.of(
         new Regra("DETERGENTE|DESINFETANTE|AGUA SANITARIA|SABAO|ESPONJA|ALVEJANTE|LIMPADOR", "LIMPEZA|HIGIENE", "Limpeza"),
         new Regra("GUARDANAPO|EMBALAGEM|DESCARTAVEL|DESCARTAVEIS|PAPEL ALUMINIO|FILME PVC", "DESCARTAVE|EMBALAGE", "Descartáveis e embalagens"),
-        new Regra("REFRIGERANTE|SUCO|CERVEJA|VINHO|AGUA MINERAL|ENERGETICO", "BEBIDA", "Bebidas"),
+        new Regra("BEBIDA|GASEIFICADA|REFRIGERANTE|SUCO|CERVEJA|VINHO|AGUA MINERAL|ENERGETICO", "BEBIDA", "Bebidas"),
         new Regra("BOVINO|BOVINA|SUINO|SUINA|FRANGO|PICANHA|ALCATRA|MAMINHA|CONTRA FILE|COSTELA|CARNE|LINGUICA|BACON", "CARNE|PROTEINA|ACOUGUE", "Carnes"),
         new Regra("PEIXE|TILAPIA|SALMAO|CAMARAO|SARDINHA|ATUM", "PEIXE|PESCADO|FRUTOS DO MAR|PROTEINA", "Peixes e frutos do mar"),
         new Regra("LEITE|QUEIJO|MANTEIGA|IOGURTE|REQUEIJAO|CREME DE LEITE", "LATICINIO|LACTEO", "Laticínios"),
@@ -25,33 +25,55 @@ public class AssociadorCategoriaNota {
         new Regra("OLEO|AZEITE|VINAGRE|MOLHO", "OLEO|AZEITE|MOLHO|CONDIMENTO", "Óleos e molhos"),
         new Regra("ACUCAR|FARINHA|CAFE|FUBA|AMIDO", "MERCEARIA|SECO|DESPENSA|CEREA", "Mercearia")
     );
-    private static final Set<String> GENERICOS = Set.of("INTEGRAL", "NATURAL", "TRADICIONAL", "REFINADO", "CONGELADO", "RESFRIADO", "PACOTE", "CAIXA", "EXTRA", "TIPO");
+    private static final Set<String> GENERICOS = Set.of("INTEGRAL", "NATURAL", "TRADICIONAL", "REFINADO", "CONGELADO", "RESFRIADO", "PACOTE", "CAIXA", "EXTRA", "TIPO", "BEBIDA", "PRODUTO", "ARTIGO");
+
+    public record Sugestao(Long categoriaId, String origem, String motivo, boolean revisar) { }
 
     public Long sugerir(String descricao, List<ProdutoModel> produtos, List<CategoriaModel> categorias) {
-        String nome = AssociadorProdutoNota.normalizar(descricao);
+        return analisar(descricao, produtos, categorias).categoriaId();
+    }
+
+    public Sugestao analisar(String descricao, List<ProdutoModel> produtos, List<CategoriaModel> categorias) {
+        String nome = normalizarDescricao(descricao);
+        // Nestes compostos o ingrediente não identifica o tipo do produto.
+        if (nome.matches(".*\\b(?:LEITE DE COCO|CALDO DE CARNE)\\b.*"))
+            return revisar("O nome tem mais de um sentido. Escolha a categoria após conferir o produto.");
         String primeiro = nome.split(" ")[0];
-        // Produtos com o mesmo nome principal ajudam a respeitar a organização do catálogo.
         var conhecidas = produtos.stream().filter(p -> primeiro.length() >= 4 && !GENERICOS.contains(primeiro)
-                && AssociadorProdutoNota.normalizar(p.getNome()).split(" ")[0].equals(primeiro))
+                && normalizarDescricao(p.getNome()).split(" ")[0].equals(primeiro))
             .map(p -> p.getCategoria().getId()).distinct().toList();
-        if (conhecidas.size() == 1) return conhecidas.getFirst();
-        if (conhecidas.size() > 1) return null;
-        // O nome principal prevalece sobre ingredientes: molho de tomate não é hortifruti.
-        var regras = REGRAS.stream().sorted(java.util.Comparator.comparing(regra ->
-            !Pattern.compile("^(?:" + regra.produtos() + ")\\b").matcher(nome).find())).toList();
-        for (var regra : regras) {
-            if (!Pattern.compile("\\b(?:" + regra.produtos() + ")\\b").matcher(nome).find()) continue;
-            // A categoria padrão evita confundir grupos com aliases semelhantes.
-            var padrao = categorias.stream().filter(c -> AssociadorProdutoNota.normalizar(c.getNome())
-                .equals(AssociadorProdutoNota.normalizar(regra.categoriaPadrao()))).toList();
-            if (padrao.size()==1) return padrao.getFirst().getId();
-            if (padrao.size()>1) return null;
-            var encontradas = categorias.stream().filter(c -> Pattern.compile(regra.categorias())
-                .matcher(AssociadorProdutoNota.normalizar(c.getNome())).find()).toList();
-            if (encontradas.size() == 1) return encontradas.getFirst().getId();
-            // Não escolhe uma categoria arbitrária quando há mais de uma correspondência.
-            return null;
-        }
-        return null;
+        if (conhecidas.size() == 1)
+            return new Sugestao(conhecidas.getFirst(), "CATALOGO", "Produtos com o mesmo nome principal no catálogo usam esta categoria.", false);
+        if (conhecidas.size() > 1) return revisar("O catálogo usa categorias diferentes para este nome. Confira a categoria.");
+        var principais = REGRAS.stream().filter(r -> corresponde(nome, r.produtos(), true)).toList();
+        // O tipo no começo prevalece sobre o sabor: suco de limão é uma bebida.
+        var encontradas = principais.isEmpty()
+            ? REGRAS.stream().filter(r -> corresponde(nome, r.produtos(), false)).toList() : principais;
+        if (encontradas.size() > 1) return revisar("A descrição combina tipos de produto diferentes. Confira a categoria.");
+        if (encontradas.isEmpty()) return revisar("Não foi possível reconhecer o tipo do produto. Sem escolha, entrará em Sem classificação.");
+        var regra = encontradas.getFirst();
+        var padrao = categorias.stream().filter(c -> AssociadorProdutoNota.normalizar(c.getNome())
+            .equals(AssociadorProdutoNota.normalizar(regra.categoriaPadrao()))).toList();
+        var compativeis = padrao.isEmpty() ? categorias.stream().filter(c -> Pattern.compile(regra.categorias())
+            .matcher(AssociadorProdutoNota.normalizar(c.getNome())).find()).toList() : padrao;
+        if (compativeis.size() != 1) return revisar("O tipo foi reconhecido, mas não há uma única categoria compatível neste restaurante.");
+        return new Sugestao(compativeis.getFirst().getId(), "DESCRICAO",
+            "Tipo reconhecido na descrição: " + regra.categoriaPadrao() + ". Confira a sugestão antes de confirmar.", false);
+    }
+
+    private Sugestao revisar(String motivo) {
+        return new Sugestao(null, "NAO_IDENTIFICADA", motivo, true);
+    }
+
+    private boolean corresponde(String nome, String termos, boolean inicio) {
+        return Pattern.compile((inicio ? "^" : "\\b") + "(?:" + termos + ")\\b").matcher(nome).find();
+    }
+
+    private String normalizarDescricao(String descricao) {
+        // Apenas a busca usa as abreviações expandidas; a descrição fiscal é preservada.
+        return AssociadorProdutoNota.normalizar(descricao)
+            .replaceAll("\\bBEB\\b", "BEBIDA")
+            .replaceAll("\\b(?:GAISE|GASEIF)\\b", "GASEIFICADA")
+            .replaceAll("\\b(?:REFRI|REFRIG)\\b", "REFRIGERANTE");
     }
 }

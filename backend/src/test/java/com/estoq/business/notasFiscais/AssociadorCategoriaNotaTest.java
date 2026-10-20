@@ -11,6 +11,34 @@ class AssociadorCategoriaNotaTest {
     private CategoriaModel categoria(long id, String nome) {
         var categoria=new CategoriaModel(); categoria.setId(id); categoria.setNome(nome); return categoria;
     }
+    @Test void bebidaAbreviadaNaoViraFrutaPorCausaDoSabor() {
+        var categorias=List.of(categoria(1,"Bebidas"),categoria(2,"Hortifruti"),categoria(3,"Limpeza"),categoria(4,"Óleos e molhos"));
+        for (var nome:List.of("beb gaise h2o limao", "BEB. GASEIF. H2O LIMÃO", "REFRI LIMÃO", "REFRIG LARANJA", "SUCO DE LIMÃO")) {
+            var sugestao=associador.analisar(nome,List.of(),categorias);
+            assertEquals(1L,sugestao.categoriaId(),nome);
+            assertEquals("DESCRICAO",sugestao.origem());
+            assertFalse(sugestao.revisar());
+        }
+        assertEquals(2L,associador.sugerir("LIMÃO",List.of(),categorias));
+        assertEquals(2L,associador.sugerir("TOMATE",List.of(),categorias));
+        assertEquals(3L,associador.sugerir("DETERGENTE LIMÃO",List.of(),categorias));
+        assertEquals(4L,associador.sugerir("MOLHO DE TOMATE",List.of(),categorias));
+    }
+
+    @Test void compostosEConflitosPedemRevisaoSemEscolherPrimeiroResultado() {
+        var categorias=List.of(categoria(1,"Laticínios"),categoria(2,"Carnes"),categoria(3,"Bebidas"),categoria(4,"Limpeza"));
+        for (var nome:List.of("LEITE DE COCO", "CALDO DE CARNE", "KIT SUCO DETERGENTE", "ARTIGO SEM TIPO")) {
+            var sugestao=associador.analisar(nome,List.of(),categorias);
+            assertNull(sugestao.categoriaId(),nome);
+            assertTrue(sugestao.revisar());
+            assertNotNull(sugestao.motivo());
+        }
+        var produto=new ProdutoModel(); produto.setNome("Bebida láctea"); produto.setCategoria(categorias.getFirst());
+        assertEquals(3L,associador.sugerir("BEB GAISE H2O LIMAO",List.of(produto),categorias));
+        produto.setNome("Produto suco");
+        assertNull(associador.sugerir("PRODUTO DESCONHECIDO",List.of(produto),categorias));
+        assertEquals(9L,associador.sugerir("SUCO LIMAO",List.of(),List.of(categoria(9,"Bebidas da casa"))));
+    }
     @Test void nomesDasNotasReconhecemCategoriasComAcentos() {
         var categorias=List.of(categoria(1,"Carnes"),categoria(2,"Grãos"),categoria(3,"Limpeza"),categoria(4,"Bebidas"));
         assertEquals(1L,associador.sugerir("PICANHA BOVINA RESFRIADA",List.of(),categorias));

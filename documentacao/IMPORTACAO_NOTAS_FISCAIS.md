@@ -1,6 +1,6 @@
 # Entrada de mercadorias por nota fiscal
 
-Revisão: **12/10/2026**.
+Revisão: **19/10/2026**.
 
 A opção **Importar nota fiscal** fica em **Movimentações**, para o administrador.
 Enviar o documento gera uma revisão; somente **Confirmar entrada no estoque**
@@ -20,6 +20,37 @@ Você pode alterar a sugestão e escolher uma categoria manual antes de confirma
 A migração V6 adiciona a lista aos restaurantes ativos sem nenhuma categoria
 ativa. Restaurantes com categorias ativas, inclusive somente Sem classificação,
 não são alterados. Categorias inativas permanecem no histórico.
+
+## Sugestões e conferência de categorias
+
+`AssociadorProdutoNota` identifica o produto pelo histórico compatível do fornecedor,
+código de barras válido ou nome exato. O histórico só é reutilizado com a mesma
+descrição e unidade da nota normalizadas. Se mudarem, o produto é buscado novamente,
+o fator antigo é descartado e a revisão mostra um aviso.
+
+`AssociadorCategoriaNota` classifica produtos novos. Expande BEB, GAISE, GASEIF,
+REFRI e REFRIG apenas para a busca, preservando a descrição original. O tipo
+no começo do nome prevalece sobre o sabor: **BEB GAISE H2O LIMAO → Bebidas**,
+**LIMÃO → Hortifruti**, **DETERGENTE LIMÃO → Limpeza**. A palavra genérica
+BEBIDA não é suficiente para herdar a categoria de outro produto.
+
+O catálogo pode fornecer uma categoria personalizada pelo nome principal, desde
+que não haja conflito. Compostos como LEITE DE COCO e CALDO DE CARNE ficam para
+conferência, salvo identificação confiável de um produto existente. Mais de uma
+categoria compatível ou tipo conflitante não escolhe o primeiro resultado.
+
+Cada item explica a origem e o motivo da sugestão. **Conferir categoria** é um
+aviso, sem uma caixa obrigatória por item. A conferência final da nota permanece
+obrigatória. Sem escolha e sem reconhecimento seguro, usa Sem classificação.
+Alterar nome/produto/categoria remove a explicação anterior. Alterar somente o
+nome também limpa a categoria sugerida, para não confirmar uma sugestão desatualizada.
+
+Enviar novamente um rascunho recalcula suas associações e incrementa a versão da
+nota; uma aba com a versão anterior recebe 409 ao confirmar. Apenas abrir o
+endereço da nota não recalcula. Notas confirmadas mantêm os dados históricos.
+A V10 adiciona explicações opcionais e um indicador de revisão, sem reclassificar
+produtos existentes ou mexer nos custos. Um H2O já cadastrado com categoria errada
+precisa ser corrigido em **Catálogo**; as próximas associações usam essa categoria.
 
 ## PDF e XML
 

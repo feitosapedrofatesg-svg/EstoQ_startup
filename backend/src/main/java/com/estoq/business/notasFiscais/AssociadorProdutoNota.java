@@ -14,25 +14,41 @@ public class AssociadorProdutoNota {
 
     public void sugerir(ItemNotaFiscalModel item, List<ProdutoModel> catalogo, VinculoFornecedorModel vinculo) {
         ProdutoModel produto = null;
-        if (vinculo!=null) produto = catalogo.stream().filter(p -> p.getId().equals(vinculo.getProdutoId())).findFirst().orElse(null);
+        item.setProdutoId(null); item.setCategoriaId(null); item.setUnidadeEstoque(null);
+        item.setEmbalagemConfirmada(false);
+        boolean vinculoCompativel = vinculo!=null
+            && normalizar(vinculo.getDescricao()).equals(normalizar(item.getDescricao()))
+            && normalizar(vinculo.getUnidadeNota()).equals(normalizar(item.getUnidadeNota()));
+        item.setOrigemCategoria(null); item.setMotivoCategoria(null); item.setRevisarCategoria(false);
+        if (vinculo!=null && !vinculoCompativel) {
+            item.setRevisarCategoria(true);
+            item.setMotivoCategoria("O fornecedor mudou a descrição ou a unidade deste código. Confira produto, categoria e embalagem; o fator anterior não foi reutilizado.");
+        }
+        String origemCategoria = "FORNECEDOR";
+        if (vinculoCompativel) produto = catalogo.stream().filter(p -> p.getId().equals(vinculo.getProdutoId())).findFirst().orElse(null);
         if (produto==null) {
             var barras = codigoBarrasValido(item.getCodigoBarras());
             var encontrados = catalogo.stream().filter(p -> barras!=null && barras.equals(p.getCodigoBarras())).toList();
-            if (encontrados.size()==1) produto = encontrados.getFirst();
+            if (encontrados.size()==1) { produto = encontrados.getFirst(); origemCategoria = "CODIGO_BARRAS"; }
             else if (encontrados.isEmpty()) {
                 encontrados = catalogo.stream().filter(p -> normalizar(p.getNome()).equals(normalizar(item.getDescricao()))).toList();
-                if (encontrados.size()==1) produto = encontrados.getFirst();
+                if (encontrados.size()==1) { produto = encontrados.getFirst(); origemCategoria = "NOME_EXATO"; }
             }
         }
         if (produto!=null) {
+            item.setOrigemCategoria(origemCategoria);
+            if (item.getMotivoCategoria()==null)
+                item.setMotivoCategoria("Produto identificado por " + switch (origemCategoria) {
+                    case "FORNECEDOR" -> "histórico compatível do fornecedor";
+                    case "CODIGO_BARRAS" -> "código de barras";
+                    default -> "nome exato";
+                } + ". A categoria é a do produto no catálogo.");
             item.setProdutoId(produto.getId()); item.setCategoriaId(produto.getCategoria().getId());
             item.setNomeProduto(produto.getNome()); item.setUnidadeEstoque(produto.getUnidadeMedida());
         } else {
             item.setNomeProduto(item.getDescricao().substring(0,Math.min(120,item.getDescricao().length())));
         }
-        if (produto!=null && vinculo!=null && produto.getId().equals(vinculo.getProdutoId())
-                && normalizar(vinculo.getDescricao()).equals(normalizar(item.getDescricao()))
-                && vinculo.getUnidadeNota().equalsIgnoreCase(item.getUnidadeNota())
+        if (produto!=null && vinculoCompativel && produto.getId().equals(vinculo.getProdutoId())
                 && vinculo.getUnidadeEstoque()==produto.getUnidadeMedida()) {
             item.setFator(vinculo.getFator()); item.setEmbalagemConfirmada(true);
             return;

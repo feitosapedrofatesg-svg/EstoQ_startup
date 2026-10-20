@@ -252,11 +252,30 @@ class TenantIsolamentoIntegrationTest {
         org.junit.jupiter.api.Assertions.assertNotEquals(notaA.id(),notaB.id());
         org.junit.jupiter.api.Assertions.assertNull(notaB.itens().getFirst().produtoId());
         org.junit.jupiter.api.Assertions.assertNotNull(notaB.itens().getFirst().categoriaId());
+        org.junit.jupiter.api.Assertions.assertEquals("DESCRICAO",notaB.itens().getFirst().origemCategoria());
+        org.junit.jupiter.api.Assertions.assertFalse(notaB.itens().getFirst().revisarCategoria());
         org.junit.jupiter.api.Assertions.assertNotEquals(categoriaA,notaB.itens().getFirst().categoriaId());
         mvc.perform(post("/api/notas-fiscais/" + notaB.id() + "/confirmar").session(b).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(notaB,categoriaA))).andExpect(status().isNotFound());
         mvc.perform(get("/api/produtos?size=100").session(b)).andExpect(jsonPath("$.totalElements").value(0));
         mvc.perform(get("/api/estoque").session(a)).andExpect(jsonPath("$[0].saldoAtual").value(2));
+    }
+
+    @Test
+    void reanaliseInvalidaConfirmacaoAbertaEmOutraAba() throws Exception {
+        registrar("Revisão de nota", "revisao-nota@teste.com", "LojaA@12345");
+        var sessao = login("revisao-nota@teste.com", "LojaA@12345");
+        var xml = NotaFiscalExemplo.xml(NotaFiscalExemplo.CHAVE,"BEB GAISE H2O LIMAO","BE1","KG","2","20.00");
+        var antiga = lerNota(sessao,xml);
+        var atual = lerNota(sessao,xml);
+        assertTrue(atual.version() > antiga.version());
+        mvc.perform(post("/api/notas-fiscais/" + antiga.id() + "/confirmar").session(sessao).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(antiga,null)))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/produtos").session(sessao)).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(post("/api/notas-fiscais/" + atual.id() + "/confirmar").session(sessao).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(atual,null)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.confirmada").value(true));
     }
 
     @Test

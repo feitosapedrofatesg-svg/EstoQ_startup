@@ -85,7 +85,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("9", flyway.info().current().getVersion().toString());
+            assertEquals("10", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -209,7 +209,7 @@ class MigracaoProdValidacaoTest {
                     + "(3,2,true,now(),1,0,30,0,7,0,5,9),(4,2,true,now(),0,0,30,0,7,0.5,1,2)");
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
-                .schemas("minimo_padrao").locations("classpath:db/migration").load();
+                .schemas("minimo_padrao").locations("classpath:db/migration").target("9").load();
         assertEquals(1, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             st.execute("set search_path to minimo_padrao");
@@ -247,6 +247,37 @@ class MigracaoProdValidacaoTest {
         }
     }
 
+    @Test
+    void explicacaoNovaPreservaCategoriaECustoDeNotaJaConfirmada() throws Exception {
+        var antes = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
+                .schemas("categoria_nota").locations("classpath:db/migration").target("9").load();
+        antes.migrate();
+        try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
+            st.execute("set search_path to categoria_nota");
+            st.execute("insert into restaurantes(id,nome,ativo,data_hora_criacao,version) values(1,'Loja',true,now(),0)");
+            st.execute("insert into categorias(id,restaurante_id,nome,ativo,data_hora_criacao,version) "
+                    + "values(1,1,'Hortifruti',true,now(),0)");
+            st.execute("insert into notas_fiscais(id,restaurante_id,data_hora_criacao,chave,fornecedor,documento_fornecedor,"
+                    + "numero,serie,valor_total,confirmada) values(1,1,now(),repeat('1',44),'Fornecedor','123','1','1',20,true)");
+            st.execute("insert into itens_nota_fiscal(restaurante_id,nota_id,data_hora_criacao,numero,codigo,descricao,unidade_nota,"
+                    + "quantidade_nota,valor_bruto,desconto,valor_rateado,valor_entrada,categoria_id) "
+                    + "values(1,1,now(),1,'BE1','BEB GAISE H2O LIMAO','UN',2,20,0,0,20,1)");
+        }
+        var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
+                .schemas("categoria_nota").locations("classpath:db/migration").load();
+        assertEquals(1,depois.migrate().migrationsExecuted);
+        try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement();
+             var rs = st.executeQuery("select i.*,n.confirmada from categoria_nota.itens_nota_fiscal i "
+                     + "join categoria_nota.notas_fiscais n on n.id=i.nota_id")) {
+            assertTrue(rs.next()); assertEquals(1,rs.getLong("categoria_id"));
+            assertTrue(rs.getBoolean("confirmada")); assertEquals(0,rs.getInt("version"));
+            assertEquals(0,new java.math.BigDecimal("20").compareTo(rs.getBigDecimal("valor_entrada")));
+            assertNull(rs.getString("origem_categoria")); assertNull(rs.getString("motivo_categoria"));
+            org.junit.jupiter.api.Assertions.assertFalse(rs.getBoolean("revisar_categoria"));
+        }
+        assertEquals(0,depois.migrate().migrationsExecuted);
+    }
+
     private void rodarMigracoes(String schema) {
         var configuracao = Flyway.configure()
                 .dataSource(jdbcUrl, "postgres", "postgres")
@@ -257,7 +288,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(9, resultado.migrationsExecuted, "V1 até V9 devem executar no banco legado");
+        assertEquals(10, resultado.migrationsExecuted, "V1 até V10 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

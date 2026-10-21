@@ -9,8 +9,8 @@ checks abaixo. A publicação exige acesso autorizado às contas dos provedores.
 
 | Recurso | Configuração |
 | --- | --- |
-| Banco | Novo projeto Supabase `estoq-homologacao`, região us-east-1. |
-| Backend | Novo serviço Render `estoq-backend-homologacao`, região Virginia, branch homologacao. |
+| Banco | Projeto Supabase exclusivo `kklnvrihortzogvdpbfu`, região us-west-2 (Oregon). |
+| Backend | Serviço Render `estoq-backend-homologacao`, região Oregon, branch homologacao. |
 | Frontend | Novo projeto Vercel `estoq-homologacao`, raiz frontend, branch principal homologacao. |
 | Dados | Restaurante e contas exclusivos de teste; nenhuma cópia de dados reais. |
 
@@ -18,9 +18,76 @@ Não reutilizar o projeto Supabase de produção nem copiar suas variáveis de
 conexão para o novo backend. O schema pode continuar se chamando `estoq_v2`,
 pois fica em outra instância de banco. Os recursos de produção seguem main.
 
+## Publicação realizada em 21/10/2026
+
+- Site: **https://estoq-homologacao.vercel.app**.
+- Backend: https://estoq-backend-homologacao.onrender.com.
+- Render: `srv-dbc8668n74is73fmt13g`, dentro do projeto `homologacao_estoQ`
+  (`prj-dbc2egtg1s2s73bji4hg`), plano **free**, região **Oregon**.
+- Vercel: `estoq-homologacao` (`prj_2e1RTTg0xblYT98RWH3o8UJItsks`),
+  raiz `frontend`, branch principal **homologacao**, sem contratação de plano pago.
+- Supabase exclusivo: `kklnvrihortzogvdpbfu`, região **us-west-2**;
+  Session Pooler `aws-1-us-west-2.pooler.supabase.com:5432`.
+- Versão validada: `c7e03618e21d57d9e05ba7d36b9c32c3681704df`.
+- Produção e branch `main` não foram alteradas.
+
+No projeto Vercel original, foi configurada somente a variável `ESTOQ_API_ORIGIN`
+no escopo **Preview**, restrita à branch **homologacao**, apontando ao backend de
+testes. Isso evita falhas dos previews dessa branch sem mudar as variáveis nem o
+destino da produção.
+
+O schema privado foi provisionado pelo script e as migrações foram aplicadas no
+primeiro deploy. Os endpoints `/api/saude/vivo` e `/api/saude/pronto` retornaram
+HTTP 200 tanto pelo backend quanto pelo domínio Vercel. O primeiro confirmou
+`ambiente: homologacao` e a versão esperada.
+
+Foi criada uma conta ADMIN exclusiva, com senha aleatória, restaurante fictício
+e **100 produtos fictícios**. As credenciais ficam somente no arquivo local
+protegido `/home/pedro/.estoq-secrets/hml-test.env`, nunca no repositório.
+Também é possível cadastrar outra conta de teste pelo site; ela terá seu próprio
+restaurante, separado do catálogo de carga.
+
+Conferência em Chromium: banner de homologação, login e produtos no catálogo
+confirmados; nenhum erro JavaScript e nenhuma requisição aos hosts de produção.
+Cadastro e logout também foram validados pela API. Os cinco testes locais de
+configuração Vercel passaram.
+
+### Medições pelo frontend publicado
+
+Dez consultas por rota, após aquecimento; três simultâneas usam a mesma sessão.
+As 80 consultas medidas terminaram com HTTP 200 e JSON válido.
+
+| Rota | p95 sequencial | p95 com 3 simultâneas |
+| --- | --- | --- |
+| Catálogo | 819,8 ms | 943,3 ms |
+| Estoque | 921,7 ms | 1.531,7 ms |
+| Dashboard | 1.332,8 ms | 1.739,6 ms |
+| CMV | 921,8 ms | 920,5 ms |
+
+Todos ficaram abaixo do limite inicial de 2.000 ms. Evidências sem dados de sessão:
+[sequencial](evidencias/homologacao-2026-10-21-sequencial.json) e
+[três simultâneas](evidencias/homologacao-2026-10-21-tres-requisicoes.json).
+Os testes usaram catálogo mínimo, sem histórico representativo de movimentações,
+e serviço já aquecido. Não validam cold start, capacidade máxima ou todos os
+fluxos necessários para promover uma candidata à produção.
+
+### Pendências e uso gratuito
+
+- Confirmar/desativar a **Data API** nas configurações do Supabase. Sem acesso à
+  API administrativa do Supabase, o desligamento não foi confirmado. As permissões
+  de `anon`, `authenticated` e `service_role` sobre `estoq_v2` já foram revogadas
+  pelo script de provisionamento.
+- Conferir manualmente entrada, consumo, notas, balanço, faturamento, PDFs e
+  sincronização entre abas, com movimentações fictícias representativas.
+- Não há keepalive na homologação: o Render pode dormir quando ocioso e o
+  Supabase Free pode pausar após inatividade. As horas gratuitas do Render são
+  compartilhadas com a produção; acompanhar a cota antes de testes prolongados.
+- Credenciais enviadas pelo chat devem ser trocadas; ao trocar a senha do banco,
+  atualizar também `DATABASE_PASSWORD` no serviço de homologação do Render.
+
 ## Banco e backend
 
-1. Crie o novo projeto Supabase em us-east-1. Guarde a senha no gerenciador de
+1. Use o projeto Supabase exclusivo em us-west-2 (Oregon). Guarde a senha no gerenciador de
    senhas e preencha-a somente nas variáveis privadas do novo serviço.
 2. No projeto novo, execute `scripts/provision-supabase.sql`. Esse script prepara
    o schema privado; Flyway executará as migrações ao iniciar a aplicação.
@@ -73,7 +140,9 @@ antes e depois, e a ausência desses dados no site de produção.
 
 ## Como avaliar a lentidão
 
-Use a mesma região e o mesmo tipo de instância da produção para comparar.
+Use o mesmo tipo de instância da produção para comparar. Neste ambiente, banco e
+backend ficam juntos em Oregon; a produção continua na Virgínia. Essa diferença
+de região deve ser considerada ao comparar a latência percebida pelo usuário.
 Carregue dados fictícios com volume parecido ao uso previsto: produtos, lotes,
 movimentações e notas. Um banco vazio não representa o desempenho real.
 O medidor exige pelo menos 100 produtos; esse é um mínimo inicial, não uma

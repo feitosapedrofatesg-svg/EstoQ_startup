@@ -1,5 +1,5 @@
 # Serviço separado: importar este arquivo como Blueprint na branch homologacao.
-# O banco deve ser um NOVO projeto Supabase na região us-east-1.
+# O banco deve ser um NOVO projeto Supabase na região us-west-2 (Oregon).
 services:
   - type: web
     name: estoq-backend-homologacao
@@ -7,7 +7,7 @@ services:
     plan: free
     repo: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
     branch: homologacao
-    region: virginia
+    region: oregon
     dockerfilePath: backend/Dockerfile
     healthCheckPath: /api/saude/vivo
     autoDeploy: true

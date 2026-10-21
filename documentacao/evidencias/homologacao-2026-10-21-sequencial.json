@@ -1,0 +1,15 @@
+{
+  "origem": "https://estoq-homologacao.vercel.app",
+  "versao": "c7e03618e21d57d9e05ba7d36b9c32c3681704df",
+  "simultaneos": 1,
+  "produtos_cadastrados": 100,
+  "primeiro_acesso": {"status": 200, "json_valido": true, "ms": 498.8},
+  "banco_pronto": {"status": 200, "json_valido": true, "ms": 917.1},
+  "rotas": {
+    "/api/produtos?size=100": {"requisicoes": 10, "erros": 0, "mediana_ms": 617.8, "p95_ms": 819.8, "max_ms": 819.8, "aquecimento": {"status": 200, "json_valido": true, "ms": 949.5}, "aprovado": true},
+    "/api/estoque": {"requisicoes": 10, "erros": 0, "mediana_ms": 755.5, "p95_ms": 921.7, "max_ms": 921.7, "aquecimento": {"status": 200, "json_valido": true, "ms": 1110.7}, "aprovado": true},
+    "/api/dashboard/resumo": {"requisicoes": 10, "erros": 0, "mediana_ms": 949.0, "p95_ms": 1332.8, "max_ms": 1332.8, "aquecimento": {"status": 200, "json_valido": true, "ms": 1737.4}, "aprovado": true},
+    "/api/relatorios/cmv": {"requisicoes": 10, "erros": 0, "mediana_ms": 511.9, "p95_ms": 921.8, "max_ms": 921.8, "aquecimento": {"status": 200, "json_valido": true, "ms": 910.2}, "aprovado": true}
+  },
+  "aprovado": true
+}

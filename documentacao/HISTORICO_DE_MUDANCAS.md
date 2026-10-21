@@ -1,5 +1,13 @@
 # Histórico de mudanças do EstoQ
 
+## 20/10/2026 — branch de homologação
+
+Branch `homologacao` criada a partir da versão estável compartilhada por dev e main.
+O fluxo passa a ser dev → homologacao → main, com CI em pushes e pull requests
+nas três branches. A promoção usa o commit aprovado, para não levar alterações
+posteriores da dev sem revisão. A branch não cria infraestrutura de testes;
+backend e banco separados ainda precisam ser provisionados para um site de homologação.
+
 ## 19/10/2026 — categorias de itens da nota fiscal
 
 Abreviações de bebidas e prioridade do tipo sobre sabor corrigem H2O de limão.

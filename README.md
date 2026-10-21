@@ -249,7 +249,9 @@ outro mínimo, inclusive zero para desativar o alerta de estoque baixo.
 
 O CMV reconstrói os saldos nos limites do período desfazendo todas as movimentações posteriores, inclusive ajustes e registros de lotes/produtos desativados. Os intervalos têm início inclusivo e término exclusivo; a data final informada inclui o dia inteiro. Quantidade e preço conservam sua precisão até os resultados monetários. ADMIN e NUTRICIONISTA configuram a meta de CMV.
 
-O GitHub Actions valida pushes e pull requests em `dev` e `main`. Para testar a interface com APIs fictícias:
+O fluxo de entrega é `dev → homologacao → main`. O GitHub Actions valida pushes
+e pull requests nas três branches. Veja o [guia de homologação](documentacao/HOMOLOGACAO.md)
+para aprovar uma versão antes de publicar. Para testar a interface com APIs fictícias:
 
 ```bash
 cd frontend

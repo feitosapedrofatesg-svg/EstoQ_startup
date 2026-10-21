@@ -1,0 +1,36 @@
+# Serviço separado: importar este arquivo como Blueprint na branch homologacao.
+# O banco deve ser um NOVO projeto Supabase na região us-east-1.
+services:
+  - type: web
+    name: estoq-backend-homologacao
+    runtime: docker
+    plan: free
+    repo: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
+    branch: homologacao
+    region: virginia
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /api/saude/vivo
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod,homologacao
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: PORT
+        value: "8080"
+      - key: DDL_AUTO
+        value: validate
+      - key: FLYWAY_ENABLED
+        value: "true"
+      - key: SEED_ENABLED
+        value: "false"
+      - key: API_DOCS_ENABLED
+        value: "false"
+      - key: ESTOQ_BACKUP_DIR
+        value: /tmp/estoq-backups
+      - key: ESTOQ_BACKUP_SCHEMA
+        value: estoq_v2

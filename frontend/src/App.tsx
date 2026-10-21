@@ -189,6 +189,9 @@ function AppRoutes() {
 export function App() {
   return (
     <ToastProvider>
+      {import.meta.env.VITE_AMBIENTE === "homologacao" && <div className="alertbanner alertbanner--warn" role="status">
+        Homologação · use apenas dados de teste
+      </div>}
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />

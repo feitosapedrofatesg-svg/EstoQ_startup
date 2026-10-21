@@ -74,8 +74,11 @@ as opções de merge e squash do GitHub podem criar históricos divergentes.
 
 A branch e a CI estão configuradas. Ainda não há um site de homologação com
 backend e banco exclusivos definido neste fluxo. O Render de produção segue
-main. O `frontend/vercel.json` encaminha `/api` para esse backend de produção;
-um Preview do frontend com essa configuração também usa a API de produção.
+main. A configuração preparada em `frontend/vercel.mjs` exige outro backend
+para homologação e previews; a main em produção mantém sua API atual.
+Consulte [DEPLOY_HOMOLOGACAO.md](DEPLOY_HOMOLOGACAO.md) para provisionar os
+recursos, conferir as URLs e medir o desempenho. O ambiente só está pronto
+depois de implantar e validar esses serviços.
 
 Para testar cadastros, notas e estoque em um site separado, será necessário:
 

@@ -16,9 +16,11 @@ public class SaudeController {
     private final DataSource banco;
     @Value("${RENDER_GIT_COMMIT:local}")
     private String versao = "local";
+    @Value("${estoq.ambiente:local}")
+    private String ambiente = "local";
 
     @GetMapping("/api/saude/vivo")
-    public Map<String, String> vivo() { return Map.of("status", "ok", "versao", versao); }
+    public Map<String, String> vivo() { return Map.of("status", "ok", "versao", versao, "ambiente", ambiente); }
 
     @GetMapping("/api/saude/pronto")
     public ResponseEntity<Map<String, String>> pronto() {

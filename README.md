@@ -251,7 +251,13 @@ O CMV reconstrói os saldos nos limites do período desfazendo todas as moviment
 
 O fluxo de entrega é `dev → homologacao → main`. O GitHub Actions valida pushes
 e pull requests nas três branches. Veja o [guia de homologação](documentacao/HOMOLOGACAO.md)
-para aprovar uma versão antes de publicar. Para testar a interface com APIs fictícias:
+para aprovar uma versão antes de publicar.
+
+Para preparar um site de testes com banco próprio e medir latência, consulte
+[homologação online](documentacao/DEPLOY_HOMOLOGACAO.md). O provisionamento nos
+provedores precisa ser concluído antes de usar esse ambiente.
+
+Para testar a interface com APIs fictícias:
 
 ```bash
 cd frontend

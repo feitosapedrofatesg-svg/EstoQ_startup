@@ -6,6 +6,8 @@ backend/target/
 # Frontend (quando existir)
 frontend/node_modules/
 frontend/dist/
+.vercel/
+frontend/.vercel/
 
 # Dados locais e backups (nunca committar)
 dados/

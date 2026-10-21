@@ -1,5 +1,15 @@
 # Histórico de mudanças do EstoQ
 
+## 20/10/2026 — preparação da homologação online
+
+Blueprint separado para o backend de homologação, perfil prod/homologacao e
+identificação pública do ambiente junto à versão. Configuração Vercel separa
+a API de testes da produção e bloqueia previews sem destino de teste definido.
+Banner identifica o site de homologação. Medidor HTTP valida ambiente/commit,
+autentica uma conta de teste e registra latência e erros de consultas reais.
+Provisionamento e validação online dependem do acesso às contas dos provedores;
+os arquivos não criam o ambiente automaticamente.
+
 ## 20/10/2026 — branch de homologação
 
 Branch `homologacao` criada a partir da versão estável compartilhada por dev e main.

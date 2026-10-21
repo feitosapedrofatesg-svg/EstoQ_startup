@@ -13,6 +13,18 @@ class SaudeControllerTest {
     void verificacaoDoProcessoNaoAcessaBanco() {
         var banco = mock(DataSource.class);
         assertEquals("ok", new SaudeController(banco).vivo().get("status"));
+        assertEquals("local", new SaudeController(banco).vivo().get("ambiente"));
+        verifyNoInteractions(banco);
+    }
+
+    @Test
+    void identificaAmbienteSemConsultarBancoOuExporCredenciais() {
+        var banco = mock(DataSource.class);
+        var controller = new SaudeController(banco);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "ambiente", "homologacao");
+        assertEquals("homologacao", controller.vivo().get("ambiente"));
+        assertEquals(3, controller.vivo().size());
+        // status, versão e ambiente são os únicos dados públicos.
         verifyNoInteractions(banco);
     }
 

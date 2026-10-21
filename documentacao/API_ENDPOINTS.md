@@ -139,6 +139,7 @@ sem outro endpoint de PDF e sem gravar consumo.
 | POST | `/api/balancos` | ADMIN/COZINHA; `{tipo: "GERAL"}` ou `{tipo: "PARCIAL", categorias: [1,2]}`. Corpo ausente cria GERAL. |
 | POST | `/api/balancos/{id}/iniciar` | ADMIN/COZINHA; `{version}`. |
 | PUT | `/api/balancos/{id}/itens/{itemId}/contagem` | ADMIN/COZINHA; `{quantidadeFisica, version}` do item. |
+| POST | `/api/balancos/{id}/contagens/sistema` | ADMIN/COZINHA; `{version}` do balanço. Preenche somente itens sem contagem com o saldo do sistema; não sobrescreve contagens salvas. |
 | POST | `/api/balancos/{id}/confirmar` | ADMIN; versão do balanço e versões de todos os itens. |
 | POST | `/api/balancos/{id}/gerar-ajustes` | ADMIN; `{version}` do balanço. |
 
@@ -149,8 +150,11 @@ Exemplo de conclusão (IDs/versões fictícios, sempre obtidos da leitura atual)
 ```
 
 O conjunto precisa corresponder aos itens completos do balanço, todos contados.
-`BalancoDTO` e cada `ItemBalancoDTO` incluem `version`. Gravações bloqueiam o
-balanço pai e validam estado. Versão antiga: 409. Campo obrigatório ausente: 400.
+Em um balanço zerado, `POST /contagens/sistema` registra explicitamente o saldo
+do sistema nos itens ainda sem contagem; isso evita que um campo apenas exibido
+como `0` seja tratado como contado. `BalancoDTO` e cada `ItemBalancoDTO` incluem
+`version`. Gravações bloqueiam o balanço pai e validam estado. Versão antiga: 409.
+Campo obrigatório ausente: 400.
 Não gravar contagem em CONCLUIDO; não há rota de reabertura. Ajustes são idempotentes.
 
 Configuração, apenas ADMIN: GET/POST `/api/configuracoes-balanco` e

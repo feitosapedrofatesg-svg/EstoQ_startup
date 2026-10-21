@@ -35,11 +35,12 @@ conflito de concorrência. Não repetir automaticamente uma saída com versão n
 pois o usuário precisa rever o saldo antes de decidir.
 
 Balanços acrescentam lock pessimista no pai antes de consultar os itens. Assim,
-contagem, conclusão e ajustes validam estado dentro da mesma serialização. A
-consulta de lock não contém joins; o grafo necessário é carregado depois.
+contagem, aceite do saldo do sistema, conclusão e ajustes validam estado dentro
+da mesma serialização. A consulta de lock não contém joins; o grafo necessário
+é carregado depois.
 
 - Contagem informa versão do item.
-- Início e ajustes informam versão do balanço.
+- Início, aceite do saldo do sistema e ajustes informam versão do balanço.
 - Conclusão informa versão do balanço e versões de todos os itens.
 - Concluído rejeita novas contagens; ajustes permanecem idempotentes.
 

@@ -212,6 +212,65 @@ class BalancoCmvIntegrationTest {
     }
 
     @Test
+    void balancoZeradoAceitaSaldoSistemaEPodeSerConfirmado() {
+        var zerada = new CategoriaModel();
+        zerada.setNome("Sem saldo");
+        categorias.saveAndFlush(zerada);
+        var produto = new ProdutoDTO();
+        produto.setNome("Produto sem saldo");
+        produto.setCategoriaId(zerada.getId());
+        produto.setUnidadeMedida(UnidadeMedida.KG);
+        produtos.criar(produto);
+
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.PARCIAL, List.of(zerada.getId())));
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        assertEquals(1, iniciado.itens().size());
+        var item = iniciado.itens().getFirst();
+        assertNull(item.quantidadeFisica());
+        assertEquals(0, BigDecimal.ZERO.compareTo(item.quantidadeSistema()));
+
+        var preenchido = balancos.preencherContagensComSistema(iniciado.id(), versao(iniciado.id()));
+        var contado = preenchido.itens().getFirst();
+        assertEquals(0, BigDecimal.ZERO.compareTo(contado.quantidadeFisica()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(contado.diferenca()));
+
+        var confirmado = balancos.confirmar(preenchido.id(), confirmacao(preenchido.id()));
+        assertEquals(StatusBalanco.CONCLUIDO, confirmado.status());
+        assertEquals(0, BigDecimal.ZERO.compareTo(confirmado.itens().getFirst().diferenca()));
+    }
+
+    @Test
+    void aceitarSaldoSistemaPreservaContagemJaSalva() {
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        var item = iniciado.itens().getFirst();
+        balancos.registrarContagem(iniciado.id(), item.id(),
+                new ContagemRequestDTO(new BigDecimal("8"), item.version()));
+
+        var preenchido = balancos.preencherContagensComSistema(iniciado.id(), versao(iniciado.id()));
+        assertEquals(0, new BigDecimal("8").compareTo(preenchido.itens().getFirst().quantidadeFisica()));
+    }
+
+    @Test
+    void naoAceitaSaldoSistemaEmBalancoConcluidoOuComVersaoAntiga() {
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        var item = iniciado.itens().getFirst();
+        balancos.registrarContagem(iniciado.id(), item.id(),
+                new ContagemRequestDTO(new BigDecimal("8"), item.version()));
+        var confirmado = balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
+
+        assertThrows(ConflictException.class, () ->
+                balancos.preencherContagensComSistema(confirmado.id(), new VersaoBalancoRequestDTO(confirmado.version())));
+
+        var outro = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var outroIniciado = balancos.iniciar(outro.id(), versao(outro.id()));
+        assertThrows(ConflictException.class, () ->
+                balancos.preencherContagensComSistema(outroIniciado.id(),
+                        new VersaoBalancoRequestDTO(outroIniciado.version() + 1)));
+    }
+
+    @Test
     void cmvUsaMovimentacoesELote() {
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
         desperdicios.registrarDesperdicio(new DesperdicioRequestDTO(produtoId, null, new BigDecimal("1"),

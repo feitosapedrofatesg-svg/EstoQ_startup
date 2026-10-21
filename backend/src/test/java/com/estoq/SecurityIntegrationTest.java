@@ -135,6 +135,18 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    void cozinhaPodeAceitarSaldoDoSistema() throws Exception {
+        var cozinha = login("cozinha@test.local", "Teste@12345", 200);
+        mvc.perform(post("/api/balancos/999/contagens/sistema").session(cozinha).with(csrf())
+                .contentType("application/json").content("{\"version\":0}"))
+                .andExpect(status().isNotFound());
+        var nutri = login("nutricionista@test.local", "Teste@12345", 200);
+        mvc.perform(post("/api/balancos/999/contagens/sistema").session(nutri).with(csrf())
+                .contentType("application/json").content("{\"version\":0}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void apenasAdminENutricionistaRegistramFaturamentoDiario() throws Exception {
         for (String perfil : new String[] { "admin", "nutricionista", "cozinha", "plataforma" }) {
             var session = login(perfil + "@test.local", "Teste@12345", 200);

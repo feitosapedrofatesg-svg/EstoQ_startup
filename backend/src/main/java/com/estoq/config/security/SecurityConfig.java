@@ -104,7 +104,8 @@ public class SecurityConfig {
                                                                 "/api/produtos-abertos/abrir",
                                                                 "/api/produtos-abertos/*/consumir",
                                                                 "/api/produtos-abertos/*/desperdicar",
-                                                                "/api/balancos", "/api/balancos/*/iniciar")
+                                                                "/api/balancos", "/api/balancos/*/iniciar",
+                                                                "/api/balancos/*/contagens/sistema")
                                                 .hasAnyRole("ADMIN", "COZINHA")
                                                 .requestMatchers(HttpMethod.PUT, "/api/balancos/*/itens/*/contagem",
                                                                 "/api/alertas/*/visualizado")

@@ -1,5 +1,16 @@
 # Histórico de mudanças do EstoQ
 
+## 21/10/2026 — balanço zerado pode ser finalizado
+
+Balanços com todos os saldos zerados exibiam `0` nos campos, mas os itens
+continuavam sem contagem e o botão de confirmação não aparecia. A tela agora
+explica que o valor exibido é uma sugestão e oferece **Aceitar saldo do sistema**,
+que preenche somente os itens ainda não contados, preserva contagens salvas e
+exige confirmação explícita. O ADMIN continua responsável por confirmar o balanço.
+Sem migração; API e regras de concorrência documentadas em
+[API_ENDPOINTS.md](API_ENDPOINTS.md), [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md)
+e [THREADS_E_SINGLETON.md](THREADS_E_SINGLETON.md).
+
 ## 21/10/2026 — atalho de nota fiscal e permissões da cozinha
 
 O Catálogo passa a exibir **Importar nota fiscal** ao lado de **Novo produto**,

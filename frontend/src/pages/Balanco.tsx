@@ -16,6 +16,7 @@ import {
   Badge,
   StatusBadge,
   EmptyState,
+  Confirm,
 } from "../components/UI";
 import { fmtDateTime, fmtNum, parseDecimal } from "../lib/format";
 import type {
@@ -50,6 +51,7 @@ export function Balanco() {
   );
   const [agendaRevision, setAgendaRevision] = useState(0);
   const [showNew, setShowNew] = useState(false);
+  const [aceitarSistema, setAceitarSistema] = useState<BalancoDTO | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [busyLabel, setBusyLabel] = useState("");
   const [rascunhos, setRascunhos] = useState<Record<number, boolean>>({});
@@ -125,6 +127,20 @@ export function Balanco() {
     }
   };
 
+  const aceitarSaldoSistema = async (balanco: BalancoDTO) => {
+    if (rascunhos[balanco.id]) {
+      toast.warning("Salve as contagens em edição", "Há valores digitados que ainda não foram confirmados.");
+      setAceitarSistema(null);
+      return;
+    }
+    await doAction(balanco.id, "Saldo do sistema aceito", () =>
+      api.post<BalancoDTO>(`/api/balancos/${balanco.id}/contagens/sistema`, { version: balanco.version })
+    );
+    setAceitarSistema(null);
+  };
+
+  const pendentesAceitar = aceitarSistema?.itens.filter((i) => i.quantidadeFisica === null).length ?? 0;
+
   return (
     <>
       <PageHeader
@@ -169,6 +185,7 @@ export function Balanco() {
             {data?.map((b) => {
               const total = b.itens.length;
               const counted = b.itens.filter((i) => i.quantidadeFisica !== null).length;
+              const pendentes = total - counted;
               const pct = total ? Math.round((counted / total) * 100) : 0;
               const needConfirm =
                 b.status === "EM_ANDAMENTO" && isAdmin && counted === total && total > 0;
@@ -235,6 +252,24 @@ export function Balanco() {
                           Iniciar contagem
                         </Button>
                       )}
+                      {b.status === "EM_ANDAMENTO" && canMove && pendentes > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon="refresh"
+                          loading={busy === b.id && busyLabel === "Saldo do sistema aceito"}
+                          onClick={() => {
+                            if (rascunhos[b.id]) {
+                              toast.warning("Salve as contagens em edição",
+                                "Há valores digitados que ainda não foram confirmados.");
+                              return;
+                            }
+                            setAceitarSistema(b);
+                          }}
+                        >
+                          Aceitar saldo do sistema
+                        </Button>
+                      )}
                       {needConfirm && (
                         <Button
                           size="sm"
@@ -273,6 +308,9 @@ export function Balanco() {
                       </div>
                       <p className="balanco__count">
                         {counted} de {total} itens contados
+                        {counted < total && (
+                          <span className="muted"> — os campos mostram o saldo do sistema, mas ainda não foram confirmados.</span>
+                        )}
                       </p>
                       {b.status === "EM_ANDAMENTO" && (
                         <ItensContagem
@@ -322,6 +360,33 @@ export function Balanco() {
           </div>
         )}
       </Card>
+
+      <Confirm
+        open={aceitarSistema !== null}
+        title="Aceitar saldo do sistema?"
+        message={
+          aceitarSistema ? (
+            <>
+              <p>
+                <strong>{pendentesAceitar} {pendentesAceitar === 1 ? "item" : "itens"}</strong>{" "}
+                {pendentesAceitar === 1 ? "será preenchido" : "serão preenchidos"} com o saldo atual do
+                sistema. Em um balanço zerado, isso registra 0 nos itens pendentes.
+              </p>
+              <p className="muted">
+                Itens já contados não serão alterados; as contagens salvas permanecem como estão.
+              </p>
+            </>
+          ) : null
+        }
+        confirmLabel="Aceitar saldo"
+        loading={busy === aceitarSistema?.id && busyLabel === "Saldo do sistema aceito"}
+        onConfirm={() => {
+          if (aceitarSistema) void aceitarSaldoSistema(aceitarSistema);
+        }}
+        onClose={() => {
+          if (!busy) setAceitarSistema(null);
+        }}
+      />
 
       {showNew && (
         <NovoBalanco

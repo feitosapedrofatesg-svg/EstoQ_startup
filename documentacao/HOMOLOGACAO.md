@@ -72,25 +72,27 @@ as opções de merge e squash do GitHub podem criar históricos divergentes.
 
 ## Branch e ambiente de testes são coisas diferentes
 
-A branch e a CI estão configuradas. Ainda não há um site de homologação com
-backend e banco exclusivos definido neste fluxo. O Render de produção segue
-main. A configuração preparada em `frontend/vercel.mjs` exige outro backend
-para homologação e previews; a main em produção mantém sua API atual.
-Consulte [DEPLOY_HOMOLOGACAO.md](DEPLOY_HOMOLOGACAO.md) para provisionar os
-recursos, conferir as URLs e medir o desempenho. O ambiente só está pronto
-depois de implantar e validar esses serviços.
+A branch e a CI são o canal de revisão. O ambiente online é separado da
+produção e está publicado:
 
-Para testar cadastros, notas e estoque em um site separado, será necessário:
+| Recurso | Endereço |
+| --- | --- |
+| Frontend | https://estoq-homologacao.vercel.app |
+| Backend | https://estoq-backend-homologacao.onrender.com |
+| Banco | Supabase exclusivo de homologação |
 
-- Um banco/schema exclusivo com dados fictícios e migrações Flyway.
-- Um backend ligado à branch homologacao e a esse banco.
-- Um frontend de homologação com `/api` apontando para esse backend.
-- Contas próprias de teste e configuração de sessão/CORS para esse endereço.
+A configuração Vercel de homologação usa `ESTOQ_API_ORIGIN` para o backend de
+testes. O Render de produção segue a `main`; a `main` em produção mantém sua API
+atual. Consulte [DEPLOY_HOMOLOGACAO.md](DEPLOY_HOMOLOGACAO.md) para a
+configuração dos recursos e [HOMOLOGACAO_DETALHADA_2026_10_21.md](HOMOLOGACAO_DETALHADA_2026_10_21.md)
+para a candidata, as validações, as limitações e o procedimento de promoção.
 
-Até existir essa infraestrutura, use o ambiente local com banco de testes.
-A CI usa bancos descartáveis e APIs fictícias nos testes de interface; ela
-não altera o estoque da produção. CI verde valida os testes automatizados,
-mas a aprovação funcional da candidata é uma etapa manual.
+A candidata atual é `414175d2557a9fbda1d6fb0cf43b1b7d2c65178f`; a produção
+permanece em `683375a1b3cf38cdb924dd033a29f3213863b3cb`. Atualizar a branch
+`homologacao` exige repetir os testes e a aprovação. A CI usa bancos
+descartáveis e APIs fictícias nos testes de interface; ela não altera o estoque
+da produção. CI verde valida os testes automatizados, mas a aprovação funcional
+da candidata é uma etapa manual.
 
 ## Onde acompanhar
 

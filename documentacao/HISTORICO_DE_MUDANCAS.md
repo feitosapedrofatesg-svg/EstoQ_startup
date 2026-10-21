@@ -1,5 +1,16 @@
 # Histórico de mudanças do EstoQ
 
+## 21/10/2026 — atalho de nota fiscal e permissões da cozinha
+
+O Catálogo passa a exibir **Importar nota fiscal** ao lado de **Novo produto**,
+restrito ao ADMIN, com o mesmo link para `/notas-fiscais` já usado em
+Movimentações. O perfil COZINHA perde o item **Movimentações** do menu e o acesso
+direto à tela; Estoque, Consumo, Desperdício, Balanço e Catálogo permanecem.
+Nenhuma API ou migração foi alterada. Validação em 1440, 390 e 320 px, com 89
+testes Playwright e CI aprovada em dev e homologação. Detalhes em
+[Mudanças de frontend](FRONTEND_CATALOGO_E_PERFIS.md) e
+[Homologação detalhada](HOMOLOGACAO_DETALHADA_2026_10_21.md).
+
 ## 21/10/2026 — desperdício em vermelho e sino da referência
 
 As barras do bloco Desperdício em Relatórios usam o vermelho de erro `#BE1328`

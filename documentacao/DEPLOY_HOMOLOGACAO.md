@@ -28,7 +28,9 @@ pois fica em outra instância de banco. Os recursos de produção seguem main.
   raiz `frontend`, branch principal **homologacao**, sem contratação de plano pago.
 - Supabase exclusivo: `kklnvrihortzogvdpbfu`, região **us-west-2**;
   Session Pooler `aws-1-us-west-2.pooler.supabase.com:5432`.
-- Versão validada: `c7e03618e21d57d9e05ba7d36b9c32c3681704df`.
+- Versão inicial validada: `c7e03618e21d57d9e05ba7d36b9c32c3681704df`.
+- Candidata atual: `414175d2557a9fbda1d6fb0cf43b1b7d2c65178f`; detalhes em
+  [HOMOLOGACAO_DETALHADA_2026_10_21.md](HOMOLOGACAO_DETALHADA_2026_10_21.md).
 - Produção e branch `main` não foram alteradas.
 
 No projeto Vercel original, foi configurada somente a variável `ESTOQ_API_ORIGIN`

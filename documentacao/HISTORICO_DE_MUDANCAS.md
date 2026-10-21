@@ -1,5 +1,15 @@
 # Histórico de mudanças do EstoQ
 
+## 21/10/2026 — cores e tipografia Nutrigo
+
+Tema baseado no CSS dos componentes Figma exportado pelo usuário: superfícies
+claras, acento verde `#C2E66E` e Poppins 400/500/600 hospedada localmente.
+Tons de texto e estados receberam ajustes explícitos de contraste. Medidas,
+layout, imagens, sombras, animações e funcionalidades foram preservados.
+Quebras naturais da nova fonte foram registradas sem compensar o layout.
+Valores de origem, ajustes e verificações em [Tema Nutrigo](TEMA_NUTRIGO.md).
+Validação restrita à homologação; a produção depende de aprovação.
+
 ## 20/10/2026 — preparação da homologação online
 
 Blueprint separado para o backend de homologação, perfil prod/homologacao e

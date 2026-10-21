@@ -25,7 +25,7 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 | [Homologação](HOMOLOGACAO.md) | Fluxo dev → homologacao → main e promoção por hash. |
 | [Deploy da homologação](DEPLOY_HOMOLOGACAO.md) | Recursos, URLs, medições e uso gratuito. |
 | [Homologação detalhada 21/10](HOMOLOGACAO_DETALHADA_2026_10_21.md) | Candidata, validações, limitações e promoção. |
-| [Git e CI](COMMITS_E_FLUXO_DE_TRABALHO.md) | Branches dev/main, testes e publicação. |
+| [Git e CI](COMMITS_E_FLUXO_DE_TRABALHO.md) | Branches dev/homologacao/main, testes e publicação. |
 | [Tema Nutrigo](TEMA_NUTRIGO.md) | Cores, tipografia e validação do tema aplicado. |
 | [Frontend: catálogo e perfis](FRONTEND_CATALOGO_E_PERFIS.md) | Atalho de nota fiscal e bloqueio de Movimentações na cozinha. |
 | [Responsividade](RESPONSIVIDADE.md) | Layout, listas recolhidas e rolagem. |

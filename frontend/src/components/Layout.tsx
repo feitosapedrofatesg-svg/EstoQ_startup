@@ -50,7 +50,6 @@ function buildNav(perfil: Perfil): NavGroup[] {
       { to: "/estoque", label: "Estoque", icon: "boxes" },
       { to: "/consumo", label: "Consumo", icon: "check-circle" },
       { to: "/desperdicio", label: "Desperdício", icon: "trash" },
-      { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
       { to: "/balanco", label: "Balanço físico", icon: "scale" }
     );
   } else {

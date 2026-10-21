@@ -27,6 +27,15 @@ for (const status of [200, 401]) test(`resposta atrasada ${status} da sessão an
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toHaveCount(0);
 });
 
+test("cozinha não vê nem acessa a tela de movimentações", async ({ page }) => {
+  await preparar(page, "COZINHA");
+  await page.goto("/estoque");
+  await abrirMenu(page);
+  await expect(page.getByRole("link", { name: "Movimentações", exact: true })).toHaveCount(0);
+  await page.goto("/movimentacoes");
+  await expect(page.getByText("Esta área não está disponível para o seu perfil", { exact: true })).toBeVisible();
+});
+
 for (const perfil of ["ADMIN", "COZINHA", "NUTRICIONISTA"]) {
   test(`${perfil} não encontra a tela de backup`, async ({ page }) => {
     await preparar(page, perfil);

@@ -118,7 +118,7 @@ function AppRoutes() {
         <Route
           path="/movimentacoes"
           element={
-            <Guarded allow={canMove}>
+            <Guarded allow={isAdmin}>
               <Movimentacoes />
             </Guarded>
           }

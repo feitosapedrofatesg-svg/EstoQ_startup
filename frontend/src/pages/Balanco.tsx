@@ -52,6 +52,7 @@ export function Balanco() {
   const [agendaRevision, setAgendaRevision] = useState(0);
   const [showNew, setShowNew] = useState(false);
   const [aceitarSistema, setAceitarSistema] = useState<BalancoDTO | null>(null);
+  const [confirmarVazio, setConfirmarVazio] = useState<BalancoDTO | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [busyLabel, setBusyLabel] = useState("");
   const [rascunhos, setRascunhos] = useState<Record<number, boolean>>({});
@@ -141,6 +142,16 @@ export function Balanco() {
 
   const pendentesAceitar = aceitarSistema?.itens.filter((i) => i.quantidadeFisica === null).length ?? 0;
 
+  const confirmarBalanco = async (balanco: BalancoDTO) => {
+    await doAction(balanco.id, "Balanço confirmado", () =>
+      api.post<BalancoDTO>(`/api/balancos/${balanco.id}/confirmar`, {
+        version: balanco.version,
+        itens: balanco.itens.map(i => ({ id: i.id, version: i.version })),
+      })
+    );
+    setConfirmarVazio(null);
+  };
+
   return (
     <>
       <PageHeader
@@ -188,7 +199,7 @@ export function Balanco() {
               const pendentes = total - counted;
               const pct = total ? Math.round((counted / total) * 100) : 0;
               const needConfirm =
-                b.status === "EM_ANDAMENTO" && isAdmin && counted === total && total > 0;
+                b.status === "EM_ANDAMENTO" && isAdmin && counted === total;
               const canAjustar = b.status === "CONCLUIDO" && isAdmin && b.itens.some((i) => !i.ajusteAplicado);
               return (
                 <article key={b.id} className={`balanco ${!expanded.has(b.id) ? "balanco--collapsed" : ""}`}>
@@ -275,13 +286,12 @@ export function Balanco() {
                           size="sm"
                           variant="ink"
                           loading={busy === b.id && busyLabel === "Balanço confirmado"}
-                          onClick={() =>
-                            void doAction(b.id, "Balanço confirmado", () =>
-                              api.post<BalancoDTO>(`/api/balancos/${b.id}/confirmar`, { version: b.version, itens: b.itens.map(i => ({ id: i.id, version: i.version })) })
-                            )
-                          }
+                          onClick={() => {
+                            if (total === 0) setConfirmarVazio(b);
+                            else void confirmarBalanco(b);
+                          }}
                         >
-                          Confirmar balanço
+                          {total === 0 ? "Finalizar sem itens" : "Confirmar balanço"}
                         </Button>
                       )}
                       {canAjustar && (
@@ -301,6 +311,15 @@ export function Balanco() {
                     </div>
                   </header>
 
+                  {total === 0 && b.status !== "PENDENTE" && (
+                    <div id={`balanco-itens-${b.id}`} hidden={!expanded.has(b.id)}>
+                      <p className="balanco__count">
+                        {b.status === "CONCLUIDO"
+                          ? "Balanço concluído sem itens."
+                          : "Este balanço tem 0 itens. O administrador pode finalizá-lo sem alterar o estoque."}
+                      </p>
+                    </div>
+                  )}
                   {total > 0 && (
                     <div id={`balanco-itens-${b.id}`} hidden={!expanded.has(b.id)}>
                       <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${pct}% dos itens contados`}>
@@ -360,6 +379,20 @@ export function Balanco() {
           </div>
         )}
       </Card>
+
+      <Confirm
+        open={confirmarVazio !== null}
+        title="Finalizar balanço sem itens?"
+        message="Este balanço tem 0 itens. Ele será marcado como concluído, sem criar contagens nem alterar o estoque."
+        confirmLabel="Finalizar sem itens"
+        loading={busy === confirmarVazio?.id && busyLabel === "Balanço confirmado"}
+        onConfirm={() => {
+          if (confirmarVazio) void confirmarBalanco(confirmarVazio);
+        }}
+        onClose={() => {
+          if (busy === null) setConfirmarVazio(null);
+        }}
+      />
 
       <Confirm
         open={aceitarSistema !== null}

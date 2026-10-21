@@ -150,6 +150,9 @@ Exemplo de conclusão (IDs/versões fictícios, sempre obtidos da leitura atual)
 ```
 
 O conjunto precisa corresponder aos itens completos do balanço, todos contados.
+Se o balanço em andamento tiver **0 itens**, o ADMIN pode encerrá-lo enviando
+`{version, itens: []}`. Na tela, **Finalizar sem itens** exige confirmação
+explícita; não cria contagens ou movimentações de estoque.
 Em um balanço zerado, `POST /contagens/sistema` registra explicitamente o saldo
 do sistema nos itens ainda sem contagem; isso evita que um campo apenas exibido
 como `0` seja tratado como contado. `BalancoDTO` e cada `ItemBalancoDTO` incluem

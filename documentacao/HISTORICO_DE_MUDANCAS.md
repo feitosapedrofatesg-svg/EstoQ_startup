@@ -1,5 +1,13 @@
 # Histórico de mudanças do EstoQ
 
+## 21/10/2026 — finalização de balanço sem itens
+
+A correção anterior tratava saldos zerados, mas não o retrato com **0 itens**.
+O ADMIN agora pode usar **Finalizar sem itens**, com confirmação explícita, para
+encerrar esses balanços, inclusive os que já estavam em contagem. A API aceita
+`itens: []` quando o balanço realmente não tem itens, mantendo as validações de
+estado, versão e permissão. Não cria contagens nem movimentações de estoque.
+
 ## 21/10/2026 — balanço zerado pode ser finalizado
 
 Balanços com todos os saldos zerados exibiam `0` nos campos, mas os itens

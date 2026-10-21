@@ -168,9 +168,8 @@ public class BalancoService {
         if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
             throw new ConflictException("Confirme apenas um balanço EM_ANDAMENTO.");
         }
-        if (balanco.getItens().isEmpty()) {
-            throw new ConflictException("Não confirme um balanço sem itens.");
-        }
+        // Um retrato vazio também pode ser encerrado explicitamente pelo ADMIN.
+        // A lista vazia ainda passa pelas validações de versão, estado e itens.
         var versoes = new HashMap<Long, Long>();
         if (dto.itens() == null) throw new FieldValidationException("itens", "Confira as contagens antes de concluir.");
         for (var consultado : dto.itens()) {

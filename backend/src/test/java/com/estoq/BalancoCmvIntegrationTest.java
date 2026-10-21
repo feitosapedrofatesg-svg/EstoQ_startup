@@ -212,6 +212,26 @@ class BalancoCmvIntegrationTest {
     }
 
     @Test
+    void balancoSemItensPodeSerFinalizadoSemAlterarEstoque() {
+        var categoria = new CategoriaModel();
+        categoria.setNome("Categoria sem produtos");
+        categorias.saveAndFlush(categoria);
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.PARCIAL, List.of(categoria.getId())));
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        assertEquals(StatusBalanco.EM_ANDAMENTO, iniciado.status());
+        assertTrue(iniciado.itens().isEmpty());
+        var quantidadeMovimentos = movimentos.count();
+
+        var confirmado = balancos.confirmar(iniciado.id(), new ConfirmarBalancoRequestDTO(iniciado.version(), List.of()));
+
+        assertEquals(StatusBalanco.CONCLUIDO, confirmado.status());
+        assertTrue(confirmado.itens().isEmpty());
+        assertEquals(StatusBalanco.CONCLUIDO, balancos.buscar(confirmado.id()).status());
+        assertEquals(quantidadeMovimentos, movimentos.count());
+        assertEquals(0, BigDecimal.TEN.compareTo(lotes.saldo(produtoId)));
+    }
+
+    @Test
     void balancoZeradoAceitaSaldoSistemaEPodeSerConfirmado() {
         var zerada = new CategoriaModel();
         zerada.setNome("Sem saldo");

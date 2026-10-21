@@ -7,6 +7,7 @@ import {
   PageHeader,
   Card,
   Button,
+  LinkButton,
   Modal,
   Confirm,
   Field,
@@ -98,9 +99,14 @@ export function Catalogo() {
         subtitle="Produtos, categorias e parâmetros que alimentam o controle de estoque."
         actions={
           isAdmin && (
-            <Button icon="plus" onClick={() => setProdModal({ open: true, prod: null })}>
-              Novo produto
-            </Button>
+            <>
+              <LinkButton to="/notas-fiscais" variant="outline" icon="arrows">
+                Importar nota fiscal
+              </LinkButton>
+              <Button icon="plus" onClick={() => setProdModal({ open: true, prod: null })}>
+                Novo produto
+              </Button>
+            </>
           )
         }
       />

@@ -31,7 +31,6 @@ dashboard Nutrigo.
 | `#FFCB65` | Avatar e ícone de aviso nas notificações |
 | `#FFEDC9` | Fundo de avisos |
 | `#FF1A36` | Ícone de erro sobre fundo escuro e gradiente de erro existente |
-| `#FFA257` | Ponto de notificação no botão da central de alertas |
 | `#1F3045` / `#F3FAFF` | Texto/fundo informativos |
 | `#D2EBFF` / `#BEBFC2` | Ícone informativo e controle de fechar nas notificações |
 
@@ -80,6 +79,19 @@ Sucesso, aviso e erro mantêm cores distintas, texto e ícones existentes. A
 opacidade original dos botões desabilitados foi mantida; controles inativos não
 estão sujeitos ao requisito AA de contraste para texto ativo.
 
+### Laranja da marca nas notificações
+
+O laranja mais forte do tema anterior, preservado no logotipo, foi reaplicado a
+pedido. Esses dois valores não fazem parte da exportação Nutrigo:
+
+| Cor | Finalidade |
+| --- | --- |
+| `#EF7320` | Ponto de notificação do sino; uso decorativo, 2,94:1 sobre branco |
+| `#C85200` | Texto de “Marcar como visto”; 4,50:1 sobre branco, variação escura para leitura |
+
+O ponto continua sem número visível; a contagem permanece no `aria-label` e na
+lista de alertas. O hover da ação usa `--warn-bg` (`#FFEDC9`).
+
 ## Relatórios e central de alertas
 
 - **Desperdício:** as barras horizontais deixaram o acento verde `#C2E66E` e
@@ -88,9 +100,10 @@ estão sujeitos ao requisito AA de contraste para texto ativo.
   desperdício; sucesso e aviso continuam verdes e âmbar.
 - **Central de alertas:** o botão preserva 44 × 44 px e raio de 12 px, agora com
   superfície branca, borda de 1 px transparente e ícone `#52545B`. O contador
-  visual foi substituído por um ponto de 8 px `#FFA257`, como na referência.
-  A quantidade de alertas continua no `aria-label` do botão e no painel ao abrir.
-  O ponto é absoluto e não participa do fluxo, portanto não desloca o cabeçalho.
+  visual foi substituído por um ponto de 8 px no laranja forte `#EF7320`.
+  A ação “Marcar como visto” usa `#C85200`; a quantidade de alertas continua no
+  `aria-label` do botão e no painel ao abrir. O ponto é absoluto e não participa
+  do fluxo, portanto não desloca o cabeçalho.
 
 ## Escopo preservado
 
@@ -109,10 +122,11 @@ a nova família e os pesos tipográficos disponíveis.
 ## Conferências
 
 - Build TypeScript/Vite e cinco testes de configuração Vercel.
-- Suíte completa de interface: **87 testes Playwright aprovados**.
-- Sete testes novos: fonte/acentos em 320, 390 e 1440 px, contraste AA dos
+- Suíte completa de interface: **88 testes Playwright aprovados**.
+- Oito testes novos: fonte/acentos em 320, 390 e 1440 px, contraste AA dos
   pares verificados, distinção dos estados, hover, foco e seleção, barras de
-  desperdício em vermelho e botão de alertas com ponto da referência.
+  desperdício em vermelho, botão de alertas com ponto da referência e ação de
+  marcar alerta como visto no laranja forte.
 - Suíte de responsividade existente: 320, 390, 720, 768, 1024, 1180 e 1440 px.
 - Comparação antes/depois em **21 combinações de tela/largura**, com imagens de
   login, dashboard, catálogo e relatórios em desktop e celular.

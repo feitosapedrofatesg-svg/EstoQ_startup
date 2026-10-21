@@ -12,6 +12,8 @@
   --accent: #c2e66e;
   --accent-hover: #dff9a2;
   --accent-strong: #4f6f05;
+  --orange: #ef7320;
+  --orange-strong: #c85200;
   --on-accent: #272932;
   --focus: #52545b;
   --focus-ring: rgba(39, 41, 50, 0.65);
@@ -35,7 +37,6 @@
   --warn-bg: #ffedc9;
   --bad: #be1328;
   --bad-bg: #fff0f2;
-  --notif-dot: #ffa257;
   --info: #1f3045;
   --info-bg: #f3faff;
 
@@ -316,7 +317,7 @@ a:hover {
 
 .bell__badge {
   border-radius: 999px;
-  background: var(--notif-dot);
+  background: var(--orange);
 }
 
 .bell__panel {
@@ -352,7 +353,7 @@ a:hover {
 .bell__seen {
   border: none;
   background: transparent;
-  color: var(--accent-strong);
+  color: var(--orange-strong);
   font-size: var(--t-1);
   cursor: pointer;
   border-radius: 6px;
@@ -1209,7 +1210,7 @@ a:hover {
 .link-btn {
   border: none;
   background: transparent;
-  color: var(--accent-strong);
+  color: var(--orange-strong);
   font: inherit;
   font-size: var(--t-1);
   font-weight: 500;
@@ -1218,7 +1219,7 @@ a:hover {
 }
 
 .link-btn:hover {
-  background: var(--good-bg);
+  background: var(--warn-bg);
 }
 
 /* -------------------------------------------------- splash */

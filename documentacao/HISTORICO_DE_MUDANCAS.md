@@ -5,9 +5,9 @@
 As barras do bloco Desperdício em Relatórios usam o vermelho de erro `#BE1328`
 sobre trilho `#FFF0F2`, sem alterar medidas. O botão da central de alertas
 mantém 44 × 44 px e passa a exibir superfície branca, ícone `#52545B` e ponto
-laranja `#FFA257`; a contagem continua acessível pelo rótulo e pelo painel.
-Sem mudanças de layout, navegação ou comportamento. Detalhes em
-[Tema Nutrigo](TEMA_NUTRIGO.md).
+laranja forte `#EF7320`; a ação “Marcar como visto” usa `#C85200` e a contagem
+continua acessível pelo rótulo e pelo painel. Sem mudanças de layout, navegação
+ou comportamento. Detalhes em [Tema Nutrigo](TEMA_NUTRIGO.md).
 
 ## 21/10/2026 — cores e tipografia Nutrigo
 

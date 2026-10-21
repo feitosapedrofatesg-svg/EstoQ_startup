@@ -111,8 +111,31 @@ test("botão da central de alertas segue o ícone branco da referência", async 
   await expect(botao).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
   await expect(botao).toHaveAttribute("aria-label", "Alertas, 3 novos");
   const ponto = page.locator(".bell__badge");
-  await expect(ponto).toHaveCSS("background-color", "rgb(255, 162, 87)");
+  await expect(ponto).toHaveCSS("background-color", "rgb(239, 115, 32)");
   await expect(ponto).toHaveCSS("width", "8px");
   await expect(ponto).toHaveCSS("height", "8px");
   expect(await ponto.textContent()).toBe("");
+});
+
+test("marcar alerta como visto usa o laranja forte da marca", async ({ page }) => {
+  await preparar(page);
+  await page.route(/\/api\/alertas\?visualizado=false$/, route => route.fulfill({ json: [{
+    id: 1, tipo: "ESTOQUE_BAIXO", mensagem: "Produto abaixo do mínimo",
+    perfilDestino: "ADMIN", dataGeracao: "2026-10-21T12:00:00", visualizado: false,
+    produtoId: 1, produtoNome: "Produto 1", loteId: null, loteCodigo: null,
+  }] }));
+  await page.goto("/catalogo");
+  await page.locator(".bell__btn").click();
+  const acao = page.locator(".bell__seen").first();
+  await expect(acao).toBeVisible();
+  await expect(acao).toHaveCSS("color", "rgb(200, 82, 0)");
+  const link = await page.evaluate(() => {
+    const botao = document.createElement("button");
+    botao.className = "link-btn";
+    document.body.append(botao);
+    const cor = getComputedStyle(botao).color;
+    botao.remove();
+    return cor;
+  });
+  expect(link).toBe("rgb(200, 82, 0)");
 });

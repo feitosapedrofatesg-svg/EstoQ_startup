@@ -31,6 +31,7 @@ dashboard Nutrigo.
 | `#FFCB65` | Avatar e ícone de aviso nas notificações |
 | `#FFEDC9` | Fundo de avisos |
 | `#FF1A36` | Ícone de erro sobre fundo escuro e gradiente de erro existente |
+| `#FFA257` | Ponto de notificação no botão da central de alertas |
 | `#1F3045` / `#F3FAFF` | Texto/fundo informativos |
 | `#D2EBFF` / `#BEBFC2` | Ícone informativo e controle de fechar nas notificações |
 
@@ -79,12 +80,26 @@ Sucesso, aviso e erro mantêm cores distintas, texto e ícones existentes. A
 opacidade original dos botões desabilitados foi mantida; controles inativos não
 estão sujeitos ao requisito AA de contraste para texto ativo.
 
+## Relatórios e central de alertas
+
+- **Desperdício:** as barras horizontais deixaram o acento verde `#C2E66E` e
+  passaram a usar `--bad` (`#BE1328`), com trilho `--bad-bg` (`#FFF0F2`). O total
+  do bloco já era exibido em vermelho. A mudança vale só para o bloco de
+  desperdício; sucesso e aviso continuam verdes e âmbar.
+- **Central de alertas:** o botão preserva 44 × 44 px e raio de 12 px, agora com
+  superfície branca, borda de 1 px transparente e ícone `#52545B`. O contador
+  visual foi substituído por um ponto de 8 px `#FFA257`, como na referência.
+  A quantidade de alertas continua no `aria-label` do botão e no painel ao abrir.
+  O ponto é absoluto e não participa do fluxo, portanto não desloca o cabeçalho.
+
 ## Escopo preservado
 
-Sem alterações em JSX de telas, conteúdo, imagens, ícones, navegação, APIs,
-autenticação, backend ou banco. Nenhuma coordenada ou dimensão do frame Figma
-foi utilizada. Tamanhos, espaçamentos, alinhamentos, responsividade, raios,
-espessuras de borda e animações permanecem iguais.
+O JSX recebeu apenas o tom semântico das barras de desperdício e o ponto
+decorativo do sino; conteúdo, imagens, ícones, navegação, APIs, autenticação,
+backend e banco não mudaram. Nenhuma coordenada ou dimensão do frame Figma foi
+utilizada. Tamanhos de layout, espaçamentos, alinhamentos, responsividade, raios,
+espessuras de borda e animações permanecem iguais; a única dimensão decorativa
+alterada é o ponto do sino, de 19 px para 8 px, para seguir a referência.
 
 As sombras decorativas foram preservadas, inclusive a cor original da sombra
 do botão de recalcular CMV, desacoplada do novo acento em `--shadow-accent`.
@@ -94,9 +109,10 @@ a nova família e os pesos tipográficos disponíveis.
 ## Conferências
 
 - Build TypeScript/Vite e cinco testes de configuração Vercel.
-- Suíte completa de interface: **85 testes Playwright aprovados**.
-- Cinco testes novos: fonte/acentos em 320, 390 e 1440 px, contraste AA dos
-  pares verificados, distinção dos estados, hover, foco e seleção.
+- Suíte completa de interface: **87 testes Playwright aprovados**.
+- Sete testes novos: fonte/acentos em 320, 390 e 1440 px, contraste AA dos
+  pares verificados, distinção dos estados, hover, foco e seleção, barras de
+  desperdício em vermelho e botão de alertas com ponto da referência.
 - Suíte de responsividade existente: 320, 390, 720, 768, 1024, 1180 e 1440 px.
 - Comparação antes/depois em **21 combinações de tela/largura**, com imagens de
   login, dashboard, catálogo e relatórios em desktop e celular.

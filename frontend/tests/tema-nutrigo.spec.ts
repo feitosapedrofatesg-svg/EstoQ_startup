@@ -84,3 +84,35 @@ test("hover, foco e seleção usam os tokens sem depender do laranja antigo", as
   });
   expect(contraste(selecao.frente, selecao.fundo)).toBeGreaterThanOrEqual(4.5);
 });
+
+test("desperdício usa barras em tom de erro, sem confundir com sucesso", async ({ page }) => {
+  await preparar(page);
+  await page.route("**/api/relatorios/desperdicio/agregado**", route =>
+    route.fulfill({ json: [
+      { produtoId: 1, produtoNome: "Produto 1", motivo: "VENCIMENTO", quantidade: 1, valorPrejuizo: 30 },
+      { produtoId: 2, produtoNome: "Produto 2", motivo: "QUEBRA", quantidade: 1, valorPrejuizo: 10 },
+    ] })
+  );
+  await page.goto("/relatorios");
+  const barra = page.locator(".hbar__fill").first();
+  await expect(barra).toBeVisible();
+  await expect(barra).toHaveCSS("background-color", "rgb(190, 19, 40)");
+  await expect(page.locator(".hbar__track").first()).toHaveCSS("background-color", "rgb(255, 240, 242)");
+});
+
+test("botão da central de alertas segue o ícone branco da referência", async ({ page }) => {
+  await preparar(page);
+  await page.route("**/api/alertas/abertos", route => route.fulfill({ json: 3 }));
+  await page.goto("/catalogo");
+  const botao = page.locator(".bell__btn");
+  await expect(botao).toBeVisible();
+  await expect(botao).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(botao).toHaveCSS("color", "rgb(82, 84, 91)");
+  await expect(botao).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+  await expect(botao).toHaveAttribute("aria-label", "Alertas, 3 novos");
+  const ponto = page.locator(".bell__badge");
+  await expect(ponto).toHaveCSS("background-color", "rgb(255, 162, 87)");
+  await expect(ponto).toHaveCSS("width", "8px");
+  await expect(ponto).toHaveCSS("height", "8px");
+  expect(await ponto.textContent()).toBe("");
+});

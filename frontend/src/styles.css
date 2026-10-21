@@ -35,6 +35,7 @@
   --warn-bg: #ffedc9;
   --bad: #be1328;
   --bad-bg: #fff0f2;
+  --notif-dot: #ffa257;
   --info: #1f3045;
   --info-bg: #f3faff;
 
@@ -302,24 +303,20 @@ a:hover {
 
 .bell__btn {
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 12px;
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink-2);
   cursor: pointer;
 }
 
 .bell__btn:hover {
-  border-color: var(--line-strong);
+  background: var(--surface-subtle);
 }
 
 .bell__badge {
-  place-items: center;
   border-radius: 999px;
-  background: var(--bad);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 600;
+  background: var(--notif-dot);
 }
 
 .bell__panel {
@@ -1121,6 +1118,15 @@ a:hover {
 .hbar__fill {
   border-radius: 999px;
   background: var(--accent);
+}
+
+.hbar__fill--bad {
+  background: var(--bad);
+}
+
+.hbar--bad .hbar__track {
+  background: var(--bad-bg);
+  border-color: var(--bad-bg);
 }
 
 .hbar__sub {

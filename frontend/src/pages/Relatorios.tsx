@@ -260,7 +260,7 @@ function Desperdicio({ inicio, fim }: PeriodoRelatorios) {
 
       <h3 className="section-title">Por motivo</h3>
       {porMotivo.length > 0 ? (
-        <HBars rows={porMotivo} ariaLabel="Desperdício por motivo" />
+        <HBars rows={porMotivo} ariaLabel="Desperdício por motivo" tone="bad" />
       ) : (
         <p className="muted">Sem desperdício no período.</p>
       )}

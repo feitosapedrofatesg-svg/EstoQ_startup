@@ -67,23 +67,25 @@ export function BarChart({
 export function HBars({
   rows,
   ariaLabel,
+  tone,
 }: {
   rows: { label: string; sub?: string; value: number; money?: boolean }[];
   ariaLabel: string;
+  tone?: "bad";
 }) {
   if (rows.length === 0) return <p className="muted">Sem dados para exibir.</p>;
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
     <div className="hbars" role="img" aria-label={ariaLabel}>
       {rows.map((r, i) => (
-        <div className="hbar" key={i}>
+        <div className={`hbar${tone ? ` hbar--${tone}` : ""}`} key={i}>
           <div className="hbar__head">
             <span className="hbar__label">{r.label}</span>
             <span className="hbar__value">{r.value}</span>
           </div>
           <div className="hbar__track">
             <div
-              className="hbar__fill"
+              className={`hbar__fill${tone ? ` hbar__fill--${tone}` : ""}`}
               style={{ width: `${Math.max(2, (r.value / max) * 100)}%` }}
             />
           </div>

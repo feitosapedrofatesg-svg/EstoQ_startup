@@ -157,11 +157,7 @@ function AlertBell() {
         aria-expanded={open}
       >
         <Icon name="bell" size={20} />
-        {count > 0 && (
-          <span className="bell__badge" aria-hidden="true">
-            {count > 9 ? "9+" : count}
-          </span>
-        )}
+        {count > 0 && <span className="bell__badge" aria-hidden="true" />}
       </button>
       {open && (
         <div className="bell__panel" role="dialog" aria-label="Central de alertas">

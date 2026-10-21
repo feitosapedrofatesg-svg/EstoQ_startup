@@ -1,5 +1,14 @@
 # Histórico de mudanças do EstoQ
 
+## 21/10/2026 — desperdício em vermelho e sino da referência
+
+As barras do bloco Desperdício em Relatórios usam o vermelho de erro `#BE1328`
+sobre trilho `#FFF0F2`, sem alterar medidas. O botão da central de alertas
+mantém 44 × 44 px e passa a exibir superfície branca, ícone `#52545B` e ponto
+laranja `#FFA257`; a contagem continua acessível pelo rótulo e pelo painel.
+Sem mudanças de layout, navegação ou comportamento. Detalhes em
+[Tema Nutrigo](TEMA_NUTRIGO.md).
+
 ## 21/10/2026 — cores e tipografia Nutrigo
 
 Tema baseado no CSS dos componentes Figma exportado pelo usuário: superfícies

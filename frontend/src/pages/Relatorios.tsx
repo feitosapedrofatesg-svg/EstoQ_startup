@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useFetch } from "../lib/hooks";
-import { api, downloadBlob, ApiError } from "../lib/api";
+import { api, downloadBlob } from "../lib/api";
 import {
   PageHeader,
   Card,
@@ -416,34 +416,13 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
   const exportar = async () => {
     setBusy(true);
     try {
-      const estampa = `${inicio}-a-${fim}`;
-      if (formato === "pdf") {
-        try {
-          const qs = new URLSearchParams({ tipo, formato, inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
-          const blob = await api.blob(`/api/relatorios/exportar?${qs}`);
-          downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);
-        } catch (e) {
-          const err = e as ApiError;
-          if (err.status === 404) {
-            const qs2 = new URLSearchParams({ inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
-            const blob = await api.blob(`/api/relatorios/pdf/${tipo}?${qs2}`);
-            downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);
-          } else throw e;
-        }
-      } else {
-        const qs = new URLSearchParams({ tipo, formato, inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
-        const blob = await api.blob(`/api/relatorios/exportar?${qs}`);
-        downloadBlob(blob, `estoQ-${tipo}-${estampa}.csv`);
-      }
+      const qs = new URLSearchParams({ tipo, formato, inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
+      const blob = await api.blob(`/api/relatorios/exportar?${qs}`);
+      downloadBlob(blob, `estoQ-${tipo}-${inicio}-a-${fim}.${formato}`);
       toast.success(rel.usaPeriodo ? "Relatório gerado com o período selecionado" : "Relatório gerado com a posição atual");
       setAberto(false);
     } catch (e) {
-      const err = e as ApiError;
-      if (formato === "csv" && err.status === 404) {
-        toast.error("Não foi possível exportar o relatório", "A exportação CSV ainda não está disponível neste ambiente de homologação.");
-      } else {
-        toast.error("Não foi possível exportar o relatório", (e as Error).message);
-      }
+      toast.error("Não foi possível exportar o relatório", (e as Error).message);
     } finally {
       setBusy(false);
     }

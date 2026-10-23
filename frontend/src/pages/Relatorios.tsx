@@ -438,7 +438,12 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
       toast.success(rel.usaPeriodo ? "Relatório gerado com o período selecionado" : "Relatório gerado com a posição atual");
       setAberto(false);
     } catch (e) {
-      toast.error("Não foi possível exportar o relatório", (e as Error).message);
+      const err = e as ApiError;
+      if (formato === "csv" && err.status === 404) {
+        toast.error("Não foi possível exportar o relatório", "A exportação CSV ainda não está disponível neste ambiente de homologação.");
+      } else {
+        toast.error("Não foi possível exportar o relatório", (e as Error).message);
+      }
     } finally {
       setBusy(false);
     }

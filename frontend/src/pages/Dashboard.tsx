@@ -103,7 +103,7 @@ export function Dashboard() {
               to={canMove ? "/desperdicio" : undefined}
             />
             <StatCard label="Embalagens abertas" value={data.produtosAbertosAtivos} tone="accent" icon="box-open"
-              to={canMove ? "/consumo" : undefined} />
+              to={canMove ? "/desperdicio" : undefined} />
             <StatCard
               label="Balanços pendentes"
               value={data.balancosPendentes}

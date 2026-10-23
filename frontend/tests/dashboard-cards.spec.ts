@@ -6,7 +6,7 @@ const DESTINOS = [
   { label: "Estoque baixo", to: "/estoque", title: "Estoque" },
   { label: "Próximos a vencer", to: "/estoque", title: "Estoque" },
   { label: "Vencidos", to: "/desperdicio", title: "Desperdício" },
-  { label: "Embalagens abertas", to: "/consumo", title: "Consumo" },
+  { label: "Embalagens abertas", to: "/desperdicio", title: "Desperdício" },
   { label: "Balanços pendentes", to: "/balanco", title: "Balanço físico" },
 ];
 

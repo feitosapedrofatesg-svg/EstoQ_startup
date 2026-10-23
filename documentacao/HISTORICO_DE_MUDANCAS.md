@@ -1,5 +1,11 @@
 # Histórico de mudanças do EstoQ
 
+## 23/10/2026 — destino do card Embalagens abertas
+
+O card **Embalagens abertas** do Dashboard passa a abrir **Desperdício**, onde
+fica o bloco de embalagens abertas. Apenas o destino mudou; visual e permissões
+foram mantidos.
+
 ## 22/10/2026 — cards do Dashboard com navegação
 
 Os seis indicadores da Visão geral passam a ser links para o ADMIN, inclusive

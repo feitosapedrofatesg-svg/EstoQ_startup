@@ -149,7 +149,10 @@ export const api = {
     const res = await fetch(path, { credentials: "include", headers: { Accept: "application/pdf, text/csv, */*" } });
     conferirSessao(sessao);
     if (res.status === 401) window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
-    if (!res.ok) throw await parseError(res);
+    if (!res.ok) {
+      if (res.status === 404) throw new ApiError(404, "Recurso não encontrado. Verifique se o backend da homologação foi atualizado.");
+      throw await parseError(res);
+    }
     const blob = await res.blob();
     conferirSessao(sessao);
     return blob;

@@ -12,7 +12,8 @@ O contexto de animação existe somente no Dashboard: menu, alertas do cabeçalh
 demais telas, controles desabilitados e indicadores sem permissão de navegação
 não recebem o efeito. Teclado, cancelamento de toque, saída do ponteiro e perda
 de foco liberam a pressão. A preferência de movimento reduzido desativa o
-deslocamento e as transições. Foco e comportamento nativo de links/formulários
+deslocamento e as transições, inclusive ao mudar com a página aberta; desativá-la
+reativa o efeito. Foco e comportamento nativo de links/formulários
 permanecem preservados.
 
 ## 23/10/2026 — destino do card Embalagens abertas

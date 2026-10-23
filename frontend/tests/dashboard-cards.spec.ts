@@ -148,3 +148,21 @@ test("movimento reduzido não desloca controles e outras telas não recebem o ef
   await expect(page.getByRole("button", { name: "Novo usuário", exact: true })).toBeVisible();
   await expect(page.locator(".dashboard-tactile-control")).toHaveCount(0);
 });
+
+test("alterar movimento reduzido com a página aberta interrompe e reativa a pressão", async ({ page }) => {
+  await prepararDashboard(page);
+  const card = page.locator(".stat-grid").getByRole("link").first();
+  await card.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 9 });
+  await expect.poll(() => deslocamento(card)).toEqual([-1, 6]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".dashboard-tactile")).toHaveAttribute("data-reduced-motion", "true");
+  await expect.poll(() => deslocamento(card)).toEqual([0, 0]);
+  await card.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 10 });
+  expect(await deslocamento(card)).toEqual([0, 0]);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator(".dashboard-tactile")).toHaveAttribute("data-reduced-motion", "false");
+  await card.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 11 });
+  await expect.poll(() => deslocamento(card)).toEqual([-1, 6]);
+  await card.dispatchEvent("pointercancel", { pointerId: 11 });
+  await expect.poll(() => deslocamento(card)).toEqual([0, 0]);
+});

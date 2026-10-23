@@ -1,10 +1,12 @@
 import {
-  createContext, useCallback, useContext, useEffect, useRef,
+  createContext, useCallback, useContext, useEffect, useRef, useState,
   type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode,
 } from "react";
 import { useAnimate, useReducedMotion, type Transition } from "motion/react";
 
-const TactileContext = createContext(false);
+const TactileContext = createContext<{ reducedMotion: boolean } | null>(null);
+const MOTION_ENABLED = { reducedMotion: false };
+const MOTION_REDUCED = { reducedMotion: true };
 // Originkit: pressão rápida e retorno por mola. Profundidade compacta para a grade existente.
 const DX = -1;
 const DY = 6;
@@ -15,14 +17,25 @@ type Events<T extends HTMLElement> = Pick<HTMLAttributes<T>,
   "onPointerDown" | "onPointerUp" | "onPointerCancel" | "onPointerLeave" | "onKeyDown" | "onKeyUp" | "onBlur">;
 
 export function DashboardTactile({ children }: { children: ReactNode }) {
-  return <TactileContext.Provider value>
-    <div className="dashboard-tactile">{children}</div>
+  const initialReducedMotion = useReducedMotion();
+  const [reducedMotion, setReducedMotion] = useState(initialReducedMotion === true);
+  useEffect(() => {
+    // A preferência também pode mudar enquanto a página está aberta.
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return <TactileContext.Provider value={reducedMotion ? MOTION_REDUCED : MOTION_ENABLED}>
+    <div className="dashboard-tactile" data-reduced-motion={reducedMotion}>{children}</div>
   </TactileContext.Provider>;
 }
 
 export function useDashboardTactile<T extends HTMLElement>(disabled = false, original: Events<T> = {}) {
-  const enabled = useContext(TactileContext);
-  const reducedMotion = useReducedMotion();
+  const context = useContext(TactileContext);
+  const enabled = context !== null;
+  const reducedMotion = context?.reducedMotion ?? false;
   const [scope, animate] = useAnimate<T>();
   const animation = useRef<{ stop: () => void } | null>(null);
   const pressed = useRef(false);
@@ -67,9 +80,15 @@ export function useDashboardTactile<T extends HTMLElement>(disabled = false, ori
     animation.current?.stop();
     pressed.current = false;
     pointer.current = null;
-    scope.current?.style.removeProperty("transform");
-    scope.current?.style.removeProperty("box-shadow");
-  }, [disabled, enabled, reducedMotion, scope]);
+    const el = scope.current;
+    if (el) {
+      const base = getComputedStyle(el).getPropertyValue("--dashboard-tactile-base").trim();
+      // Zera também os valores internos do Motion para permitir reativar o efeito.
+      animation.current = animate(el, { x: 0, y: 0,
+        boxShadow: enabled && !disabled ? `${DX}px ${DY}px 0px 0px ${base}` : "none",
+      }, { duration: 0 });
+    }
+  }, [animate, disabled, enabled, reducedMotion, scope]);
 
   const events: Events<T> = enabled && !disabled ? {
     onPointerDown: e => {

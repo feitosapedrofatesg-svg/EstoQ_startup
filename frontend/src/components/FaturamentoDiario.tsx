@@ -75,7 +75,7 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
           disabled={loading || salvando || !!error} invalid={!!falha}
           onChange={e => { setValor(e.target.value); setAlterado(true); setFalha(null); }} />
       </Field>
-      <Button type="submit" loading={salvando} disabled={loading || !!error || !alterado}>Salvar faturamento</Button>
+      <Button type="submit" variant="good" loading={salvando} disabled={loading || !!error || !alterado}>Salvar faturamento</Button>
       <Button type="button" variant="ghost" disabled={salvando} onClick={() => {
         setAlterado(false); setFalha(null); void refresh();
       }}>Recarregar faturamento</Button>

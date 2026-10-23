@@ -10,6 +10,8 @@ import {
   NumberField,
   DataTable,
   EmptyState,
+  Modal,
+  Select,
 } from "../components/UI";
 import { BarChart, HBars, CmvGauge } from "../components/Charts";
 import { AvisoFaturamento, FaturamentoDiario } from "../components/FaturamentoDiario";
@@ -63,7 +65,7 @@ export function Relatorios() {
       </div>
 
       <Reposicao />
-      <Pdfs toast={toast} {...periodo} />
+      <ExportacaoRelatorios toast={toast} {...periodo} />
       <MetaCmv />
     </>
   );
@@ -390,53 +392,69 @@ function Reposicao() {
   );
 }
 
-function Pdfs({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<typeof useToast> }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const docs: { tipo: string; label: string }[] = [
-    { tipo: "estoque-atual", label: "Estoque atual" },
-    { tipo: "proximos-vencimento", label: "Próximos vencimentos" },
-    { tipo: "vencidos", label: "Vencidos" },
-    { tipo: "produtos-abertos", label: "Embalagens abertas" },
-    { tipo: "consumo-medio", label: "Consumo médio" },
-    { tipo: "consumo-dia-semana", label: "Consumo por dia da semana" },
-    { tipo: "reposicao-sugerida", label: "Reposição sugerida" },
-    { tipo: "faturamento", label: "Faturamento" },
-    { tipo: "cmv", label: "CMV" },
-    { tipo: "cmv-mensal", label: "CMV mensal" },
-    { tipo: "desperdicio", label: "Desperdício" },
-  ];
+const RELATORIOS_EXPORTACAO = [
+  { tipo: "estoque-atual", label: "Estoque atual", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "proximos-vencimento", label: "Próximos vencimentos", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "vencidos", label: "Vencidos", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "produtos-abertos", label: "Embalagens abertas", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "reposicao-sugerida", label: "Reposição sugerida", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "consumo-medio", label: "Consumo médio", grupo: "Consumo e perdas", usaPeriodo: true },
+  { tipo: "consumo-dia-semana", label: "Consumo por dia da semana", grupo: "Consumo e perdas", usaPeriodo: true },
+  { tipo: "desperdicio", label: "Desperdício", grupo: "Consumo e perdas", usaPeriodo: true },
+  { tipo: "faturamento", label: "Faturamento", grupo: "Financeiro", usaPeriodo: true },
+  { tipo: "cmv", label: "CMV", grupo: "Financeiro", usaPeriodo: true },
+  { tipo: "cmv-mensal", label: "CMV mensal", grupo: "Financeiro", usaPeriodo: true },
+];
 
-  const download = async (tipo: string, label: string) => {
-    setBusy(tipo);
+function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<typeof useToast> }) {
+  const [aberto, setAberto] = useState(false);
+  const [tipo, setTipo] = useState(RELATORIOS_EXPORTACAO[0].tipo);
+  const [formato, setFormato] = useState<"pdf" | "csv">("pdf");
+  const [busy, setBusy] = useState(false);
+  const rel = RELATORIOS_EXPORTACAO.find(r => r.tipo === tipo) ?? RELATORIOS_EXPORTACAO[0];
+
+  const exportar = async () => {
+    setBusy(true);
     try {
-      const qs = new URLSearchParams({ inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
-      const blob = await api.blob(`/api/relatorios/pdf/${tipo}?${qs}`);
+      const qs = new URLSearchParams({ tipo, formato, inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
+      const blob = await api.blob(`/api/relatorios/exportar?${qs}`);
       const estampa = `${inicio}-a-${fim}`;
-      downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);
-      toast.success(`${label} gerado em PDF`);
+      downloadBlob(blob, `estoQ-${tipo}-${estampa}.${formato}`);
+      toast.success(rel.usaPeriodo ? "Relatório gerado com o período selecionado" : "Relatório gerado com a posição atual");
+      setAberto(false);
     } catch (e) {
-      toast.error("Não foi possível gerar o PDF", (e as Error).message);
+      toast.error("Não foi possível exportar o relatório", (e as Error).message);
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
   return (
-    <Section title="Exportar em PDF">
-      <p className="muted">Faturamento, CMV, CMV mensal, desperdício e consumo usam o período acima. Estoque, vencimentos, embalagens abertas e reposição mostram a situação atual. Os PDFs incluem totais em dinheiro ou quantidades por unidade, conforme os dados do relatório.</p>
-      <div className="pdf-grid">
-        {docs.map((d) => (
-          <Button
-            key={d.tipo}
-            variant="outline"
-            icon="download"
-            loading={busy === d.tipo}
-            onClick={() => void download(d.tipo, d.label)}
-          >
-            {d.label}
-          </Button>
-        ))}
-      </div>
+    <Section title="Exportar relatórios">
+      <p className="muted">Um único ponto para PDF ou CSV. Relatórios de estoque, vencimentos, embalagens abertas e reposição usam a posição atual; consumo, desperdício, faturamento e CMV usam o período definido acima.</p>
+      <Button variant="accent" icon="download" onClick={() => setAberto(true)}>Exportar relatório</Button>
+      <Modal open={aberto} onClose={() => setAberto(false)} title="Exportar relatório" footer={<>
+        <Button variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
+        <Button variant="accent" icon="download" loading={busy} onClick={() => void exportar()}>Exportar {formato.toUpperCase()}</Button>
+      </>}>
+        <div className="form-grid">
+          <Field label="Relatório" htmlFor="export-tipo">
+            <Select id="export-tipo" value={tipo} onChange={e => setTipo(e.target.value)}>
+              {RELATORIOS_EXPORTACAO.map(r => <option key={r.tipo} value={r.tipo}>{r.label} — {r.grupo}{r.usaPeriodo ? " (período)" : " (posição atual)"}</option>)}
+            </Select>
+          </Field>
+          <Field label="Formato" htmlFor="export-formato">
+            <Select id="export-formato" value={formato} onChange={e => setFormato(e.target.value as "pdf" | "csv")}>
+              <option value="pdf">PDF</option>
+              <option value="csv">CSV</option>
+            </Select>
+          </Field>
+          <Field label="Período" htmlFor="export-periodo">
+            <Input id="export-periodo" value={rel.usaPeriodo ? `${inicio} a ${fim}` : "Posição atual"} readOnly />
+          </Field>
+        </div>
+        <p className="muted">O CSV usa separador ponto e vírgula, com BOM para abrir direto no Excel em pt-BR.</p>
+      </Modal>
     </Section>
   );
 }

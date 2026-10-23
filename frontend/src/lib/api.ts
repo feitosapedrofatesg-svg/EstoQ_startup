@@ -146,7 +146,7 @@ export const api = {
 
   async blob(path: string): Promise<Blob> {
     const sessao = sessaoAtual();
-    const res = await fetch(path, { credentials: "include", headers: { Accept: "application/pdf" } });
+    const res = await fetch(path, { credentials: "include", headers: { Accept: "application/pdf, text/csv, */*" } });
     conferirSessao(sessao);
     if (res.status === 401) window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
     if (!res.ok) throw await parseError(res);

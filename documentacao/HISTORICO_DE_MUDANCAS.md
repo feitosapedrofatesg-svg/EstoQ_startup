@@ -1,5 +1,20 @@
 # Histórico de mudanças do EstoQ
 
+## 23/10/2026 — filtro por usuário em Movimentações
+
+O Histórico de Movimentações ganha um seletor pesquisável de **Usuário**, com
+nome, e-mail, perfil e indicação de inativo. A lista percorre todas as páginas
+da equipe do restaurante. **Todos os usuários** remove somente esse filtro;
+tipo, produto e período continuam combinados. A seleção fica na URL como
+`usuario`, enviada à API no parâmetro existente `usuarioId`.
+
+A tabela mostra o nome do responsável e os totais acompanham os registros
+filtrados. Usuários desativados continuam disponíveis para consulta histórica.
+Falhas ao carregar a equipe não limpam o filtro; há uma ação para tentar
+novamente. A API acrescenta `usuarioNome` às respostas, usando o relacionamento
+já carregado pela consulta. Sem migração e sem mudanças de permissão: a tela
+permanece exclusiva do ADMIN e os dados seguem isolados por restaurante.
+
 ## 23/10/2026 — efeito tátil somente no Dashboard
 
 Cards clicáveis e botões da Visão geral recebem pressão rápida e retorno por

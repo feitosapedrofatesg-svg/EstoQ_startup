@@ -726,6 +726,32 @@ a:hover {
 
 /* -------------------------------------------------- search select */
 
+.card.movimentacoes-historico {
+  overflow: visible;
+}
+
+.movimentacoes-usuario {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.movimentacoes-usuario > .field {
+  margin-bottom: 0;
+}
+
+.movimentacoes-usuario .searchselect__value {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.movimentacoes-usuario .searchselect__opt {
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+  gap: 2px;
+}
+
 .searchselect__trigger {
   border: 1px solid var(--line-strong);
   border-radius: 10px;

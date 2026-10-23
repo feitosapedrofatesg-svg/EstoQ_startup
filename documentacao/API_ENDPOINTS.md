@@ -100,6 +100,14 @@ operar sobre o lote selecionado para detectar alterações concorrentes.
 | POST | `/api/produtos-abertos/{id}/consumir` | ADMIN/COZINHA; `{quantidade, version?, versionLote?, observacao?}`. |
 | POST | `/api/produtos-abertos/{id}/desperdicar` | ADMIN/COZINHA; mesmos campos de quantidade/versões/observação. |
 
+Movimentos incluem `usuarioId` e `usuarioNome` (nome atual do responsável no
+cadastro). O filtro `usuarioId` combina com produto, lote, tipo e período,
+inclusive para usuários inativos, sempre no restaurante da sessão. A tela
+Movimentações é exclusiva do ADMIN; consulta a equipe em `/api/usuarios` com
+paginação e mantém a seleção na URL como `?usuario=ID`. Usuário sem registros
+ou de outro restaurante não retorna movimentos. Datas locais podem ser enviadas
+como `dataInicio`/`dataFim`, sem misturar com `inicio`/`fim` em UTC.
+
 Tipos de movimento: ENTRADA, CONSUMO, DESPERDICIO e AJUSTE. A abertura sem uso
 não cria um tipo ABERTURA no histórico. Motivos: VENCIMENTO, DETERIORACAO,
 PREPARO_INCORRETO, SOBRA_NAO_APROVEITADA e OUTRO.

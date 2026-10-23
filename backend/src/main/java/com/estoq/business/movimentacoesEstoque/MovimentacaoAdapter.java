@@ -16,7 +16,7 @@ public class MovimentacaoAdapter {
         return new MovimentacaoDTO(m.getId(), m.getTipo(), m.getDataHora(), m.getProduto().getId(), m.getProduto().getNome(),
                 l == null ? null : l.getId(), l == null ? null : l.getCodigo(), l == null ? null : l.getVersion(),
                 l == null ? null : l.getQuantidadeAtual(),
-                m.getUsuario().getId(), m.getProdutoAberto() == null ? null : m.getProdutoAberto().getId(),
+                m.getUsuario().getId(), m.getUsuario().getNome(), m.getProdutoAberto() == null ? null : m.getProdutoAberto().getId(),
                 m.getQuantidade(), m.getQuantidadeAnterior(), m.getQuantidadePosterior(), l == null ? null : l.getPrecoUnitario(),
                 m instanceof ConsumoModel c ? c.getCustoConsumo() : null,
                 perda ? DesperdicioClassificacao.valor(m) : null,

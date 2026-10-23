@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../store/auth";
-import { useFetch } from "../lib/hooks";
+import { useFetch, useTodasPaginas } from "../lib/hooks";
 import { api } from "../lib/api";
+import { PERFIL_LABEL } from "../lib/perfis";
 import {
   PageHeader,
   LinkButton,
@@ -28,6 +29,7 @@ import type {
   ProdutoDTO,
   TipoMovimentacao,
   UnidadeMedida,
+  UsuarioResponseDTO,
 } from "../lib/types";
 import { useToast } from "../store/toast";
 
@@ -54,6 +56,7 @@ export function Movimentacoes() {
 
   const tipo = params.get("tipo") ?? "TODOS";
   const produtoId = params.get("produto") ?? "";
+  const usuarioId = params.get("usuario") ?? "";
   const [inicio, setInicio] = useState(diasAtrasISO(30));
   const [fim, setFim] = useState(hojeISO());
   const [showRegister, setShowRegister] = useState(false);
@@ -65,9 +68,17 @@ export function Movimentacoes() {
     setParams(next, { replace: true });
   };
 
+  const setUsuario = (value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set("usuario", value);
+    else next.delete("usuario");
+    setParams(next, { replace: true });
+  };
+
   const qs = new URLSearchParams();
   if (tipo !== "TODOS") qs.set("tipo", tipo);
   if (produtoId) qs.set("produtoId", produtoId);
+  if (usuarioId) qs.set("usuarioId", usuarioId);
   if (inicio) qs.set("dataInicio", inicio);
   if (fim) qs.set("dataFim", fim);
 
@@ -76,6 +87,19 @@ export function Movimentacoes() {
   );
 
   const { data: produtos } = useFetch<EstoqueDTO[]>("/api/estoque");
+  const { data: usuarios, loading: loadingUsuarios, error: erroUsuarios, refresh: refreshUsuarios } =
+    useTodasPaginas<UsuarioResponseDTO>("/api/usuarios?sort=nome,asc");
+  const usuarioOpts = useMemo(() => {
+    const options = [
+      { value: "", label: "Todos os usuários" },
+      ...(usuarios ?? []).map(u => ({ value: String(u.id), label: u.nome,
+        sub: `${u.email} · ${PERFIL_LABEL[u.perfil]}${u.ativo ? "" : " · Inativo"}` })),
+    ];
+    if (usuarioId && !options.some(o => o.value === usuarioId)) {
+      options.push({ value: usuarioId, label: `Usuário #${usuarioId}` });
+    }
+    return options;
+  }, [usuarios, usuarioId]);
   const produtoOpts = useMemo(
     () =>
       (produtos ?? []).map((p) => ({
@@ -135,6 +159,7 @@ export function Movimentacoes() {
 
       <Card
         title="Histórico"
+        className="movimentacoes-historico"
         actions={
           <div className="filters">
             <Segmented
@@ -149,6 +174,10 @@ export function Movimentacoes() {
                 { value: "AJUSTE", label: "Ajustes" },
               ]}
             />
+            <div className="movimentacoes-usuario">
+              <SearchSelect label="Usuário" htmlFor="mv-usuario" options={usuarioOpts} value={usuarioId}
+                onValue={setUsuario} placeholder={loadingUsuarios ? "Carregando usuários…" : "Todos os usuários"} />
+            </div>
             <div className="filters__dates">
               <Field label="De" htmlFor="mv-inicio">
                 <Input id="mv-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
@@ -163,13 +192,17 @@ export function Movimentacoes() {
           </div>
         }
       >
+        {erroUsuarios && <div className="alertbanner alertbanner--bad" role="alert">
+          Não foi possível carregar os usuários. O filtro selecionado foi mantido.{" "}
+          <Button size="sm" variant="ghost" onClick={() => void refreshUsuarios()}>Tentar carregar usuários</Button>
+        </div>}
         {loading && !data ? (
           <p className="muted">Carregando…</p>
         ) : data && data.length === 0 ? (
           <EmptyState
-            title="Nenhuma movimentação no período"
+            title={usuarioId ? "Nenhuma movimentação para este usuário no período" : "Nenhuma movimentação no período"}
             text={
-              isAdmin
+              usuarioId ? "Altere o usuário, o tipo ou as datas para consultar outros registros." : isAdmin
                 ? "Use o botão Registrar entrada para lançar compras e produtos que entraram no estoque."
                 : "Consulte as telas de Consumo e Desperdício para registrar as saídas do estoque."
             }
@@ -178,7 +211,7 @@ export function Movimentacoes() {
         ) : (
           <DataTable
             caption="Movimentações do estoque"
-            headers={["Quando", "Tipo", "Produto", "Lote", "Quantidade", "Valor", "Motivo"]}
+            headers={["Quando", "Tipo", "Produto", "Lote", "Quantidade", "Valor", "Motivo", "Usuário"]}
           >
             {data?.map((m) => (
               <tr key={m.id}>
@@ -209,6 +242,7 @@ export function Movimentacoes() {
                 <td className="muted-cell">
                   {m.motivo ? m.motivo.replaceAll("_", " ") : "—"}
                 </td>
+                <td className="muted-cell">{m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}</td>
               </tr>
             ))}
           </DataTable>

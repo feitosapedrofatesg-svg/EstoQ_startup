@@ -152,6 +152,7 @@ export interface MovimentacaoDTO {
   loteVersion: number | null;
   quantidadeLoteAtual: number | null;
   usuarioId: number | null;
+  usuarioNome?: string | null;
   produtoAbertoId: number | null;
   quantidade: number;
   quantidadeAnterior: number | null;

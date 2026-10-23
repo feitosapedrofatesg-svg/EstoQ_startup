@@ -1,5 +1,17 @@
 # Histórico de mudanças do EstoQ
 
+## 22/10/2026 — sugestões de categorias de NF-e mais específicas
+
+O classificador local reconhece mais abreviações fiscais e prioriza o nome
+completo normalizado, desconsiderando a embalagem, antes da primeira palavra.
+Tipos diferentes não herdam categorias pelo mesmo termo genérico; filé de
+tilápia não recebe a categoria de filé de frango. Prefixos específicos distinguem
+bebida láctea e batata palha. Produtos inativos e Sem classificação não propagam
+novas sugestões. Casos conflitantes continuam para revisão; escolhas manuais,
+categorias de produtos existentes, custos e conversões permanecem preservados.
+Sem dependências novas, serviços externos ou migração. Detalhes em
+[IMPORTACAO_NOTAS_FISCAIS.md](IMPORTACAO_NOTAS_FISCAIS.md).
+
 ## 22/10/2026 — perfil Operacional na interface
 
 O perfil antes exibido como **Cozinha** passa a se chamar **Operacional** no

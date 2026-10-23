@@ -55,6 +55,60 @@ class NotaFiscalIntegrationTest {
         assertTrue(produtoRepository.findAllByAtivoTrue().isEmpty());
     }
 
+    @Test void nomeNormalizadoMaisEspecificoSugereCategoriaSemAssociarProdutoOuCriarEstoque() {
+        var especiais=new CategoriaModel(); especiais.setNome("Cafés especiais"); categorias.saveAndFlush(especiais);
+        var mercearia=new CategoriaModel(); mercearia.setNome("Mercearia"); categorias.saveAndFlush(mercearia);
+        var torrado=new ProdutoDTO(); torrado.setNome("Café torrado 500g"); torrado.setCategoriaId(especiais.getId());
+        torrado.setUnidadeMedida(UnidadeMedida.KG); var cadastrado=produtos.criar(torrado);
+        var soluvel=new ProdutoDTO(); soluvel.setNome("Café solúvel"); soluvel.setCategoriaId(mercearia.getId());
+        soluvel.setUnidadeMedida(UnidadeMedida.KG); produtos.criar(soluvel);
+
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"CAFE TORRADO 1KG","PC1");
+        var item=nota.itens().getFirst();
+        assertEquals(especiais.getId(),item.categoriaId());
+        assertEquals("CATALOGO",item.origemCategoria());
+        assertTrue(item.motivoCategoria().contains("nome normalizado"));
+        assertNull(item.produtoId());
+        assertEquals("CAFE TORRADO 1KG",item.descricao());
+        assertEquals(0,new BigDecimal("20").compareTo(item.valorEntrada()));
+        assertEquals(0,new BigDecimal("2").compareTo(item.quantidadeNota()));
+        assertEquals(2,produtoRepository.findAllByAtivoTrue().size());
+        assertEquals(0,BigDecimal.ZERO.compareTo(produtos.buscar(cadastrado.getId()).getSaldoAtual()));
+    }
+
+    @Test void categoriaEscolhidaNaConfirmacaoAjudaProximaNotaSemReutilizarEmbalagemAlterada() {
+        var padaria=new CategoriaModel(); padaria.setNome("Insumos da padaria"); categorias.saveAndFlush(padaria);
+        var mercearia=new CategoriaModel(); mercearia.setNome("Mercearia"); categorias.saveAndFlush(mercearia);
+        var primeira=analisar(NotaFiscalExemplo.CHAVE,"FAR TRIGO 5KG","PC1");
+        assertEquals(mercearia.getId(),primeira.itens().getFirst().categoriaId());
+        var confirmada=notas.confirmar(primeira.id(),confirmar(primeira,null,padaria.getId(),new BigDecimal("5")));
+        var produtoId=confirmada.itens().getFirst().produtoId();
+        assertEquals(padaria.getId(),produtos.buscar(produtoId).getCategoriaId());
+
+        var segunda=analisar(NotaFiscalExemplo.CHAVE.replace("000000011","000000021"),"FARINHA TRIGO 1KG","PC1");
+        var item=segunda.itens().getFirst();
+        assertNull(item.produtoId());
+        assertEquals(padaria.getId(),item.categoriaId());
+        assertEquals("CATALOGO",item.origemCategoria());
+        assertTrue(item.revisarCategoria());
+        assertTrue(item.motivoCategoria().contains("fator anterior não foi reutilizado"));
+        assertFalse(item.embalagemConfirmada());
+        assertEquals(0,BigDecimal.ONE.compareTo(item.fator()));
+        assertEquals(0,new BigDecimal("10").compareTo(produtos.buscar(produtoId).getSaldoAtual()));
+        assertEquals(1,produtoRepository.findAllByAtivoTrue().size());
+        assertEquals(confirmada.itens(),notas.buscar(confirmada.id()).itens());
+    }
+
+    @Test void abreviacaoReconhecidaPreservaEscolhaManualNaConfirmacao() {
+        var laticinios=new CategoriaModel(); laticinios.setNome("Laticínios"); categorias.saveAndFlush(laticinios);
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"QJO MUSSARELA 500G","KG");
+        assertEquals(laticinios.getId(),nota.itens().getFirst().categoriaId());
+        var concluida=notas.confirmar(nota.id(),confirmar(nota,null,categoriaId,BigDecimal.ONE));
+        assertEquals(categoriaId,concluida.itens().getFirst().categoriaId());
+        assertEquals("REVISAO",concluida.itens().getFirst().origemCategoria());
+        assertEquals(categoriaId,produtos.buscar(concluida.itens().getFirst().produtoId()).getCategoriaId());
+    }
+
     @Test void reanalisarRascunhoAtualizaSugestoesERejeitaVersaoAnterior() {
         var antiga=analisar(NotaFiscalExemplo.CHAVE,"beb gaise h2o limao","KG");
         assertNull(antiga.itens().getFirst().categoriaId());

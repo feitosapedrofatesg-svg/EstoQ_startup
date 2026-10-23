@@ -1,8 +1,8 @@
 # Entrada de mercadorias por nota fiscal
 
-Revisão: **19/10/2026**.
+Revisão: **22/10/2026**.
 
-A opção **Importar nota fiscal** fica em **Movimentações**, para o administrador.
+A opção **Importar nota fiscal** fica em **Catálogo** e **Movimentações**, para o administrador.
 Enviar o documento gera uma revisão; somente **Confirmar entrada no estoque**
 cria produtos, lotes e movimentações.
 
@@ -28,16 +28,40 @@ código de barras válido ou nome exato. O histórico só é reutilizado com a m
 descrição e unidade da nota normalizadas. Se mudarem, o produto é buscado novamente,
 o fator antigo é descartado e a revisão mostra um aviso.
 
-`AssociadorCategoriaNota` classifica produtos novos. Expande BEB, GAISE, GASEIF,
-REFRI e REFRIG apenas para a busca, preservando a descrição original. O tipo
+`AssociadorCategoriaNota` sugere categorias para produtos novos. Expande BEB,
+GAISE, GASEIF, REFRI, REFRIG, BOV, SUIN, FRG, QJO, QUEIJ, LEIT, FAR, ACUC,
+MACARR, DETERG e DESINF apenas para a busca. Também reconhece CONTRAFILE e
+CR LEITE/CR DE LEITE. A descrição fiscal original é preservada. O tipo
 no começo do nome prevalece sobre o sabor: **BEB GAISE H2O LIMAO → Bebidas**,
 **LIMÃO → Hortifruti**, **DETERGENTE LIMÃO → Limpeza**. A palavra genérica
 BEBIDA não é suficiente para herdar a categoria de outro produto.
 
-O catálogo pode fornecer uma categoria personalizada pelo nome principal, desde
-que não haja conflito. Compostos como LEITE DE COCO e CALDO DE CARNE ficam para
-conferência, salvo identificação confiável de um produto existente. Mais de uma
-categoria compatível ou tipo conflitante não escolhe o primeiro resultado.
+Na sugestão de categoria, o **nome completo normalizado** tem prioridade sobre a
+primeira palavra. Conteúdos como `500g`, `1 KG` e `1,5L` são desconsiderados nessa
+comparação: CAFÉ TORRADO 1KG pode herdar a categoria de Café torrado 500g sem
+confundir com Café solúvel. Isso sugere somente a categoria, não associa um
+produto nem reaproveita seu fator de embalagem.
+
+Sem correspondência completa, o catálogo pode fornecer uma categoria
+personalizada pelo nome principal e tipo compatível, desde que não haja conflito.
+O prefixo mais específico prevalece: **BEBIDA LÁCTEA → Laticínios** e
+**BATATA PALHA → Mercearia**, sem herdar a categoria de batata inglesa. A palavra
+genérica FILÉ não permite que frango classifique tilápia. Produtos inativos,
+categorias indisponíveis e Sem classificação não servem de referência para novas
+sugestões de categoria.
+
+Compostos como LEITE DE COCO e CALDO DE CARNE ficam para conferência, salvo
+correspondência confiável com o catálogo. Mais de uma categoria para o mesmo
+nome completo ou tipo conflitante não escolhe o primeiro resultado. Uma
+correspondência completa pode resolver um conflito que existia só na primeira
+palavra; se o nome completo não resolver, a revisão continua necessária.
+
+Categorias escolhidas ao confirmar uma nota ficam no catálogo e podem ajudar
+as próximas sugestões. O histórico do fornecedor continua exigindo descrição
+e unidade compatíveis para reutilizar produto e fator. A nova normalização não
+relaxa essa proteção, não reclassifica produtos existentes e não altera custos.
+A classificação usa regras locais determinísticas, sem modelo treinado, pacote
+NPM, serviço externo ou envio de dados da nota a terceiros.
 
 Cada item explica a origem e o motivo da sugestão. **Conferir categoria** é um
 aviso, sem uma caixa obrigatória por item. A conferência final da nota permanece

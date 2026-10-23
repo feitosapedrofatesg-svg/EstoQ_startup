@@ -46,6 +46,8 @@ Sessão HTTP com BCrypt, cookie HttpOnly/Secure em produção e CSRF. O tenant �
 resolvido pela sessão, nunca aceito livremente do request. SQL nativo deve
 incluir predicado de restaurante; o isolamento do ORM não corrige SQL sem filtro.
 
+A interface exibe **Operacional** para o identificador `COZINHA`; banco, API e
+permissões mantêm esse identificador, sem migração.
 A autorização segue `SecurityConfig`: COZINHA pode desperdício operacional e
 contagem, mas não entrada/exclusão administrativa/conclusão/ajustes. Relatórios
 são ADMIN/NUTRICIONISTA. PLATAFORMA administra restaurantes e acessa exclusivamente

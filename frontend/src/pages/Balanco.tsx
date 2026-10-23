@@ -187,7 +187,7 @@ export function Balanco() {
                   Fazer o primeiro
                 </Button>
               ) : (
-                <p className="muted">A Cozinha inicia balanços; a confirmação é do administrador.</p>
+                <p className="muted">O perfil Operacional inicia balanços; a confirmação é do administrador.</p>
               )
             }
           />

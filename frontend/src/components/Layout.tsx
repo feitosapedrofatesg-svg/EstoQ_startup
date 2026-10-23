@@ -3,6 +3,7 @@ import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../store/auth";
 import { api } from "../lib/api";
 import type { AlertaDTO, Perfil } from "../lib/types";
+import { PERFIL_LABEL } from "../lib/perfis";
 import { Icon, type IconName } from "./Icon";
 import { fmtDateTime, diasAtrasISO, hojeISO } from "../lib/format";
 import { useToast } from "../store/toast";
@@ -92,13 +93,7 @@ function Brand() {
 }
 
 function RoleLabel({ perfil }: { perfil: Perfil }) {
-  const map: Record<Perfil, string> = {
-    ADMIN: "Administrador",
-    COZINHA: "Cozinha",
-    NUTRICIONISTA: "Nutricionista",
-    PLATAFORMA: "Plataforma",
-  };
-  return <span className="role-tag role-tag--plataforma">{map[perfil]}</span>;
+  return <span className="role-tag role-tag--plataforma">{PERFIL_LABEL[perfil]}</span>;
 }
 
 function AlertBell() {
@@ -305,4 +300,3 @@ export function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

@@ -1,5 +1,15 @@
 # Histórico de mudanças do EstoQ
 
+## 22/10/2026 — perfil Operacional na interface
+
+O perfil antes exibido como **Cozinha** passa a se chamar **Operacional** no
+menu, na lista e nos formulários de usuários, além dos textos explicativos.
+O identificador `COZINHA` permanece no banco, na API e nas verificações de
+permissão: contas existentes continuam funcionando sem migração. Estoque,
+Consumo, Desperdício, Balanço e consulta ao Catálogo mantêm os mesmos acessos;
+Movimentações continua restrita ao ADMIN. Referências a cozinha como restaurante
+ou ambiente de trabalho não foram renomeadas.
+
 ## 21/10/2026 — finalização de balanço sem itens
 
 A correção anterior tratava saldos zerados, mas não o retrato com **0 itens**.

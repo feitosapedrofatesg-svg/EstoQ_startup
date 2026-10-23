@@ -69,3 +69,19 @@ revertidas de forma independente pelos commits `66e434e` e `414175d`, sem
 restauração de banco.
 
 Produção e branch `main` não foram alteradas por esta entrega.
+
+## Atualização de 22/10/2026 — nome visível Operacional
+
+O perfil `COZINHA` agora é exibido como **Operacional**. Os rótulos do menu e
+de Usuários são compartilhados em `frontend/src/lib/perfis.ts`. O nome aparece
+também nas explicações de acesso, de Balanço e do Dashboard. A descrição do
+formulário indica **estoque e operação diária**, sem sugerir acesso à tela de
+Movimentações.
+
+Não foram alterados os valores dos formulários (`COZINHA`), os payloads de
+criação/edição, o enum do backend, as permissões nem o banco. Menções a cozinha
+como estabelecimento ou ambiente de trabalho permanecem como estavam.
+
+Validação local: build aprovado, 5 testes de configuração e **97 testes
+Playwright** aprovados. A cobertura inclui o rótulo em 320 e 1440 px, os acessos
+do perfil e a preservação de `COZINHA` ao criar e editar usuários existentes.

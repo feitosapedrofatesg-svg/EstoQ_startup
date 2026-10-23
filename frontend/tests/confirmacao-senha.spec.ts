@@ -42,6 +42,8 @@ test("novo usuário exige confirmação antes de gravar", async ({ page }) => {
   await page.goto("/usuarios");
   await page.getByRole("button", { name: "Novo usuário", exact: true }).click();
   const modal = page.getByRole("dialog");
+  await expect(modal.getByRole("combobox")).toHaveValue("COZINHA");
+  await expect(modal.getByRole("option", { name: "Operacional — estoque e operação diária", exact: true })).toHaveAttribute("value", "COZINHA");
   await modal.getByPlaceholder("Nome e sobrenome").fill("Operador");
   await modal.getByPlaceholder("pessoa@restaurante.com").fill("operador@teste.local");
   await modal.locator("#usuario-senha").fill("Teste@12345");

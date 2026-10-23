@@ -38,8 +38,8 @@ function AccessDenied() {
       </span>
       <p className="empty__title">Esta área não está disponível para o seu perfil</p>
       <p className="empty__text">
-        Cada perfil vê só o que precisa: cozinha movimenta, nutricionista analisa e o
-        administrador configura.
+        Cada perfil vê só o que precisa: o Operacional registra consumo, desperdício e contagens;
+        o nutricionista analisa e o administrador configura.
       </p>
       <div className="empty__action">
         <Link to="/dashboard" className="btn btn--accent">

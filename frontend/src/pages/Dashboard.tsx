@@ -143,7 +143,7 @@ export function Dashboard() {
               ) : (
                 <EmptyState
                   title="Os relatórios de CMV ficam com o nutricionista"
-                  text="O perfil Cozinha registra entradas, consumo e desperdício. A análise de CMV é feita pelo nutricionista ou administrador."
+                  text="O perfil Operacional registra consumo, desperdício e contagens de balanço. A análise de CMV é feita pelo nutricionista ou administrador."
                 />
               )}
             </Card>

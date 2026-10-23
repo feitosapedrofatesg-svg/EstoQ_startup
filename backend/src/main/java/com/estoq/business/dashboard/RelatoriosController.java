@@ -25,6 +25,7 @@ import com.estoq.business.relatorios.ReposicaoSugeridaDTO;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,9 +35,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -158,6 +166,150 @@ public class RelatoriosController {
                 .header("Content-Disposition", "attachment; filename=relatorio-" + tipo + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(bytes);
+    }
+
+    @GetMapping("/api/relatorios/exportar")
+    public void exportar(
+            @RequestParam String tipo,
+            @RequestParam String formato,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
+            @RequestParam(defaultValue = "30") long dias,
+            @RequestParam(required = false) BigDecimal receitaBase,
+            HttpServletResponse response) throws IOException {
+        if (!"pdf".equals(formato) && !"csv".equals(formato)) {
+            throw new FieldValidationException("formato", "Formato deve ser pdf ou csv.");
+        }
+        String nomeBase = "estoq-" + tipo + "-" + (inicio == null ? horario.hoje() : inicio) + "-a-" + (fim == null ? horario.hoje() : fim);
+        String nomeArquivo = URLEncoder.encode(nomeBase + "." + formato, StandardCharsets.UTF_8).replace("+", "%20");
+        if ("pdf".equals(formato)) {
+            byte[] bytes = pdfs.gerar(tipo, inicio, fim, dias, receitaBase);
+            response.setContentType(MediaType.APPLICATION_PDF_VALUE);
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + nomeArquivo);
+            response.getOutputStream().write(bytes);
+            return;
+        }
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + nomeArquivo);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        try (PrintWriter out = response.getWriter()) {
+            out.write('\ufeff');
+            gerarCsv(tipo, inicio, fim, dias, out);
+        }
+    }
+
+    private void gerarCsv(String tipo, LocalDate inicio, LocalDate fim, long dias, PrintWriter out) {
+        var periodoInicio = inicio == null ? horario.hoje().minusDays(30) : inicio;
+        var periodoFim = fim == null ? horario.hoje() : fim;
+        var de = horario.inicioUtc(periodoInicio);
+        var ate = horario.inicioUtc(periodoFim.plusDays(1));
+        DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter DATAHORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        switch (tipo) {
+            case "estoque-atual" -> {
+                out.println("Produto;Categoria;Unidade;Saldo;Valor em estoque");
+                var valorTotal = BigDecimal.ZERO;
+                for (var l : relatorios.estoqueAtual()) {
+                    valorTotal = valorTotal.add(l.valorEstoque() == null ? BigDecimal.ZERO : l.valorEstoque());
+                    out.printf("%s;%s;%s;%s;%s%n", l.produtoNome().replace(";", ",").replace("\"", "'"), l.categoriaNome() == null ? "" : l.categoriaNome().replace(";", ",").replace("\"", "'"), l.unidadeMedida(), l.saldoAtual() == null ? "" : l.saldoAtual().toString().replace(".", ","), l.valorEstoque() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", l.valorEstoque()).replace(".", ","));
+                }
+                out.printf(";;;TOTAL;%s%n", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","));
+            }
+            case "proximos-vencimento" -> {
+                out.println("Produto;Lote;Validade;Dias restantes;Quantidade;Unidade;Preço unitário;Valor do saldo");
+                var valorTotal = BigDecimal.ZERO;
+                for (var l : relatorios.proximosVencimento()) {
+                    var valor = (l.quantidadeAtual() == null ? BigDecimal.ZERO : l.quantidadeAtual()).multiply(l.precoUnitario() == null ? BigDecimal.ZERO : l.precoUnitario());
+                    valorTotal = valorTotal.add(valor);
+                    out.printf("%s;%s;%s;%s;%s;%s;%s;%s%n", l.produtoNome(), l.codigo(), l.dataValidade() == null ? "" : l.dataValidade().format(DATA), l.diasParaVencimento() == null ? "" : l.diasParaVencimento().toString(), l.quantidadeAtual() == null ? "" : l.quantidadeAtual().toString().replace(".", ","), l.unidadeMedida(), l.precoUnitario() == null ? "" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", l.precoUnitario()).replace(".", ","), String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valor).replace(".", ","));
+                }
+                out.printf(";;;;;;;%s%n", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","));
+            }
+            case "vencidos" -> {
+                out.println("Produto;Lote;Validade;Quantidade;Unidade;Preço unitário;Valor do saldo");
+                var valorTotal = BigDecimal.ZERO;
+                for (var l : relatorios.vencidos()) {
+                    var valor = (l.quantidadeAtual() == null ? BigDecimal.ZERO : l.quantidadeAtual()).multiply(l.precoUnitario() == null ? BigDecimal.ZERO : l.precoUnitario());
+                    valorTotal = valorTotal.add(valor);
+                    out.printf("%s;%s;%s;%s;%s;%s;%s%n", l.produtoNome(), l.codigo(), l.dataValidade() == null ? "" : l.dataValidade().format(DATA), l.quantidadeAtual() == null ? "" : l.quantidadeAtual().toString().replace(".", ","), l.unidadeMedida(), l.precoUnitario() == null ? "" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", l.precoUnitario()).replace(".", ","), String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valor).replace(".", ","));
+                }
+                out.printf(";;;;;;%s%n", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","));
+            }
+            case "produtos-abertos" -> {
+                out.println("Produto;Lote;Abertura;Quantidade aberta;Unidade;Quantidade restante");
+                for (var p : relatorios.produtosAbertos()) {
+                    out.printf("%s;%s;%s;%s;%s;%s%n", p.produtoNome(), p.loteCodigo(), p.dataAbertura() == null ? "" : horario.diaLocal(p.dataAbertura()).format(DATA), p.quantidadeAberta() == null ? "" : p.quantidadeAberta().toString().replace(".", ","), p.unidadeMedida(), p.quantidadeRestante() == null ? "" : p.quantidadeRestante().toString().replace(".", ","));
+                }
+            }
+            case "desperdicio" -> {
+                out.println("Data e hora;Produto;Lote;Motivo;Descrição;Quantidade;Unidade;Prejuízo");
+                var valorTotal = BigDecimal.ZERO;
+                for (var d : relatorios.desperdicio(de, ate)) {
+                    valorTotal = valorTotal.add(d.valorPrejuizo() == null ? BigDecimal.ZERO : d.valorPrejuizo());
+                    String motivo = d.motivo() == null ? "" : d.motivo().name().replace('_', ' ');
+                    out.printf("%s;%s;%s;%s;%s;%s;%s;%s%n", d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DATAHORA), d.produtoNome(), d.loteCodigo() == null ? "" : d.loteCodigo(), motivo, d.descricaoMotivo() == null ? "" : d.descricaoMotivo(), d.quantidade() == null ? "" : d.quantidade().toString().replace(".", ","), d.unidadeMedida() == null ? "" : d.unidadeMedida().toString(), d.valorPrejuizo() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", d.valorPrejuizo()).replace(".", ","));
+                }
+                out.printf(";;;;;;;%s%n", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","));
+            }
+            case "consumo-medio" -> {
+                var inicioConsumo = horario.inicioUtc(periodoFim.plusDays(1).minusDays(dias));
+                out.println("Produto;Unidade;Total consumido no período;Dias;Média por dia");
+                for (var c : relatorios.consumoMedio(inicioConsumo, ate)) {
+                    out.printf("%s;%s;%s;%s;%s%n", c.produtoNome(), c.unidadeMedida(), c.totalConsumidoPeriodo() == null ? "" : c.totalConsumidoPeriodo().toString().replace(".", ","), c.diasPeriodo(), c.consumoMedioDiario() == null ? "" : c.consumoMedioDiario().toString().replace(".", ","));
+                }
+            }
+            case "consumo-dia-semana" -> {
+                out.println("Dia da semana;Custo total;Custo médio por ocorrência");
+                var valorTotal = BigDecimal.ZERO;
+                for (var dia : relatorios.consumoPorDiaSemana(de, ate)) {
+                    valorTotal = valorTotal.add(dia.valorTotal() == null ? BigDecimal.ZERO : dia.valorTotal());
+                    out.printf("%s;%s;%s%n", dia.diaSemana().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.forLanguageTag("pt-BR")), dia.valorTotal() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", dia.valorTotal()).replace(".", ","), dia.valorMedio() == null ? "" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", dia.valorMedio()).replace(".", ","));
+                }
+                out.printf("%s;%s;%s%n", "TOTAL", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","), "");
+            }
+            case "faturamento" -> {
+                out.println("Data;Faturamento;Situação");
+                var faturamento = relatorios.faturamento(periodoInicio, periodoFim);
+                for (var dia : faturamento.dias()) {
+                    out.printf("%s;%s;%s%n", dia.data() == null ? "" : dia.data().format(DATA), dia.valor() == null ? "" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", dia.valor()).replace(".", ","), dia.valor() == null ? "Pendente" : "Informado");
+                }
+                out.printf("%s;%s;%s%n", "TOTAL INFORMADO", faturamento.totalInformado() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", faturamento.totalInformado()).replace(".", ","), "");
+            }
+            case "cmv" -> {
+                out.println("Composição;Valor");
+                var cmv = relatorios.calcularCmv(de, ate, null);
+                out.printf("%s;%s%n", "Estoque no início do período", cmv.valorEstoqueInicial() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.valorEstoqueInicial()).replace(".", ","));
+                out.printf("%s;%s%n", "+ Compras no período", cmv.valorCompras() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.valorCompras()).replace(".", ","));
+                out.printf("%s;%s%n", "- Estoque no fim do período", cmv.valorEstoqueFinal() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.valorEstoqueFinal()).replace(".", ","));
+                out.printf("%s;%s%n", "CMV do período", cmv.cmv() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.cmv()).replace(".", ","));
+                out.printf("%s;%s%n", "Consumo registrado", cmv.valorConsumoRegistrado() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.valorConsumoRegistrado()).replace(".", ","));
+                out.printf("%s;%s%n", "Desperdício", cmv.valorDesperdicio() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.valorDesperdicio()).replace(".", ","));
+                out.printf("%s;%s%n", "Perdas não explicadas", cmv.valorPerdasNaoExplicadas() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmv.valorPerdasNaoExplicadas()).replace(".", ","));
+                out.printf("%s;%s%%%n", "Percentual de CMV", cmv.cmvPercentual() == null ? "" : cmv.cmvPercentual().toString().replace(".", ","));
+                out.printf("%s;%s%%%n", "Percentual de desperdício sobre o CMV", cmv.percentualDesperdicioSobreCmv() == null ? "" : cmv.percentualDesperdicioSobreCmv().toString().replace(".", ","));
+            }
+            case "cmv-mensal" -> {
+                out.println("Mês;CMV;Compras;Desperdício");
+                var cmvTotal = BigDecimal.ZERO;
+                var comprasTotal = BigDecimal.ZERO;
+                var desperdicioTotal = BigDecimal.ZERO;
+                for (var m : relatorios.cmvPorMes(de, ate)) {
+                    cmvTotal = cmvTotal.add(m.cmv() == null ? BigDecimal.ZERO : m.cmv());
+                    comprasTotal = comprasTotal.add(m.valorCompras() == null ? BigDecimal.ZERO : m.valorCompras());
+                    desperdicioTotal = desperdicioTotal.add(m.valorDesperdicio() == null ? BigDecimal.ZERO : m.valorDesperdicio());
+                    out.printf("%s;%s;%s;%s%n", m.periodo() == null ? "" : m.periodo().format(DateTimeFormatter.ofPattern("MM/yyyy")), m.cmv() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", m.cmv()).replace(".", ","), m.valorCompras() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", m.valorCompras()).replace(".", ","), m.valorDesperdicio() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", m.valorDesperdicio()).replace(".", ","));
+                }
+                out.printf("%s;%s;%s;%s%n", "TOTAL", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", cmvTotal).replace(".", ","), String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", comprasTotal).replace(".", ","), String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", desperdicioTotal).replace(".", ","));
+            }
+            case "reposicao-sugerida" -> {
+                out.println("Produto;Categoria;Unidade;Saldo atual;Estoque mínimo;Consumo médio diário;Quantidade sugerida;Dias para reposição");
+                for (var r : relatorios.reposicaoSugerida(null)) {
+                    out.printf("%s;%s;%s;%s;%s;%s;%s;%s%n", r.produtoNome(), r.categoriaNome() == null ? "" : r.categoriaNome(), r.unidadeMedida(), r.saldoAtual() == null ? "" : r.saldoAtual().toString().replace(".", ","), r.estoqueMinimo() == null ? "" : r.estoqueMinimo().toString().replace(".", ","), r.consumoMedioDiario() == null ? "" : r.consumoMedioDiario().toString().replace(".", ","), r.quantidadeSugerida() == null ? "" : r.quantidadeSugerida().toString().replace(".", ","), r.diasReposicao());
+                }
+            }
+            default -> throw new com.estoq.core.exceptions.BusinessException("Relatório não suportado: " + tipo, org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/api/dashboard/resumo")

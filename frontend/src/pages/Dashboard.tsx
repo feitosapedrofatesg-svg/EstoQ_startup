@@ -26,7 +26,7 @@ const ALERT_LABEL: Record<AlertaDTO["tipo"], string> = {
 };
 
 export function Dashboard() {
-  const { user, isAdmin, isCozinha, canReport, canMove } = useAuth();
+  const { user, isAdmin, isCozinha, canReport, canMove, canSeeEstoque, canSeeCatalogo } = useAuth();
   const inicio = diasAtrasISO(29);
   const fim = hojeISO();
   const periodo = new URLSearchParams({ inicio, fim });
@@ -79,31 +79,37 @@ export function Dashboard() {
       {data && (
         <>
           <div className="stat-grid">
-            <StatCard label="Produtos ativos" value={data.totalProdutosAtivos} icon="boxes" />
+            <StatCard label="Produtos ativos" value={data.totalProdutosAtivos} icon="boxes"
+              to={canSeeCatalogo ? "/catalogo" : undefined} />
             <StatCard
               label="Estoque baixo"
               value={data.produtosEstoqueBaixo}
               tone={data.produtosEstoqueBaixo > 0 ? "warn" : "neutral"}
               icon="alert-triangle"
+              to={canSeeEstoque ? "/estoque" : undefined}
             />
             <StatCard
               label="Próximos a vencer"
               value={data.lotesProximosVencimento}
               tone={data.lotesProximosVencimento > 0 ? "warn" : "neutral"}
               icon="clock"
+              to={canSeeEstoque ? "/estoque" : undefined}
             />
             <StatCard
               label="Vencidos"
               value={data.lotesVencidos}
               tone={data.lotesVencidos > 0 ? "bad" : "neutral"}
               icon="alert-circle"
+              to={canMove ? "/desperdicio" : undefined}
             />
-            <StatCard label="Embalagens abertas" value={data.produtosAbertosAtivos} tone="accent" icon="box-open" />
+            <StatCard label="Embalagens abertas" value={data.produtosAbertosAtivos} tone="accent" icon="box-open"
+              to={canMove ? "/consumo" : undefined} />
             <StatCard
               label="Balanços pendentes"
               value={data.balancosPendentes}
               tone={data.balancosPendentes > 0 ? "info" : "neutral"}
               icon="scale"
+              to={canMove ? "/balanco" : undefined}
             />
           </div>
 

@@ -160,6 +160,7 @@ export function StatCard({
   tone = "neutral",
   icon,
   big,
+  to,
 }: {
   label: string;
   value: ReactNode;
@@ -167,9 +168,10 @@ export function StatCard({
   tone?: "neutral" | "accent" | "good" | "warn" | "bad" | "info";
   icon?: IconName;
   big?: boolean;
+  to?: string;
 }) {
-  return (
-    <div className={`stat stat--${tone}`}>
+  const content = (
+    <>
       <div className="stat__row">
         <span className="stat__label">{label}</span>
         {icon && (
@@ -180,7 +182,14 @@ export function StatCard({
       </div>
       <div className={`stat__value ${big ? "stat__value--big" : ""}`}>{value}</div>
       {sub && <div className="stat__sub">{sub}</div>}
-    </div>
+    </>
+  );
+  return to ? (
+    <Link to={to} className={`stat stat--${tone} stat--link`}>
+      {content}
+    </Link>
+  ) : (
+    <div className={`stat stat--${tone}`}>{content}</div>
   );
 }
 

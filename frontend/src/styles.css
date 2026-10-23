@@ -532,6 +532,22 @@ a:hover {
   border-top: 3px solid transparent;
 }
 
+.stat--link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.stat--link:hover {
+  text-decoration: none;
+  box-shadow: 0 0 0 1px var(--accent-strong);
+}
+
+.stat--link:focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-radius: var(--r);
+}
+
 .stat--accent {
   border-top-color: var(--accent);
 }

@@ -1,5 +1,18 @@
 # Histórico de mudanças do EstoQ
 
+## 22/10/2026 — cards do Dashboard com navegação
+
+Os seis indicadores da Visão geral passam a ser links para o ADMIN, inclusive
+quando o contador está zerado: Produtos ativos → Catálogo; Estoque baixo e
+Próximos a vencer → Estoque; Vencidos → Desperdício; Embalagens abertas → Consumo;
+Balanços pendentes → Balanço. A navegação abre a tela correspondente, sem aplicar
+novos filtros automaticamente. As cores, dimensões e valores foram preservados.
+
+`StatCard` aceita `to` opcional e usa um link nativo com foco de teclado; sem
+destino, permanece informativo. O Nutricionista não recebe links para áreas
+restritas e o Operacional continua entrando diretamente no Estoque. Sem alteração
+de API, banco ou permissões. Cobertura em `frontend/tests/dashboard-cards.spec.ts`.
+
 ## 22/10/2026 — sugestões de categorias de NF-e mais específicas
 
 O classificador local reconhece mais abreviações fiscais e prioriza o nome

@@ -1,5 +1,20 @@
 # Histórico de mudanças do EstoQ
 
+## 23/10/2026 — efeito tátil somente no Dashboard
+
+Cards clicáveis e botões da Visão geral recebem pressão rápida e retorno por
+mola, adaptados da referência **Tactile Button — Originkit**, usando `motion/react`.
+A base laranja usa o tema existente; fontes, textos, tamanhos e destinos foram
+preservados. A profundidade foi ajustada para 6 px para caber nos espaçamentos
+atuais. O card Embalagens abertas continua levando a Desperdício.
+
+O contexto de animação existe somente no Dashboard: menu, alertas do cabeçalho,
+demais telas, controles desabilitados e indicadores sem permissão de navegação
+não recebem o efeito. Teclado, cancelamento de toque, saída do ponteiro e perda
+de foco liberam a pressão. A preferência de movimento reduzido desativa o
+deslocamento e as transições. Foco e comportamento nativo de links/formulários
+permanecem preservados.
+
 ## 23/10/2026 — destino do card Embalagens abertas
 
 O card **Embalagens abertas** do Dashboard passa a abrir **Desperdício**, onde

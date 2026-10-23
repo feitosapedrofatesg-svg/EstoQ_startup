@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { preparar } from "./fixtures";
 
 const DESTINOS = [
@@ -73,4 +73,78 @@ test("NUTRICIONISTA vê os valores sem links para áreas operacionais restritas"
   expect(estado.consultas.some(path => /^\/api\/(estoque|produtos|balancos$|produtos-abertos)/.test(path))).toBe(false);
   await page.getByRole("link", { name: "Relatórios", exact: true }).click();
   await expect(page).toHaveURL(/\/relatorios$/);
+});
+
+async function deslocamento(control: Locator) {
+  return control.evaluate(el => {
+    const matrix = new DOMMatrix(getComputedStyle(el).transform);
+    return [Math.round(matrix.m41 * 100) / 100, Math.round(matrix.m42 * 100) / 100];
+  });
+}
+
+for (const width of [320, 1440]) {
+  test(`efeito tátil pressiona e retorna sem alterar a navegação em ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await prepararDashboard(page);
+    const card = page.locator(".stat-grid").getByRole("link", { name: /^Embalagens abertas/ });
+    await expect(card).toHaveClass(/dashboard-tactile-control/);
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: test.info().outputPath(`dashboard-tactile-${width}.png`) });
+    await card.hover();
+    await page.mouse.down();
+    await expect.poll(() => deslocamento(card)).toEqual([-1, 6]);
+    await page.screenshot({ path: test.info().outputPath(`dashboard-tactile-${width}-pressionado.png`) });
+    await page.mouse.move(1, 1);
+    await page.mouse.up();
+    await expect.poll(() => deslocamento(card)).toEqual([0, 0]);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    // O canto superior também continua acionável durante a animação.
+    await card.click({ position: { x: 12, y: 3 }, delay: 100 });
+    await expect(page).toHaveURL(/\/desperdicio$/);
+    await expect(page.getByRole("heading", { name: "Embalagens abertas", exact: true })).toBeVisible();
+    await expect(page.locator(".dashboard-tactile-control")).toHaveCount(0);
+  });
+}
+
+test("botões do Dashboard respondem ao teclado e preservam o foco", async ({ page }) => {
+  await prepararDashboard(page);
+  const reload = page.getByRole("button", { name: "Recarregar faturamento", exact: true });
+  await reload.focus();
+  await page.keyboard.down(" ");
+  await expect.poll(() => deslocamento(reload)).toEqual([-1, 6]);
+  await page.keyboard.up(" ");
+  await expect.poll(() => deslocamento(reload)).toEqual([0, 0]);
+  await expect(reload).toBeFocused();
+  expect(await reload.evaluate(el => getComputedStyle(el).outlineStyle)).toBe("solid");
+  await expect(page.getByRole("button", { name: "Salvar faturamento", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Salvar faturamento", exact: true })).not.toHaveClass(/dashboard-tactile-control/);
+  await expect(page.locator(".bell__btn")).not.toHaveClass(/dashboard-tactile-control/);
+});
+
+test("cancelamento de toque e perda de foco soltam o controle", async ({ page }) => {
+  await prepararDashboard(page);
+  const card = page.locator(".stat-grid").getByRole("link").first();
+  await card.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 7, pointerType: "touch" });
+  await expect.poll(() => deslocamento(card)).toEqual([-1, 6]);
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 7 })));
+  await expect.poll(() => deslocamento(card)).toEqual([0, 0]);
+  await card.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 8, pointerType: "touch" });
+  await expect.poll(() => deslocamento(card)).toEqual([-1, 6]);
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect.poll(() => deslocamento(card)).toEqual([0, 0]);
+});
+
+test("movimento reduzido não desloca controles e outras telas não recebem o efeito", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await prepararDashboard(page);
+  const card = page.locator(".stat-grid").getByRole("link").first();
+  await card.hover();
+  await page.mouse.down();
+  expect(await deslocamento(card)).toEqual([0, 0]);
+  expect(await card.evaluate(el => parseFloat(getComputedStyle(el).transitionDuration))).toBeLessThanOrEqual(0.001);
+  await page.mouse.move(1, 1);
+  await page.mouse.up();
+  await page.goto("/usuarios");
+  await expect(page.getByRole("button", { name: "Novo usuário", exact: true })).toBeVisible();
+  await expect(page.locator(".dashboard-tactile-control")).toHaveCount(0);
 });

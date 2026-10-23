@@ -604,6 +604,32 @@ a:hover {
   color: var(--muted);
 }
 
+/* Efeito tátil da referência Originkit, restrito aos controles do Dashboard. */
+.dashboard-tactile {
+  --dashboard-tactile-base: var(--orange);
+  padding-bottom: 6px;
+}
+
+.dashboard-tactile .dashboard-tactile-control {
+  box-shadow: -1px 6px 0 0 var(--dashboard-tactile-base);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.dashboard-tactile .dashboard-tactile-control:active {
+  transform: none;
+}
+
+.dashboard-tactile .dashboard-tactile-control:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-tactile .dashboard-tactile-control {
+    transition: none;
+  }
+}
+
 /* -------------------------------------------------- forms */
 
 .field__label {

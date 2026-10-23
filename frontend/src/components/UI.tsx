@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { Icon, type IconName } from "./Icon";
 import { parseDecimal } from "../lib/format";
 import { rotularLinhas } from "../responsividade/celular/TabelaResponsiva";
+import { useDashboardTactile } from "./DashboardTactile";
 
 /* ------------------------------------------------------------------ Button */
 
@@ -36,13 +37,16 @@ export function Button({
   disabled,
   ...rest
 }: BtnProps) {
+  const tactile = useDashboardTactile<HTMLButtonElement>(disabled || loading, rest);
   return (
     <button
       type="button"
-      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className}`}
+      ref={tactile.ref}
+      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className} ${tactile.className}`}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}
+      {...tactile.events}
     >
       {loading ? (
         <span className="spinner spinner--sm" aria-hidden="true" />
@@ -71,10 +75,13 @@ export function LinkButton({
   className?: string;
   children: ReactNode;
 }) {
+  const tactile = useDashboardTactile<HTMLAnchorElement>();
   return (
     <Link
       to={to}
-      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className}`}
+      ref={tactile.ref}
+      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className} ${tactile.className}`}
+      {...tactile.events}
     >
       {icon && <Icon name={icon} size={size === "lg" ? 20 : 17} />}
       {children}
@@ -170,6 +177,7 @@ export function StatCard({
   big?: boolean;
   to?: string;
 }) {
+  const tactile = useDashboardTactile<HTMLAnchorElement>(!to);
   const content = (
     <>
       <div className="stat__row">
@@ -185,7 +193,7 @@ export function StatCard({
     </>
   );
   return to ? (
-    <Link to={to} className={`stat stat--${tone} stat--link`}>
+    <Link to={to} ref={tactile.ref} className={`stat stat--${tone} stat--link ${tactile.className}`} {...tactile.events}>
       {content}
     </Link>
   ) : (

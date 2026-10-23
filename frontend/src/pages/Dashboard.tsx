@@ -8,6 +8,7 @@ import { AvisoFaturamento, FaturamentoDiario } from "../components/FaturamentoDi
 import { fmtMoney, fmtPct, fmtDate, fmtDateTime, fmtDataHoje, diasAtrasISO, hojeISO } from "../lib/format";
 import type { AlertaDTO, DashboardResumoDTO } from "../lib/types";
 import { useToast } from "../store/toast";
+import { DashboardTactile, DashboardTactileAction } from "../components/DashboardTactile";
 
 const ALERT_TONE: Record<AlertaDTO["tipo"], "bad" | "warn" | "info" | "good"> = {
   VENCIDO: "bad",
@@ -47,7 +48,7 @@ export function Dashboard() {
   };
 
   return (
-    <>
+    <DashboardTactile>
       <PageHeader
         title={<>Olá, {user?.nome.split(" ")[0]}.</>}
         subtitle={<span className="capitalize">{fmtDataHoje()}</span>}
@@ -168,12 +169,12 @@ export function Dashboard() {
                           <p>{a.mensagem}</p>
                           <p className="alert-list__time">{fmtDateTime(a.dataGeracao)}</p>
                         </div>
-                        <button
+                        <DashboardTactileAction
                           className="link-btn"
                           onClick={() => void markSeen(a.id)}
                         >
                           Marcar como visto
-                        </button>
+                        </DashboardTactileAction>
                       </li>
                     ))}
                   </ul>
@@ -191,6 +192,6 @@ export function Dashboard() {
           </div>
         </>
       )}
-    </>
+    </DashboardTactile>
   );
 }

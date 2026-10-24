@@ -177,11 +177,12 @@ public class RelatoriosController {
             @RequestParam(defaultValue = "30") long dias,
             @RequestParam(required = false) BigDecimal receitaBase,
             HttpServletResponse response) throws IOException {
-        if (!"pdf".equals(formato) && !"csv".equals(formato)) {
-            throw new FieldValidationException("formato", "Formato deve ser pdf ou csv.");
+        if (!"pdf".equals(formato) && !"csv".equals(formato) && !"xls".equals(formato) && !"xlsx".equals(formato)) {
+            throw new FieldValidationException("formato", "Formato deve ser pdf, csv ou xls.");
         }
         String nomeBase = "estoQ-" + tipo + "-" + (inicio == null ? horario.hoje() : inicio) + "-a-" + (fim == null ? horario.hoje() : fim);
-        String nomeArquivo = URLEncoder.encode(nomeBase + "." + formato, StandardCharsets.UTF_8).replace("+", "%20");
+        String extensao = ("xls".equals(formato) || "xlsx".equals(formato)) ? "xls" : formato;
+        String nomeArquivo = URLEncoder.encode(nomeBase + "." + extensao, StandardCharsets.UTF_8).replace("+", "%20");
         if ("pdf".equals(formato)) {
             byte[] bytes = pdfs.gerar(tipo, inicio, fim, dias, receitaBase);
             response.setContentType(MediaType.APPLICATION_PDF_VALUE);
@@ -189,12 +190,22 @@ public class RelatoriosController {
             response.getOutputStream().write(bytes);
             return;
         }
-        response.setContentType("text/csv; charset=UTF-8");
+        if ("csv".equals(formato)) {
+            response.setContentType("text/csv; charset=UTF-8");
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + nomeArquivo);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            try (PrintWriter out = response.getWriter()) {
+                out.write('\ufeff');
+                gerarCsv(tipo, inicio, fim, dias, out);
+            }
+            return;
+        }
+        response.setContentType("application/vnd.ms-excel; charset=UTF-8");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + nomeArquivo);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         try (PrintWriter out = response.getWriter()) {
             out.write('\ufeff');
-            gerarCsv(tipo, inicio, fim, dias, out);
+            gerarXls(tipo, inicio, fim, dias, receitaBase, out);
         }
     }
 
@@ -353,5 +364,151 @@ public class RelatoriosController {
 
     private LocalDateTime definirFim(LocalDate fim) {
         return horario.inicioUtc((fim == null ? horario.hoje() : fim).plusDays(1));
+    }
+
+    private void gerarXls(String tipo, LocalDate inicio, LocalDate fim, long dias, BigDecimal receitaBase, PrintWriter out) {
+        var periodoInicio = inicio == null ? horario.hoje().minusDays(30) : inicio;
+        var periodoFim = fim == null ? horario.hoje() : fim;
+        var de = horario.inicioUtc(periodoInicio);
+        var ate = horario.inicioUtc(periodoFim.plusDays(1));
+        DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter DATAHORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        String titulo = switch (tipo) {
+            case "estoque-atual" -> "Estoque atual";
+            case "proximos-vencimento" -> "Lotes próximos do vencimento";
+            case "vencidos" -> "Lotes vencidos";
+            case "produtos-abertos" -> "Embalagens abertas";
+            case "desperdicio" -> "Desperdício no período";
+            case "consumo-medio" -> "Consumo médio";
+            case "consumo-dia-semana" -> "Consumo por dia da semana";
+            case "faturamento" -> "Faturamento no período";
+            case "cmv" -> "Custo da mercadoria vendida (CMV)";
+            case "cmv-mensal" -> "CMV mês a mês";
+            case "reposicao-sugerida" -> "Reposição sugerida";
+            default -> "Relatório";
+        };
+        boolean usaPeriodo = List.of("desperdicio", "consumo-medio", "consumo-dia-semana", "faturamento", "cmv", "cmv-mensal").contains(tipo);
+
+        out.println("<html xmlns:x=\"urn:schemas-microsoft-com:office:excel\"><head><meta charset=\"UTF-8\"><style>");
+        out.println("body{font-family:Arial,sans-serif;font-size:11pt;}");
+        out.println(".brand{font-size:18pt;font-weight:bold;color:#272932;}");
+        out.println(".title{font-size:14pt;font-weight:bold;color:#272932;margin-top:4px;}");
+        out.println(".meta{font-size:9pt;color:#52545b;}");
+        out.println("table{border-collapse:collapse;margin-top:12px;}");
+        out.println("th{background:#272932;color:#ffffff;font-weight:bold;text-align:left;padding:8px 10px;border:1px solid #272932;}");
+        out.println("td{padding:7px 10px;border:1px solid #d6d9dc;}");
+        out.println(".num{text-align:right;mso-number-format:\\\"#,##0.00\\\";}");
+        out.println(".int{text-align:right;mso-number-format:\\\"0\\\";}");
+        out.println(".total td{background:#f6f6f7;font-weight:bold;border-top:2px solid #272932;}");
+        out.println(".alt td{background:#fafafa;}");
+        out.println("</style></head><body>");
+        out.println("<div class=\"brand\">EstoQ</div>");
+        out.println("<div class=\"title\">" + escHtml(titulo) + "</div>");
+        out.println("<div class=\"meta\">" + (usaPeriodo ? "Período: " + periodoInicio.format(DATA) + " a " + periodoFim.format(DATA) : "Posição: " + periodoFim.format(DATA)) + "</div>");
+        out.println("<div class=\"meta\">Gerado em: " + java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + " (UTC-3)</div>");
+
+        if ("estoque-atual".equals(tipo)) {
+            out.println("<table><thead><tr><th>Produto</th><th>Categoria</th><th>Unidade</th><th>Saldo</th><th>Valor em estoque</th></tr></thead><tbody>");
+            var valorTotal = BigDecimal.ZERO;
+            int i = 0;
+            for (var l : relatorios.estoqueAtual()) {
+                valorTotal = valorTotal.add(l.valorEstoque() == null ? BigDecimal.ZERO : l.valorEstoque());
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + escHtml(l.produtoNome()) + "</td><td>" + escHtml(l.categoriaNome()) + "</td><td>" + l.unidadeMedida() + "</td><td class=\"num\">" + numHtml(l.saldoAtual()) + "</td><td class=\"num\">" + numHtml(l.valorEstoque()) + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td colspan=\"4\">TOTAL EM ESTOQUE</td><td class=\"num\">" + numHtml(valorTotal) + "</td></tr></tbody></table>");
+        } else if ("proximos-vencimento".equals(tipo)) {
+            out.println("<table><thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Dias restantes</th><th>Quantidade</th><th>Unidade</th><th>Preço unitário</th><th>Valor do saldo</th></tr></thead><tbody>");
+            var valorTotal = BigDecimal.ZERO;
+            int i = 0;
+            for (var l : relatorios.proximosVencimento()) {
+                var valor = (l.quantidadeAtual() == null ? BigDecimal.ZERO : l.quantidadeAtual()).multiply(l.precoUnitario() == null ? BigDecimal.ZERO : l.precoUnitario());
+                valorTotal = valorTotal.add(valor);
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + escHtml(l.produtoNome()) + "</td><td>" + escHtml(l.codigo()) + "</td><td>" + (l.dataValidade() == null ? "" : l.dataValidade().format(DATA)) + "</td><td class=\"int\">" + (l.diasParaVencimento() == null ? "" : l.diasParaVencimento()) + "</td><td class=\"num\">" + numHtml(l.quantidadeAtual()) + "</td><td>" + l.unidadeMedida() + "</td><td class=\"num\">" + numHtml(l.precoUnitario()) + "</td><td class=\"num\">" + numHtml(valor) + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td colspan=\"7\">TOTAL PRÓXIMOS DO VENCIMENTO</td><td class=\"num\">" + numHtml(valorTotal) + "</td></tr></tbody></table>");
+        } else if ("vencidos".equals(tipo)) {
+            out.println("<table><thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Quantidade</th><th>Unidade</th><th>Preço unitário</th><th>Valor do saldo</th></tr></thead><tbody>");
+            var valorTotal = BigDecimal.ZERO;
+            int i = 0;
+            for (var l : relatorios.vencidos()) {
+                var valor = (l.quantidadeAtual() == null ? BigDecimal.ZERO : l.quantidadeAtual()).multiply(l.precoUnitario() == null ? BigDecimal.ZERO : l.precoUnitario());
+                valorTotal = valorTotal.add(valor);
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + escHtml(l.produtoNome()) + "</td><td>" + escHtml(l.codigo()) + "</td><td>" + (l.dataValidade() == null ? "" : l.dataValidade().format(DATA)) + "</td><td class=\"num\">" + numHtml(l.quantidadeAtual()) + "</td><td>" + l.unidadeMedida() + "</td><td class=\"num\">" + numHtml(l.precoUnitario()) + "</td><td class=\"num\">" + numHtml(valor) + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td colspan=\"6\">TOTAL LOTES VENCIDOS</td><td class=\"num\">" + numHtml(valorTotal) + "</td></tr></tbody></table>");
+        } else if ("produtos-abertos".equals(tipo)) {
+            out.println("<table><thead><tr><th>Produto</th><th>Lote</th><th>Abertura</th><th>Quantidade aberta</th><th>Unidade</th><th>Quantidade restante</th></tr></thead><tbody>");
+            int i = 0;
+            for (var p : relatorios.produtosAbertos()) {
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + escHtml(p.produtoNome()) + "</td><td>" + escHtml(p.loteCodigo()) + "</td><td>" + (p.dataAbertura() == null ? "" : horario.diaLocal(p.dataAbertura()).format(DATA)) + "</td><td class=\"num\">" + numHtml(p.quantidadeAberta()) + "</td><td>" + p.unidadeMedida() + "</td><td class=\"num\">" + numHtml(p.quantidadeRestante()) + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td colspan=\"5\">TOTAL EMBALAGENS ABERTAS</td><td class=\"int\">" + relatorios.produtosAbertos().size() + "</td></tr></tbody></table>");
+        } else if ("desperdicio".equals(tipo)) {
+            out.println("<table><thead><tr><th>Data e hora</th><th>Produto</th><th>Lote</th><th>Motivo</th><th>Descrição</th><th>Quantidade</th><th>Unidade</th><th>Prejuízo</th></tr></thead><tbody>");
+            var valorTotal = BigDecimal.ZERO;
+            int i = 0;
+            for (var d : relatorios.desperdicio(de, ate)) {
+                valorTotal = valorTotal.add(d.valorPrejuizo() == null ? BigDecimal.ZERO : d.valorPrejuizo());
+                String motivo = d.motivo() == null ? "" : d.motivo().name().replace('_', ' ');
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + (d.dataHora() == null ? "" : d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DATAHORA)) + "</td><td>" + escHtml(d.produtoNome()) + "</td><td>" + escHtml(d.loteCodigo()) + "</td><td>" + escHtml(motivo) + "</td><td>" + escHtml(d.descricaoMotivo()) + "</td><td class=\"num\">" + numHtml(d.quantidade()) + "</td><td>" + (d.unidadeMedida() == null ? "" : d.unidadeMedida()) + "</td><td class=\"num\">" + numHtml(d.valorPrejuizo()) + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td colspan=\"7\">PREJUÍZO TOTAL NO PERÍODO</td><td class=\"num\">" + numHtml(valorTotal) + "</td></tr></tbody></table>");
+        } else if ("cmv".equals(tipo)) {
+            out.println("<table><thead><tr><th>Composição e indicadores</th><th>Valor</th></tr></thead><tbody>");
+            var cmv = relatorios.calcularCmv(de, ate, receitaBase);
+            String[][] linhas = {
+                {"Estoque no início do período", numHtml(cmv.valorEstoqueInicial())},
+                {"+ Compras no período", numHtml(cmv.valorCompras())},
+                {"- Estoque no fim do período", numHtml(cmv.valorEstoqueFinal())},
+                {"CMV do período", numHtml(cmv.cmv())},
+                {"Consumo registrado", numHtml(cmv.valorConsumoRegistrado())},
+                {"Desperdício", numHtml(cmv.valorDesperdicio())},
+                {"Perdas não explicadas", numHtml(cmv.valorPerdasNaoExplicadas())},
+                {"Percentual de CMV", (cmv.cmvPercentual() == null ? "" : cmv.cmvPercentual().toString().replace(".", ",")) + "%"},
+                {"Percentual de desperdício sobre o CMV", (cmv.percentualDesperdicioSobreCmv() == null ? "" : cmv.percentualDesperdicioSobreCmv().toString().replace(".", ",")) + "%"},
+                {"Percentual ideal de CMV", (cmv.percentualIdeal() == null ? "" : cmv.percentualIdeal().toString().replace(".", ",")) + "%"},
+            };
+            int i = 0;
+            for (String[] l : linhas) {
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + escHtml(l[0]) + "</td><td class=\"num\">" + l[1] + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td>CMV TOTAL DO PERÍODO</td><td class=\"num\">" + numHtml(cmv.cmv()) + "</td></tr></tbody></table>");
+        } else if ("cmv-mensal".equals(tipo)) {
+            out.println("<table><thead><tr><th>Mês</th><th>CMV</th><th>Compras</th><th>Desperdício</th></tr></thead><tbody>");
+            var cmvTotal = BigDecimal.ZERO; var comprasTotal = BigDecimal.ZERO; var desperdicioTotal = BigDecimal.ZERO;
+            int i = 0;
+            for (var m : relatorios.cmvPorMes(de, ate)) {
+                cmvTotal = cmvTotal.add(m.cmv() == null ? BigDecimal.ZERO : m.cmv());
+                comprasTotal = comprasTotal.add(m.valorCompras() == null ? BigDecimal.ZERO : m.valorCompras());
+                desperdicioTotal = desperdicioTotal.add(m.valorDesperdicio() == null ? BigDecimal.ZERO : m.valorDesperdicio());
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + (m.periodo() == null ? "" : m.periodo().format(DateTimeFormatter.ofPattern("MM/yyyy"))) + "</td><td class=\"num\">" + numHtml(m.cmv()) + "</td><td class=\"num\">" + numHtml(m.valorCompras()) + "</td><td class=\"num\">" + numHtml(m.valorDesperdicio()) + "</td></tr>");
+            }
+            out.println("<tr class=\"total\"><td>TOTAL</td><td class=\"num\">" + numHtml(cmvTotal) + "</td><td class=\"num\">" + numHtml(comprasTotal) + "</td><td class=\"num\">" + numHtml(desperdicioTotal) + "</td></tr></tbody></table>");
+        } else if ("reposicao-sugerida".equals(tipo)) {
+            out.println("<table><thead><tr><th>Produto</th><th>Categoria</th><th>Unidade</th><th>Saldo atual</th><th>Estoque mínimo</th><th>Consumo médio diário</th><th>Quantidade sugerida</th><th>Dias para reposição</th></tr></thead><tbody>");
+            int i = 0;
+            for (var r : relatorios.reposicaoSugerida(null)) {
+                out.println("<tr class=\"" + (i++ % 2 == 1 ? "alt" : "") + "\"><td>" + escHtml(r.produtoNome()) + "</td><td>" + escHtml(r.categoriaNome()) + "</td><td>" + r.unidadeMedida() + "</td><td class=\"num\">" + numHtml(r.saldoAtual()) + "</td><td class=\"num\">" + numHtml(r.estoqueMinimo()) + "</td><td class=\"num\">" + numHtml(r.consumoMedioDiario()) + "</td><td class=\"num\">" + numHtml(r.quantidadeSugerida()) + "</td><td class=\"int\">" + r.diasReposicao() + "</td></tr>");
+            }
+            out.println("</tbody></table>");
+        } else {
+            out.println("<table><thead><tr><th>Relatório</th><th>Informação</th></tr></thead><tbody>");
+            out.println("<tr><td>Tipo</td><td>" + escHtml(tipo) + "</td></tr>");
+            out.println("</tbody></table>");
+        }
+
+        out.println("<div class=\"meta\" style=\"margin-top:16px;\">Documento gerado pelo EstoQ · Todos os valores em R$ quando aplicável</div>");
+        out.println("</body></html>");
+    }
+
+    private String escHtml(String v) {
+        if (v == null) return "";
+        return v.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private String numHtml(BigDecimal v) {
+        if (v == null) return "";
+        return String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", v);
     }
 }

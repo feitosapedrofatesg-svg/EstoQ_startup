@@ -409,7 +409,7 @@ const RELATORIOS_EXPORTACAO = [
 function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<typeof useToast> }) {
   const [aberto, setAberto] = useState(false);
   const [tipo, setTipo] = useState(RELATORIOS_EXPORTACAO[0].tipo);
-  const [formato, setFormato] = useState<"pdf" | "csv">("pdf");
+  const [formato, setFormato] = useState<"pdf" | "csv" | "xls">("xls");
   const [busy, setBusy] = useState(false);
   const rel = RELATORIOS_EXPORTACAO.find(r => r.tipo === tipo) ?? RELATORIOS_EXPORTACAO[0];
 
@@ -418,7 +418,8 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
     try {
       const qs = new URLSearchParams({ tipo, formato, inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
       const blob = await api.blob(`/api/relatorios/exportar?${qs}`);
-      downloadBlob(blob, `estoQ-${tipo}-${inicio}-a-${fim}.${formato}`);
+      const ext = formato === "xls" ? "xls" : formato;
+      downloadBlob(blob, `estoQ-${tipo}-${inicio}-a-${fim}.${ext}`);
       toast.success(rel.usaPeriodo ? "Relatório gerado com o período selecionado" : "Relatório gerado com a posição atual");
       setAberto(false);
     } catch (e) {
@@ -430,7 +431,7 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
 
   return (
     <Section title="Exportar relatórios">
-      <p className="muted">Um único ponto para PDF ou CSV. Relatórios de estoque, vencimentos, embalagens abertas e reposição usam a posição atual; consumo, desperdício, faturamento e CMV usam o período definido acima.</p>
+      <p className="muted">Exportação unificada em PDF, Excel (.XLS) ou CSV. Relatórios de estoque, vencimentos, embalagens abertas e reposição usam a posição atual; consumo, desperdício, faturamento e CMV usam o período definido acima.</p>
       <Button variant="accent" icon="download" onClick={() => setAberto(true)}>Exportar relatório</Button>
       <Modal open={aberto} onClose={() => setAberto(false)} title="Exportar relatório" footer={<>
         <Button variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
@@ -443,7 +444,8 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
             </Select>
           </Field>
           <Field label="Formato" htmlFor="export-formato">
-            <Select id="export-formato" value={formato} onChange={e => setFormato(e.target.value as "pdf" | "csv")}>
+            <Select id="export-formato" value={formato} onChange={e => setFormato(e.target.value as "pdf" | "csv" | "xls")}>
+              <option value="xls">Excel (.XLS) - Mais profissional</option>
               <option value="pdf">PDF</option>
               <option value="csv">CSV</option>
             </Select>
@@ -452,7 +454,7 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
             <Input id="export-periodo" value={rel.usaPeriodo ? `${inicio} a ${fim}` : "Posição atual"} readOnly />
           </Field>
         </div>
-        <p className="muted">O CSV usa separador ponto e vírgula, com BOM para abrir direto no Excel em pt-BR.</p>
+        <p className="muted">O arquivo Excel (.XLS) vem com cabeçalho, cores, bordas, totais e formatação pronta para impressão.</p>
       </Modal>
     </Section>
   );

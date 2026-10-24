@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../store/auth";
@@ -133,7 +134,7 @@ function AlertBell() {
       updateCache<AlertaDTO[]>("/api/alertas?visualizado=false", remover);
     } catch (e) {
       setVistos(prev => { const atual = new Set(prev); atual.delete(id); return atual; });
-      toast.error("Não foi possível atualizar", (e as Error).message);
+      toast.error("Não foi possível atualizar", mensagemErro(e));
     } finally {
       // A linha seguinte muda de posição: não deixe o segundo clique atingir outro alerta.
       liberar.current = window.setTimeout(() => { trava.current = false; setMarcando(null); }, 500);

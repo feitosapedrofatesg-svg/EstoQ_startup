@@ -1,3 +1,4 @@
+import { mensagemErro } from "../../lib/api";
 import { useMemo, useRef, useState } from "react";
 import { useFetch } from "../../lib/hooks";
 import { api, ApiError } from "../../lib/api";
@@ -62,7 +63,7 @@ export function ConsumoRapido({ produtoInicial, onDone }: { produtoInicial: stri
   const imprimir = () => {
     try { imprimirConsumo(user?.restauranteNome ?? "Restaurante", hojeISO(), revisao.map(item => ({
       produto: item.produto.produtoNome, quantidade: item.quantidade, unidade: item.produto.unidadeMedida,
-    })), true); } catch (e) { setErro((e as Error).message); }
+    })), true); } catch (e) { setErro(mensagemErro(e)); }
   };
   const registrar = async () => {
     if (bloqueio.current) return;

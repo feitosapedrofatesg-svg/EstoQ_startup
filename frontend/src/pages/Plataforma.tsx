@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useState } from "react";
 import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
@@ -38,7 +39,7 @@ export function Plataforma() {
       toast.success(r.ativo ? `${r.nome} suspensa` : `${r.nome} reativada`);
       void refresh();
     } catch (e) {
-      toast.error(`Não foi possível ${acao}`, (e as Error).message);
+      toast.error(`Não foi possível ${acao}`, mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -149,7 +150,7 @@ function RedefinirSenhaModal({
       toast.success(`Senha do administrador de ${restaurante.nome} redefinida`);
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }

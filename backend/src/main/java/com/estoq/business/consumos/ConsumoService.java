@@ -20,7 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.Map;
+import com.estoq.business.produtosAbertos.ProdutoAbertoModel;
 import java.math.BigDecimal;
 import com.estoq.business.usuarios.UsuarioModel;
 
@@ -44,13 +45,17 @@ public class ConsumoService {
         List<LoteModel> candidatos = d.loteId() == null
                 ? repository.findDisponiveisBaixa(d.produtoId(), horario.hoje())
                 : List.of(lotes.encontrar(d.loteId()));
-        var movs = baixarConsumo(d, candidatos, usuarioAtual.obter(), baixa::baixar);
+        var movs = baixarConsumo(d, candidatos, usuarioAtual.obter());
         return registros.concluir(d.produtoId(), movs);
     }
 
     /** Mesma regra para o consumo individual e conjunto; o chamador controla a transação. */
+    List<ConsumoModel> baixarConsumo(ConsumoRequestDTO d, List<LoteModel> candidatos, UsuarioModel usuario) {
+        return baixarConsumo(d, candidatos, usuario, null);
+    }
+
     List<ConsumoModel> baixarConsumo(ConsumoRequestDTO d, List<LoteModel> candidatos, UsuarioModel usuario,
-            BiFunction<LoteModel, BigDecimal, List<BaixaLoteService.Parcela>> baixar) {
+            Map<Long, List<ProdutoAbertoModel>> embalagensPorLote) {
         baixa.validarQuantidade(d.quantidade());
         var disponivel = candidatos.stream().map(LoteModel::getQuantidadeAtual)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
@@ -73,7 +78,10 @@ public class ConsumoService {
             }
             baixa.conferirVersao(lote, d.versionLote());
             var qtd = restante.min(lote.getQuantidadeAtual());
-            for (var parcela : baixar.apply(lote, qtd)) {
+            // No consumo conjunto as embalagens já vieram em uma consulta única.
+            var parcelas = embalagensPorLote == null ? baixa.baixar(lote, qtd)
+                    : baixa.baixar(lote, qtd, embalagensPorLote.getOrDefault(lote.getId(), List.of()));
+            for (var parcela : parcelas) {
                 var c = new ConsumoModel();
                 c.registrar(lote, usuario, parcela.quantidade(), parcela.anterior(), parcela.posterior(),
                         d.observacao(), parcela.aberto());

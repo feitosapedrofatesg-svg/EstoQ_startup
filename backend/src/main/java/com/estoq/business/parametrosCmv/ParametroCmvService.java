@@ -2,7 +2,6 @@ package com.estoq.business.parametrosCmv;
 
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 
-import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
 
 import lombok.RequiredArgsConstructor;
@@ -36,9 +35,7 @@ public class ParametroCmvService {
             throw new FieldValidationException("percentualIdeal", "Informe o percentual ideal entre 0 e 100.");
         }
         var atual = repository.findFirstByAtivoTrueOrderByIdDesc().orElse(null);
-        if (atual != null && dto.version() != null && !dto.version().equals(atual.getVersion())) {
-            throw new ConflictException();
-        }
+        if (atual != null) com.estoq.core.validations.VersaoRegistro.seInformada(dto.version(), atual.getVersion());
         if (atual != null) {
             atual.setAtivo(false);
         }

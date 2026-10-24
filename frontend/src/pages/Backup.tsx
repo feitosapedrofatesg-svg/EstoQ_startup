@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useState } from "react";
 import { useFetch } from "../lib/hooks";
 import { api, downloadBlob } from "../lib/api";
@@ -26,7 +27,7 @@ export function Backup() {
       toast.success("Backup gerado e baixado");
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível gerar o backup", (e as Error).message);
+      toast.error("Não foi possível gerar o backup", mensagemErro(e));
     } finally {
       setBusy(null);
     }
@@ -38,7 +39,7 @@ export function Backup() {
       const blob = await api.blob(`/api/backups/${encodeURIComponent(nome)}`);
       downloadBlob(blob, nome);
     } catch (e) {
-      toast.error("Não foi possível baixar", (e as Error).message);
+      toast.error("Não foi possível baixar", mensagemErro(e));
     } finally {
       setBusy(null);
     }

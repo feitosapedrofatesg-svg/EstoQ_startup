@@ -26,14 +26,23 @@ public class ProdutoService extends GenericService<ProdutoModel, ProdutoDTO> {
     private final IParametroEstoqueRepository parametros;
     private final ILoteRepository lotes;
     private final EstoqueService estoque;
+    private final ProdutoAdapter produtoAdapter;
+    private final IProdutoRepository produtoRepository;
 
     public ProdutoService(IProdutoRepository r, ProdutoAdapter a, IProdutoValidation v, ICategoriaRepository categorias,
             IParametroEstoqueRepository parametros, ILoteRepository lotes, EstoqueService estoque) {
         super(r, a, v);
+        this.produtoAdapter = a;
+        this.produtoRepository = r;
         this.categorias = categorias;
         this.parametros = parametros;
         this.lotes = lotes;
         this.estoque = estoque;
+    }
+
+    @Override
+    protected ProdutoDTO toDto(ProdutoModel produto) {
+        return produtoAdapter.toDto(produto, estoque.obterSaldo(produto.getId()));
     }
 
     public ProdutoModel encontrar(Long id) {
@@ -49,8 +58,8 @@ public class ProdutoService extends GenericService<ProdutoModel, ProdutoDTO> {
     public Page<ProdutoDTO> listar(Pageable pageable, String q) {
         var saldos = estoque.posicoes();
         var pagina = q == null || q.isBlank() ? repository.findAllByAtivoTrue(pageable)
-                : ((IProdutoRepository) repository).pesquisar(q.trim(), pageable);
-        return pagina.map(p -> ((ProdutoAdapter) adapter).toDto(p,
+                : produtoRepository.pesquisar(q.trim(), pageable);
+        return pagina.map(p -> produtoAdapter.toDto(p,
                 saldos.containsKey(p.getId()) ? saldos.get(p.getId()).getSaldo() : BigDecimal.ZERO));
     }
 

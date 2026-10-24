@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useMemo, useState, type ReactNode } from "react";
 import { useFetch } from "../lib/hooks";
 import { api, downloadBlob } from "../lib/api";
@@ -423,7 +424,7 @@ function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toas
       toast.success(rel.usaPeriodo ? "Relatório gerado com o período selecionado" : "Relatório gerado com a posição atual");
       setAberto(false);
     } catch (e) {
-      toast.error("Não foi possível exportar o relatório", (e as Error).message);
+      toast.error("Não foi possível exportar o relatório", mensagemErro(e));
     } finally {
       setBusy(false);
     }
@@ -476,7 +477,7 @@ function MetaCmv() {
       toast.success("Meta de CMV atualizada");
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível salvar", (e as Error).message);
+      toast.error("Não foi possível salvar", mensagemErro(e));
     }
   };
 

@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
 import { useFetch, useDebounced } from "../lib/hooks";
@@ -65,7 +66,7 @@ export function Usuarios() {
       toast.success(u.ativo ? "Usuário desativado" : "Usuário ativado");
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível atualizar", (e as Error).message);
+      toast.error("Não foi possível atualizar", mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -80,7 +81,7 @@ export function Usuarios() {
       toast.success("Usuário removido");
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível remover", (e as Error).message);
+      toast.error("Não foi possível remover", mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -235,7 +236,7 @@ function UsuarioForm({
       }
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }

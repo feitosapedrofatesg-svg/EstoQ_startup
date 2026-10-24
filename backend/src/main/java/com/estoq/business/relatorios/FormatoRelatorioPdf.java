@@ -28,7 +28,7 @@ final class FormatoRelatorioPdf {
 
     /** Os totais em dinheiro somam os mesmos centavos mostrados em cada linha. */
     static BigDecimal valorMonetario(BigDecimal valor) {
-        return (valor == null ? BigDecimal.ZERO : valor).setScale(2, RoundingMode.HALF_UP);
+        return com.estoq.core.helpers.NumeroUtil.money(valor);
     }
 
     static String moeda(BigDecimal valor) {

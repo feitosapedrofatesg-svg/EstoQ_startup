@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useMemo, useState } from "react";
 import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
@@ -68,7 +69,7 @@ export function AbrirEmbalagemModal({
       });
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +176,7 @@ export function AcaoProdutoAbertoModal({
       }
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }

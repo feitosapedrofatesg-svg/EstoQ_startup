@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useFetch } from "../lib/hooks";
@@ -56,7 +57,7 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
       setData(anterior => anterior ? { ...anterior, dias: anterior.dias.map(d => d.data === resposta.data ? resposta : d) } : anterior);
       await refresh(); setAlterado(false);
       toast.success("Faturamento do dia salvo");
-    } catch (e) { setFalha((e as Error).message); }
+    } catch (e) { setFalha(mensagemErro(e)); }
     finally { setSalvando(false); }
   };
 

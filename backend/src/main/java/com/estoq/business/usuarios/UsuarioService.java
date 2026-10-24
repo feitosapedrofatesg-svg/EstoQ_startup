@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -67,9 +66,7 @@ public class UsuarioService {
         var responsavel = usuarioAtual.obter();
         bloquearRestaurante(responsavel.getRestauranteId());
         UsuarioModel u = encontrar(id);
-        if (!Objects.equals(u.getVersion(), dto.version())) {
-            throw new ConflictException();
-        }
+        com.estoq.core.validations.VersaoRegistro.conferir(dto.version(), u.getVersion());
         if (!dto.ativo() || dto.perfil() != Perfil.ADMIN) {
             protegerUltimoAdmin(u);
         }

@@ -3,7 +3,6 @@ package com.estoq.core.services;
 import com.estoq.core.domains.BaseModel;
 import com.estoq.core.dtos.BaseDTO;
 import com.estoq.core.exceptions.BusinessException;
-import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
 import com.estoq.core.helpers.IGenericAdapter;
 import com.estoq.core.repositories.IGenericRepository;
@@ -14,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
 
 /** CRUD e conversão dentro da transação: nenhum proxy JPA escapa para o controller. */
 @Transactional(readOnly = true)
@@ -40,11 +38,11 @@ public abstract class GenericService<E extends BaseModel, D extends BaseDTO> imp
     }
 
     public D buscar(Long id) {
-        return adapter.toDto(findActive(id));
+        return toDto(findActive(id));
     }
 
     public Page<D> listar(Pageable pageable) {
-        return repository.findAllByAtivoTrue(pageable).map(adapter::toDto);
+        return repository.findAllByAtivoTrue(pageable).map(this::toDto);
     }
 
     @Transactional
@@ -58,25 +56,20 @@ public abstract class GenericService<E extends BaseModel, D extends BaseDTO> imp
         repository.saveAndFlush(entity);
         afterSave(entity);
         if (entity instanceof com.estoq.core.domains.TenantEntity tenant) notificador.registrar(tenant);
-        return adapter.toDto(entity);
+        return toDto(entity);
     }
 
     @Transactional
     public D atualizar(Long id, D dto) {
         E entity = findActive(id);
-        if (dto.getVersion() == null) {
-            throw new FieldValidationException("version", "Informe a versão consultada para atualizar.");
-        }
-        if (!Objects.equals(dto.getVersion(), entity.getVersion())) {
-            throw new ConflictException();
-        }
+        com.estoq.core.validations.VersaoRegistro.obrigatoria(dto.getVersion(), entity.getVersion());
         adapter.updateEntity(dto, entity);
         beforeSave(entity, dto);
         validation.validate(entity);
         repository.flush();
         afterSave(entity);
         if (entity instanceof com.estoq.core.domains.TenantEntity tenant) notificador.registrar(tenant);
-        return adapter.toDto(entity);
+        return toDto(entity);
     }
 
     @Transactional
@@ -88,6 +81,8 @@ public abstract class GenericService<E extends BaseModel, D extends BaseDTO> imp
         afterSave(entity);
         if (entity instanceof com.estoq.core.domains.TenantEntity tenant) notificador.registrar(tenant);
     }
+
+    protected D toDto(E entity) { return adapter.toDto(entity); }
 
     protected void beforeSave(E entity, D dto) {
     }

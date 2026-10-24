@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Objects;
 import java.util.HashMap;
 
 @Service
@@ -60,7 +59,7 @@ public class BalancoService {
 
     private void conferirVersao(Long consultada, Long atual) {
         if (consultada == null) throw new FieldValidationException("version", "Recarregue a tela antes de continuar.");
-        if (!Objects.equals(consultada, atual)) throw new ConflictException("O balanço ou a contagem mudou em outra sessão. Confira os dados atualizados.");
+        com.estoq.core.validations.VersaoRegistro.conferir(consultada, atual, "O balanço ou a contagem mudou em outra sessão. Confira os dados atualizados.");
     }
 
     @Transactional

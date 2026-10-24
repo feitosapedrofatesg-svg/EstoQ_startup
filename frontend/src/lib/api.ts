@@ -2,6 +2,10 @@ import { invalidarAposGravacao } from "./cache";
 import { sessaoAtual } from "./sessao";
 import type { ErrorResponse } from "./types";
 
+export function mensagemErro(erro: unknown): string {
+  return erro instanceof Error ? erro.message : "Não foi possível concluir a operação.";
+}
+
 export class ApiError extends Error {
   status: number;
   title?: string;

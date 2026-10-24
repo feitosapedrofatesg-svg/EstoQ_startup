@@ -1,5 +1,15 @@
 # Histórico de mudanças do EstoQ
 
+## 24/10/2026 — camadas e exportações compartilhadas
+
+Controller delega PDF/CSV/XLS aos serviços; os três formatos usam a mesma
+preparação de dados, filtros e totais. CSV considera a receita informada e
+escapa separadores, aspas e fórmulas de texto. XLS mantém HTML compatível com
+Excel, com todos os tipos de relatório. Adapter de produto só converte; saldo
+é consultado pelo serviço, em lote nas listagens. Validação de versões e
+arredondamento monetário reutilizam o core. Componentes de balanço e UI foram
+separados preservando imports, e mensagens de erro usam um helper comum.
+
 ## 23/10/2026 — filtro por usuário em Movimentações
 
 O Histórico de Movimentações ganha um seletor pesquisável de **Usuário**, com

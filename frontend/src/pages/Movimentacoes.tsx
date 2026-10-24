@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../store/auth";
@@ -325,7 +326,7 @@ function RegisterEntrada({
       });
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }

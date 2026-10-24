@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
 import { useFetch, useTodasPaginas, useDebounced } from "../lib/hooks";
@@ -86,7 +87,7 @@ export function Catalogo() {
         void refreshProds();
       }
     } catch (e) {
-      toast.error("Não foi possível remover", (e as Error).message);
+      toast.error("Não foi possível remover", mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -276,7 +277,7 @@ function CategoriaForm({ cat, onClose, onDone }: { cat: CategoriaDTO | null; onC
       toast.success(cat ? "Categoria atualizada" : "Categoria criada");
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }
@@ -377,7 +378,7 @@ function ProdutoForm({
       toast.success(prod ? "Produto atualizado" : "Produto criado");
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }

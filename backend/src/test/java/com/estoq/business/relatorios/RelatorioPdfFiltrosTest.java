@@ -18,7 +18,7 @@ class RelatorioPdfFiltrosTest {
         var ate = fim.plusDays(1).atTime(3, 0);
         when(relatorios.consumoMedio(inicio.atTime(3, 0), ate)).thenReturn(List.of(
                 new ConsumoMedioDTO(1L, "Arroz integral", "KG", new BigDecimal("12.375"), 6, new BigDecimal("2.063"))));
-        var bytes = new RelatorioPdfService(new com.estoq.core.helpers.HorarioOperacao(), relatorios).gerar("consumo-medio", inicio, fim, 6, null);
+        var bytes = new RelatorioPdfService(new PreparadorRelatorioService(new com.estoq.core.helpers.HorarioOperacao(), relatorios)).gerar("consumo-medio", inicio, fim, 6, null);
         verify(relatorios).consumoMedio(inicio.atTime(3, 0), ate);
         try (var pdf = Loader.loadPDF(bytes)) {
             String texto = new PDFTextStripper().getText(pdf);
@@ -38,7 +38,7 @@ class RelatorioPdfFiltrosTest {
                 new BigDecimal("12345.67"), new BigDecimal("5000"), new BigDecimal("9345.67"), new BigDecimal("8000"), receita,
                 new BigDecimal("32"), new BigDecimal("30"), new BigDecimal("2"), new BigDecimal("7500"), new BigDecimal("500"), new BigDecimal("6.25"), BigDecimal.ZERO,
                 BigDecimal.ZERO, 1, true));
-        var bytes = new RelatorioPdfService(new com.estoq.core.helpers.HorarioOperacao(), relatorios).gerar("cmv", dia, dia, 1, receita);
+        var bytes = new RelatorioPdfService(new PreparadorRelatorioService(new com.estoq.core.helpers.HorarioOperacao(), relatorios)).gerar("cmv", dia, dia, 1, receita);
         verify(relatorios).calcularCmv(inicio, fim, receita);
         try (var pdf = Loader.loadPDF(bytes)) {
             String texto = new PDFTextStripper().getText(pdf);
@@ -59,7 +59,7 @@ class RelatorioPdfFiltrosTest {
                 new DesperdicioDTO(dia.atTime(20, 26), com.estoq.business.desperdicios.MotivoDesperdicio.OUTRO, "Diferença negativa de balanço",
                         1L, "Arroz", "LOTE2", new BigDecimal("1"), new BigDecimal("7.66"), "KG")));
         when(relatorios.estoqueAtual()).thenReturn(List.of());
-        var bytes = new RelatorioPdfService(new com.estoq.core.helpers.HorarioOperacao(), relatorios).gerar("desperdicio", dia, dia, 1, null);
+        var bytes = new RelatorioPdfService(new PreparadorRelatorioService(new com.estoq.core.helpers.HorarioOperacao(), relatorios)).gerar("desperdicio", dia, dia, 1, null);
         try (var pdf = Loader.loadPDF(bytes)) {
             String texto = new PDFTextStripper().getText(pdf);
             assertTrue(texto.contains("DETERIORACAO"));
@@ -81,7 +81,7 @@ class RelatorioPdfFiltrosTest {
         when(relatorios.vencidos()).thenReturn(List.of(
                 new com.estoq.business.lotes.LoteDTO(1L, 0L, "VENCIDO", 1L, "Arroz", unidade, new BigDecimal("3"), new BigDecimal("3"), dia.minusDays(10), dia.minusDays(1), new BigDecimal("3.3333"), true, false, -1L)));
         for (String tipo : List.of("estoque-atual", "vencidos")) {
-            var bytes = new RelatorioPdfService(new com.estoq.core.helpers.HorarioOperacao(), relatorios).gerar(tipo, dia, dia, 1, null);
+            var bytes = new RelatorioPdfService(new PreparadorRelatorioService(new com.estoq.core.helpers.HorarioOperacao(), relatorios)).gerar(tipo, dia, dia, 1, null);
             try (var pdf = Loader.loadPDF(bytes)) {
                 String texto = new PDFTextStripper().getText(pdf);
                 assertTrue(texto.contains(tipo.equals("estoque-atual") ? "Valor total em estoque" : "Valor total dos lotes vencidos"));

@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useId, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFetch } from "../lib/hooks";
@@ -305,7 +306,7 @@ function FormularioDesperdicio({
       setDescricaoMotivo("");
       onDone();
     } catch (e) {
-      setError((e as Error).message);
+      setError(mensagemErro(e));
     } finally {
       setSubmitting(false);
     }

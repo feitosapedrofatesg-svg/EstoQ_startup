@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFetch } from "../lib/hooks";
@@ -148,7 +149,7 @@ export function Consumo() {
                 consolidados.set(chave, linha);
               }
               try { imprimirConsumo(user?.restauranteNome ?? "Restaurante", hoje, [...consolidados.values()].sort((a, b) => a.produto.localeCompare(b.produto))); }
-              catch (e) { toast.error("Não foi possível imprimir", (e as Error).message); }
+              catch (e) { toast.error("Não foi possível imprimir", mensagemErro(e)); }
             }}>Imprimir lista do dia</Button>
             <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshRegistros()}>
               Atualizar

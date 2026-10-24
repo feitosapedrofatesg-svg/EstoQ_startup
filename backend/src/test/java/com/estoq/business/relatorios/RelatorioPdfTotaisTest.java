@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 
 class RelatorioPdfTotaisTest {
     private final RelatorioService relatorios = mock(RelatorioService.class);
-    private final RelatorioPdfService pdfs = new RelatorioPdfService(new HorarioOperacao(), relatorios);
+    private final RelatorioPdfService pdfs = new RelatorioPdfService(new PreparadorRelatorioService(new HorarioOperacao(), relatorios));
     private final LocalDate inicio = LocalDate.of(2026, 8, 10);
     private final LocalDate fim = inicio.plusDays(2);
 

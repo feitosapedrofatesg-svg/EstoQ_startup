@@ -31,7 +31,6 @@ public class ConsumoLoteService {
     private final IProdutoRepository produtos;
     private final ILoteRepository lotes;
     private final IProdutoAbertoRepository abertos;
-    private final BaixaLoteService baixa;
     private final ConsumoService consumos;
     private final MovimentacaoRegistroService registros;
     private final EstoqueService estoque;
@@ -69,8 +68,7 @@ public class ConsumoLoteService {
             var disponiveis = porProduto.getOrDefault(item.produtoId(), List.of()).stream()
                     .filter(l -> item.loteId() == null ? l.estaDisponivel(horario.hoje()) : l.getId().equals(item.loteId())).toList();
             try {
-                movimentos.addAll(consumos.baixarConsumo(item, disponiveis, usuario,
-                        (l, qtd) -> baixa.baixar(l, qtd, porLote.getOrDefault(l.getId(), List.of()))));
+                movimentos.addAll(consumos.baixarConsumo(item, disponiveis, usuario, porLote));
             } catch (BaseException e) {
                 // Uma falha interrompe toda a transação, sem deixar consumo parcial.
                 throw new ConflictException(produto.getNome() + ": " + e.getMessage());

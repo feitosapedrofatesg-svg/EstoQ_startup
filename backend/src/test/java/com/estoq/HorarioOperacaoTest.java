@@ -25,7 +25,7 @@ class HorarioOperacaoTest {
     void relatorioPadraoIncluiACompraFeitaAsVinteEDuasHoras() {
         var horario = new HorarioOperacao(Clock.fixed(Instant.parse("2026-10-18T01:00:00Z"), ZoneOffset.UTC));
         var relatorios = mock(RelatorioService.class);
-        var controller = new RelatoriosController(horario, relatorios, null, null, null);
+        var controller = new RelatoriosController(horario, relatorios, null, null, null, null);
         controller.cmv(null, null, null);
         verify(relatorios).calcularCmv(LocalDateTime.of(2026, 9, 17, 3, 0), LocalDateTime.of(2026, 10, 18, 3, 0), null);
     }

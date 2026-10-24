@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { ProximoBalanco } from "../components/ProximoBalanco";
 import { useAuth } from "../store/auth";
 import { useFetch } from "../lib/hooks";
@@ -43,7 +44,7 @@ export function Dashboard() {
       await api.put(`/api/alertas/${id}/visualizado`);
       void refreshAlerts();
     } catch (e) {
-      toast.error("Não foi possível atualizar", (e as Error).message);
+      toast.error("Não foi possível atualizar", mensagemErro(e));
     }
   };
 

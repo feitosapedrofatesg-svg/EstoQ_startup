@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /** Um único caminho de baixa mantém lote e parcelas abertas coerentes. */
 @Service
@@ -26,9 +25,7 @@ public class BaixaLoteService {
     }
 
     public void conferirVersao(LoteModel lote, Long version) {
-        if (version != null && !Objects.equals(version, lote.getVersion())) {
-            throw new ConflictException();
-        }
+        com.estoq.core.validations.VersaoRegistro.seInformada(version, lote.getVersion());
     }
 
     public void validarQuantidade(BigDecimal qtd) {

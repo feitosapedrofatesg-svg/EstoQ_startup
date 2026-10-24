@@ -5,7 +5,6 @@ import com.estoq.core.helpers.HorarioOperacao;
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.core.exceptions.BusinessException;
-import com.estoq.core.exceptions.ConflictException;
 import com.estoq.core.exceptions.FieldValidationException;
 
 import lombok.RequiredArgsConstructor;
@@ -46,9 +45,7 @@ public class ConfiguracaoBalancoService {
         } else {
             entity = repository.findByIdAndAtivoTrue(dto.id())
                     .orElseThrow(() -> new BusinessException("Configuração não encontrada.", HttpStatus.NOT_FOUND));
-            if (dto.version() == null || !dto.version().equals(entity.getVersion())) {
-                throw new ConflictException();
-            }
+            com.estoq.core.validations.VersaoRegistro.conferir(dto.version(), entity.getVersion());
         }
         entity.setPeriodicidade(dto.periodicidade());
         entity.setDiaExecucao(dto.diaExecucao());

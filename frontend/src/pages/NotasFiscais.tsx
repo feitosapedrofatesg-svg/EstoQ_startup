@@ -1,3 +1,4 @@
+import { mensagemErro } from "../lib/api";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
@@ -86,7 +87,7 @@ export function NotasFiscais() {
     if (notaId && nota?.id !== Number(notaId)) {
       void api.get<NotaFiscalDTO>(`/api/notas-fiscais/${notaId}`)
         .then(resultado => { if (ativo) mostrar(resultado); })
-        .catch(e => { if (ativo) setErro((e as Error).message); });
+        .catch(e => { if (ativo) setErro(mensagemErro(e)); });
     }
     return () => { ativo = false; };
   }, [notaId]);
@@ -105,7 +106,7 @@ export function NotasFiscais() {
       const corpo = new FormData(); arquivos.forEach(a => corpo.append("arquivos", a));
       const resultado = await api.post<NotaFiscalDTO>("/api/notas-fiscais/analisar", corpo);
       mostrar(resultado); setParams({ id: String(resultado.id) }, { replace: true });
-    } catch (e) { setErro((e as Error).message); }
+    } catch (e) { setErro(mensagemErro(e)); }
     finally { setOcupado(false); }
   };
   const confirmar = async () => {
@@ -125,7 +126,7 @@ export function NotasFiscais() {
       });
       mostrar(resultado);
       toast.success("Entrada confirmada", "Produtos, lotes e estoque foram atualizados.");
-    } catch (e) { setErro((e as Error).message); }
+    } catch (e) { setErro(mensagemErro(e)); }
     finally { setOcupado(false); }
   };
   const selecionados = itens.filter(i => i.selecionado);

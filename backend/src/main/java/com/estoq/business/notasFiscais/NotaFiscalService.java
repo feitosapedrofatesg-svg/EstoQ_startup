@@ -111,7 +111,7 @@ public class NotaFiscalService {
         // O bloqueio da nota torna o clique duplo idempotente, mesmo em requisições concorrentes.
         var nota = repository.bloquear(id).orElseThrow(() -> new BusinessException("Nota não encontrada.",HttpStatus.NOT_FOUND));
         if (nota.isConfirmada()) return adapter.toDto(nota);
-        if (!Objects.equals(dto.version(),nota.getVersion())) throw new ConflictException();
+        com.estoq.core.validations.VersaoRegistro.conferir(dto.version(), nota.getVersion());
         if (!dto.custosConferidos()) throw new FieldValidationException("custosConferidos","Confira o total, os descontos e o rateio da nota.");
         var decisoes = new HashMap<Long,ConfirmarNotaDTO.Item>();
         for (var item : dto.itens()) if (decisoes.put(item.id(),item)!=null)

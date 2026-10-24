@@ -1,3 +1,4 @@
+import { mensagemErro } from "./api";
 import {
   useCallback,
   useEffect,
@@ -55,7 +56,7 @@ export function useFetch<T>(path: string | null, deps: unknown[] = [], _revalida
       const resultado = await buscarCache(chave, () => loader.current ? loader.current(path) : api.get<T>(path));
       if (vigente() && resultado !== undefined) setEstado({ chave, data: resultado, error: null });
     } catch (e) {
-      if (vigente()) setEstado(prev => ({ ...prev, error: (e as Error).message }));
+      if (vigente()) setEstado(prev => ({ ...prev, error: mensagemErro(e) }));
     }
   }, [path, chave]);
 

@@ -2,17 +2,14 @@ package com.estoq.business.produtos;
 
 import com.estoq.core.helpers.IGenericAdapter;
 
-import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 @Component
-@RequiredArgsConstructor
 public class ProdutoAdapter implements IGenericAdapter<ProdutoModel, ProdutoDTO> {
 
-    private final EstoqueService estoque;
 
     @Override
     public ProdutoModel toEntity(ProdutoDTO d) {
@@ -30,7 +27,7 @@ public class ProdutoAdapter implements IGenericAdapter<ProdutoModel, ProdutoDTO>
 
     @Override
     public ProdutoDTO toDto(ProdutoModel p) {
-        return toDto(p, estoque.obterSaldo(p.getId()));
+        return toDto(p, BigDecimal.ZERO);
     }
 
     public ProdutoDTO toDto(ProdutoModel p, BigDecimal saldo) {

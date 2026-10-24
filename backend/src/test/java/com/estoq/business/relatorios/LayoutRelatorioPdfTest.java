@@ -38,7 +38,7 @@ class LayoutRelatorioPdfTest {
                 "Deterioração da embalagem e ajuste negativo de balanço", "123,456", "R$ 9.876,54"));
         var dados = new DocumentoRelatorioPdf("Desperdício no período", "Período: 01/10/2026 a 12/10/2026",
                 List.of(new Coluna("Data e hora", 2, false), new Coluna("Produto", 3, false), new Coluna("Motivo", 3, false), new Coluna("Quantidade", 2, true), new Coluna("Prejuízo", 2, true)),
-                linhas, List.of(), "Quantidades na unidade de cadastro de cada produto.", new Destaque("Prejuízo total no período", "R$ 839.505,90"));
+                linhas, List.of(), "Quantidades na unidade de cadastro de cada produto.", List.of(new Destaque("Prejuízo total no período", "R$ 839.505,90")));
         var bytes = new LayoutRelatorioPdf().gerar(dados);
         guardar("desperdicio", bytes);
         try (var pdf = Loader.loadPDF(bytes)) {
@@ -89,5 +89,29 @@ class LayoutRelatorioPdfTest {
     private void guardar(String nome, byte[] bytes) throws Exception {
         String pasta = System.getProperty("estoq.pdf.validacao");
         if (pasta != null) { Files.createDirectories(Path.of(pasta)); Files.write(Path.of(pasta, nome + ".pdf"), bytes); }
+    }
+
+    @Test
+    void variosTotaisQuebramPaginaSemSobreporRodape() throws Exception {
+        var totais = new ArrayList<Destaque>();
+        for (int i = 1; i <= 30; i++) totais.add(new Destaque("Quantidade restante total por unidade de cadastro " + i, "123.456.789,123"));
+        var dados = new DocumentoRelatorioPdf("Embalagens abertas", "Posição atual em 12/10/2026",
+                List.of(new Coluna("Produto", 3, false), new Coluna("Restante", 2, true)),
+                List.of(List.of("Arroz", "10 kg")), List.of(), null, totais);
+        byte[] bytes = new LayoutRelatorioPdf().gerar(dados);
+        guardar("varios-totais", bytes);
+        try (var pdf = Loader.loadPDF(bytes)) {
+            assertTrue(pdf.getNumberOfPages() > 1);
+            String texto = new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
+            assertTrue(texto.contains("cadastro 30"));
+            new PDFTextStripper() {
+                @Override protected void processTextPosition(TextPosition posicao) {
+                    assertTrue(posicao.getXDirAdj() >= 39);
+                    assertTrue(posicao.getXDirAdj() + posicao.getWidthDirAdj() <= 556);
+                    assertTrue(posicao.getYDirAdj() <= 822);
+                    super.processTextPosition(posicao);
+                }
+            }.getText(pdf);
+        }
     }
 }

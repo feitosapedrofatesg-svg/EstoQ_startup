@@ -10,12 +10,16 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,6 +83,118 @@ class TenantIsolamentoIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
         return json.readTree(res.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    @Test
+    void filtroDeMovimentacoesPorUsuarioPreservaHistoricoEIsolaRestaurantes() throws Exception {
+        registrar("Filtro A", "filtro-a@teste.com", "Teste@12345");
+        registrar("Filtro B", "filtro-b@teste.com", "Teste@12345");
+        var a = login("filtro-a@teste.com", "Teste@12345");
+        var b = login("filtro-b@teste.com", "Teste@12345");
+        var operador = mvc.perform(post("/api/usuarios").session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Operador A\",\"email\":\"operador-a@teste.com\",\"senha\":\"Teste@12345\",\"perfil\":\"COZINHA\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long operadorId = json.readTree(operador.getResponse().getContentAsString()).get("id").asLong();
+        var cozinha = login("operador-a@teste.com", "Teste@12345");
+        long categoriaA = criarCategoria(a, "Produtos A");
+        long categoriaB = criarCategoria(b, "Produtos B");
+        var produtoIds = new java.util.ArrayList<Long>();
+        for (int i = 0; i < 3; i++) {
+            var sessao = i < 2 ? a : b;
+            long categoria = i < 2 ? categoriaA : categoriaB;
+            var produto = mvc.perform(post("/api/produtos").session(sessao).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"nome\":\"Produto " + i + "\",\"unidadeMedida\":\"UN\",\"categoriaId\":" + categoria + "}"))
+                    .andExpect(status().isCreated()).andReturn();
+            long id = json.readTree(produto.getResponse().getContentAsString()).get("id").asLong();
+            produtoIds.add(id);
+            mvc.perform(post("/api/entradas").session(sessao).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"produtoId\":" + id + ",\"quantidade\":10,\"valorTotalPago\":100,\"unidadeCompra\":\"UN\"}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.movimentacoes[0].usuarioNome").value(i < 2 ? "Dono de Filtro A" : "Dono de Filtro B"));
+        }
+        for (var produtoId : produtoIds.subList(0, 2)) {
+            mvc.perform(post("/api/consumos").session(cozinha).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"produtoId\":" + produtoId + ",\"quantidade\":1}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.movimentacoes[0].usuarioNome").value("Operador A"));
+        }
+        mvc.perform(delete("/api/usuarios/" + operadorId).session(a).with(csrf())).andExpect(status().isNoContent());
+        String hoje = java.time.LocalDate.now(com.estoq.core.helpers.HorarioOperacao.FUSO).toString();
+        String rota = "/api/movimentacoes?dataInicio=" + hoje + "&dataFim=" + hoje;
+        mvc.perform(get(rota + "&usuarioId=" + operadorId).session(a))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].usuarioNome").value("Operador A"));
+        mvc.perform(get(rota + "&usuarioId=" + operadorId + "&produtoId=" + produtoIds.getFirst() + "&tipo=CONSUMO").session(a))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].usuarioId").value(operadorId))
+                .andExpect(jsonPath("$[0].produtoId").value(produtoIds.getFirst()))
+                .andExpect(jsonPath("$[0].tipo").value("CONSUMO"))
+                .andExpect(jsonPath("$[0].usuarioNome").value("Operador A"));
+        mvc.perform(get(rota + "&usuarioId=" + operadorId + "&tipo=ENTRADA").session(a))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(rota + "&usuarioId=999999").session(a))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(rota + "&usuarioId=" + operadorId).session(b))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(rota).session(b))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].usuarioNome").value("Dono de Filtro B"));
+        var usuariosA = mvc.perform(get("/api/usuarios?size=100").session(a)).andExpect(status().isOk()).andReturn();
+        var inativo = json.readTree(usuariosA.getResponse().getContentAsString()).get("content").valueStream()
+                .filter(u -> u.get("id").asLong() == operadorId).findFirst().orElseThrow();
+        assertFalse(inativo.get("ativo").asBoolean());
+    }
+
+    @Test
+    void faturamentoDiarioIsolaLojasEExigeVersaoNaCorrecao() throws Exception {
+        registrar("Diário A", "diario-a@teste.com", "Teste@12345");
+        registrar("Diário B", "diario-b@teste.com", "Teste@12345");
+        var a = login("diario-a@teste.com", "Teste@12345");
+        var b = login("diario-b@teste.com", "Teste@12345");
+        String rota = "/api/relatorios/faturamento-diario";
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":1500}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(0));
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-11").session(a))
+                .andExpect(jsonPath("$.totalInformado").value(1500))
+                .andExpect(jsonPath("$.diasPendentes").value(1))
+                .andExpect(jsonPath("$.receitaBase").isEmpty());
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(b))
+                .andExpect(jsonPath("$.totalInformado").value(0))
+                .andExpect(jsonPath("$.diasPendentes").value(1));
+        mvc.perform(put(rota).session(b).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":900}"))
+                .andExpect(status().isOk());
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":1600,\"version\":0}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-10\",\"valor\":1700,\"version\":0}"))
+                .andExpect(status().isConflict());
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(a))
+                .andExpect(jsonPath("$.receitaBase").value(1600))
+                .andExpect(jsonPath("$.diasInformados").value(1));
+        mvc.perform(get(rota + "?inicio=2026-10-10&fim=2026-10-10").session(b))
+                .andExpect(jsonPath("$.receitaBase").value(900));
+        String pdfRota = "/api/relatorios/pdf/faturamento?inicio=2026-10-10&fim=2026-10-11";
+        for (var sessao : java.util.List.of(a, b)) {
+            byte[] bytes = mvc.perform(get(pdfRota).session(sessao)).andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PDF)).andReturn().getResponse().getContentAsByteArray();
+            try (var pdf = org.apache.pdfbox.Loader.loadPDF(bytes)) {
+                String texto = new org.apache.pdfbox.text.PDFTextStripper().getText(pdf);
+                assertTrue(texto.contains(sessao == a ? "R$ 1.600,00" : "R$ 900,00"));
+                assertFalse(texto.contains(sessao == a ? "R$ 900,00" : "R$ 1.600,00"));
+                assertTrue(texto.contains("(parcial)"));
+            }
+        }
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":null,\"valor\":100}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-12\",\"valor\":-1}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put(rota).session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":\"2026-10-12\",\"valor\":1.123}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -196,11 +312,30 @@ class TenantIsolamentoIntegrationTest {
         org.junit.jupiter.api.Assertions.assertNotEquals(notaA.id(),notaB.id());
         org.junit.jupiter.api.Assertions.assertNull(notaB.itens().getFirst().produtoId());
         org.junit.jupiter.api.Assertions.assertNotNull(notaB.itens().getFirst().categoriaId());
+        org.junit.jupiter.api.Assertions.assertEquals("DESCRICAO",notaB.itens().getFirst().origemCategoria());
+        org.junit.jupiter.api.Assertions.assertFalse(notaB.itens().getFirst().revisarCategoria());
         org.junit.jupiter.api.Assertions.assertNotEquals(categoriaA,notaB.itens().getFirst().categoriaId());
         mvc.perform(post("/api/notas-fiscais/" + notaB.id() + "/confirmar").session(b).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(notaB,categoriaA))).andExpect(status().isNotFound());
         mvc.perform(get("/api/produtos?size=100").session(b)).andExpect(jsonPath("$.totalElements").value(0));
         mvc.perform(get("/api/estoque").session(a)).andExpect(jsonPath("$[0].saldoAtual").value(2));
+    }
+
+    @Test
+    void reanaliseInvalidaConfirmacaoAbertaEmOutraAba() throws Exception {
+        registrar("Revisão de nota", "revisao-nota@teste.com", "LojaA@12345");
+        var sessao = login("revisao-nota@teste.com", "LojaA@12345");
+        var xml = NotaFiscalExemplo.xml(NotaFiscalExemplo.CHAVE,"BEB GAISE H2O LIMAO","BE1","KG","2","20.00");
+        var antiga = lerNota(sessao,xml);
+        var atual = lerNota(sessao,xml);
+        assertTrue(atual.version() > antiga.version());
+        mvc.perform(post("/api/notas-fiscais/" + antiga.id() + "/confirmar").session(sessao).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(antiga,null)))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/produtos").session(sessao)).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(post("/api/notas-fiscais/" + atual.id() + "/confirmar").session(sessao).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(confirmarNota(atual,null)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.confirmada").value(true));
     }
 
     @Test

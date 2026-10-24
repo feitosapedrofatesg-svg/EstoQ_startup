@@ -126,6 +126,39 @@ public class BalancoService {
         return adapter.toItemDto(item);
     }
 
+    /**
+     * Preenche apenas as contagens que ainda estão em aberto com o saldo do sistema.
+     * É a saída explícita para um balanço zerado: o usuário confirma que aceita os
+     * saldos exibidos, sem que o sistema trate automaticamente um campo vazio como
+     * contado.
+     */
+    @Transactional
+    public BalancoDTO preencherContagensComSistema(Long id, VersaoBalancoRequestDTO dto) {
+        var balanco = bloquear(id);
+        // Carrega os itens depois do bloqueio, na mesma ordem usada pela confirmação.
+        balanco = encontrar(id);
+        conferirVersao(dto.version(), balanco.getVersion());
+        if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
+            throw new ConflictException("Aceite o saldo do sistema apenas em um balanço EM_ANDAMENTO.");
+        }
+        if (balanco.getItens().isEmpty()) {
+            throw new ConflictException("Não há itens para preencher neste balanço.");
+        }
+        boolean preencheu = false;
+        for (var item : balanco.getItens()) {
+            if (item.getQuantidadeFisica() == null) {
+                item.definirContagem(item.getQuantidadeSistema());
+                preencheu = true;
+            }
+        }
+        if (!preencheu) {
+            return adapter.toDto(balanco);
+        }
+        itensBalanco.flush();
+        sincronizacao.registrar(balanco);
+        return adapter.toDto(balanco);
+    }
+
     @Transactional
     public BalancoDTO confirmar(Long id, ConfirmarBalancoRequestDTO dto) {
         var balanco = bloquear(id);
@@ -135,9 +168,8 @@ public class BalancoService {
         if (balanco.getStatus() != StatusBalanco.EM_ANDAMENTO) {
             throw new ConflictException("Confirme apenas um balanço EM_ANDAMENTO.");
         }
-        if (balanco.getItens().isEmpty()) {
-            throw new ConflictException("Não confirme um balanço sem itens.");
-        }
+        // Um retrato vazio também pode ser encerrado explicitamente pelo ADMIN.
+        // A lista vazia ainda passa pelas validações de versão, estado e itens.
         var versoes = new HashMap<Long, Long>();
         if (dto.itens() == null) throw new FieldValidationException("itens", "Confira as contagens antes de concluir.");
         for (var consultado : dto.itens()) {

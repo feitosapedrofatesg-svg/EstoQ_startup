@@ -38,8 +38,8 @@ function AccessDenied() {
       </span>
       <p className="empty__title">Esta área não está disponível para o seu perfil</p>
       <p className="empty__text">
-        Cada perfil vê só o que precisa: cozinha movimenta, nutricionista analisa e o
-        administrador configura.
+        Cada perfil vê só o que precisa: o Operacional registra consumo, desperdício e contagens;
+        o nutricionista analisa e o administrador configura.
       </p>
       <div className="empty__action">
         <Link to="/dashboard" className="btn btn--accent">
@@ -118,7 +118,7 @@ function AppRoutes() {
         <Route
           path="/movimentacoes"
           element={
-            <Guarded allow={canMove}>
+            <Guarded allow={isAdmin}>
               <Movimentacoes />
             </Guarded>
           }
@@ -189,6 +189,9 @@ function AppRoutes() {
 export function App() {
   return (
     <ToastProvider>
+      {import.meta.env.VITE_AMBIENTE === "homologacao" && <div className="alertbanner alertbanner--warn" role="status">
+        Homologação · use apenas dados de teste
+      </div>}
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />

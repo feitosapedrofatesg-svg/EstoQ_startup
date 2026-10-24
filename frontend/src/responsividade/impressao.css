@@ -11,19 +11,19 @@
 }
 .consumo-impressao * { box-sizing: border-box; }
 .consumo-impressao .relatorio-cabecalho { border-top: 3px solid var(--accent); padding-top: 12px; margin-bottom: 20px; }
-.consumo-impressao .relatorio-marca { font-weight: 700; font-size: 12pt; letter-spacing: .03em; }
+.consumo-impressao .relatorio-marca { font-weight: 600; font-size: 12pt; letter-spacing: .03em; }
 .consumo-impressao h1 { font-size: 19pt; line-height: 1.2; margin: 10px 0 14px; overflow-wrap: anywhere; }
 .consumo-impressao .relatorio-metadados { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
 .consumo-impressao .relatorio-metadados p { margin: 0; overflow-wrap: anywhere; }
 .consumo-impressao .relatorio-metadados p:first-child { grid-column: 1 / -1; font-weight: 600; }
 .consumo-impressao .relatorio-aviso { border: 1px solid #59616a; padding: 10px 12px; font-weight: 600; margin: 0 0 18px; }
 .consumo-impressao table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.consumo-impressao caption { text-align: left; font-size: 12pt; font-weight: 700; padding-bottom: 10px; }
+.consumo-impressao caption { text-align: left; font-size: 12pt; font-weight: 600; padding-bottom: 10px; }
 .consumo-impressao .relatorio-coluna-produto { width: 65%; }
 .consumo-impressao .relatorio-coluna-quantidade { width: 22%; }
 .consumo-impressao .relatorio-coluna-unidade { width: 13%; }
 .consumo-impressao th, .consumo-impressao td { padding: 9px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid #cbd0d5; overflow-wrap: anywhere; }
-.consumo-impressao th { font-weight: 700; border-top: 1px solid #59616a; border-bottom: 1px solid #59616a; background: #f2f3f4; }
+.consumo-impressao th { font-weight: 600; border-top: 1px solid #59616a; border-bottom: 1px solid #59616a; background: #f2f3f4; }
 .consumo-impressao th:nth-child(2), .consumo-impressao td:nth-child(2) { text-align: right; font-variant-numeric: tabular-nums; }
 .consumo-impressao .relatorio-fechamento { border-top: 1px solid #59616a; margin-top: 18px; padding-top: 10px; font-size: 9pt; }
 @media print {

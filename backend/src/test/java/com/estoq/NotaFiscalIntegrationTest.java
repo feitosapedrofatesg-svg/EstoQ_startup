@@ -31,6 +31,7 @@ class NotaFiscalIntegrationTest {
     @Autowired IUsuarioRepository usuarios;
     @Autowired IRestauranteRepository restaurantes;
     @Autowired IVinculoFornecedorRepository vinculos;
+    @Autowired jakarta.persistence.EntityManager entityManager;
     Long categoriaId;
 
     @BeforeEach void preparar() {
@@ -42,6 +43,108 @@ class NotaFiscalIntegrationTest {
         var categoria=new CategoriaModel(); categoria.setNome("Alimentos"); categorias.saveAndFlush(categoria); categoriaId=categoria.getId();
     }
     @AfterEach void limpar() { SecurityContextHolder.clearContext(); }
+
+    @Test void bebidaAbreviadaSugereBebidasPreservandoDescricaoECustos() {
+        var bebidas=new CategoriaModel(); bebidas.setNome("Bebidas"); categorias.saveAndFlush(bebidas);
+        var hortifruti=new CategoriaModel(); hortifruti.setNome("Hortifruti"); categorias.saveAndFlush(hortifruti);
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"beb gaise h2o limao","UN");
+        var item=nota.itens().getFirst();
+        assertEquals(bebidas.getId(),item.categoriaId()); assertEquals("beb gaise h2o limao",item.descricao());
+        assertEquals("DESCRICAO",item.origemCategoria()); assertFalse(item.revisarCategoria());
+        assertEquals(0,new BigDecimal("20").compareTo(item.valorEntrada()));
+        assertTrue(produtoRepository.findAllByAtivoTrue().isEmpty());
+    }
+
+    @Test void nomeNormalizadoMaisEspecificoSugereCategoriaSemAssociarProdutoOuCriarEstoque() {
+        var especiais=new CategoriaModel(); especiais.setNome("Cafés especiais"); categorias.saveAndFlush(especiais);
+        var mercearia=new CategoriaModel(); mercearia.setNome("Mercearia"); categorias.saveAndFlush(mercearia);
+        var torrado=new ProdutoDTO(); torrado.setNome("Café torrado 500g"); torrado.setCategoriaId(especiais.getId());
+        torrado.setUnidadeMedida(UnidadeMedida.KG); var cadastrado=produtos.criar(torrado);
+        var soluvel=new ProdutoDTO(); soluvel.setNome("Café solúvel"); soluvel.setCategoriaId(mercearia.getId());
+        soluvel.setUnidadeMedida(UnidadeMedida.KG); produtos.criar(soluvel);
+
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"CAFE TORRADO 1KG","PC1");
+        var item=nota.itens().getFirst();
+        assertEquals(especiais.getId(),item.categoriaId());
+        assertEquals("CATALOGO",item.origemCategoria());
+        assertTrue(item.motivoCategoria().contains("nome normalizado"));
+        assertNull(item.produtoId());
+        assertEquals("CAFE TORRADO 1KG",item.descricao());
+        assertEquals(0,new BigDecimal("20").compareTo(item.valorEntrada()));
+        assertEquals(0,new BigDecimal("2").compareTo(item.quantidadeNota()));
+        assertEquals(2,produtoRepository.findAllByAtivoTrue().size());
+        assertEquals(0,BigDecimal.ZERO.compareTo(produtos.buscar(cadastrado.getId()).getSaldoAtual()));
+    }
+
+    @Test void categoriaEscolhidaNaConfirmacaoAjudaProximaNotaSemReutilizarEmbalagemAlterada() {
+        var padaria=new CategoriaModel(); padaria.setNome("Insumos da padaria"); categorias.saveAndFlush(padaria);
+        var mercearia=new CategoriaModel(); mercearia.setNome("Mercearia"); categorias.saveAndFlush(mercearia);
+        var primeira=analisar(NotaFiscalExemplo.CHAVE,"FAR TRIGO 5KG","PC1");
+        assertEquals(mercearia.getId(),primeira.itens().getFirst().categoriaId());
+        var confirmada=notas.confirmar(primeira.id(),confirmar(primeira,null,padaria.getId(),new BigDecimal("5")));
+        var produtoId=confirmada.itens().getFirst().produtoId();
+        assertEquals(padaria.getId(),produtos.buscar(produtoId).getCategoriaId());
+
+        var segunda=analisar(NotaFiscalExemplo.CHAVE.replace("000000011","000000021"),"FARINHA TRIGO 1KG","PC1");
+        var item=segunda.itens().getFirst();
+        assertNull(item.produtoId());
+        assertEquals(padaria.getId(),item.categoriaId());
+        assertEquals("CATALOGO",item.origemCategoria());
+        assertTrue(item.revisarCategoria());
+        assertTrue(item.motivoCategoria().contains("fator anterior não foi reutilizado"));
+        assertFalse(item.embalagemConfirmada());
+        assertEquals(0,BigDecimal.ONE.compareTo(item.fator()));
+        assertEquals(0,new BigDecimal("10").compareTo(produtos.buscar(produtoId).getSaldoAtual()));
+        assertEquals(1,produtoRepository.findAllByAtivoTrue().size());
+        assertEquals(confirmada.itens(),notas.buscar(confirmada.id()).itens());
+    }
+
+    @Test void abreviacaoReconhecidaPreservaEscolhaManualNaConfirmacao() {
+        var laticinios=new CategoriaModel(); laticinios.setNome("Laticínios"); categorias.saveAndFlush(laticinios);
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"QJO MUSSARELA 500G","KG");
+        assertEquals(laticinios.getId(),nota.itens().getFirst().categoriaId());
+        var concluida=notas.confirmar(nota.id(),confirmar(nota,null,categoriaId,BigDecimal.ONE));
+        assertEquals(categoriaId,concluida.itens().getFirst().categoriaId());
+        assertEquals("REVISAO",concluida.itens().getFirst().origemCategoria());
+        assertEquals(categoriaId,produtos.buscar(concluida.itens().getFirst().produtoId()).getCategoriaId());
+    }
+
+    @Test void reanalisarRascunhoAtualizaSugestoesERejeitaVersaoAnterior() {
+        var antiga=analisar(NotaFiscalExemplo.CHAVE,"beb gaise h2o limao","KG");
+        assertNull(antiga.itens().getFirst().categoriaId());
+        var bebidas=new CategoriaModel(); bebidas.setNome("Bebidas"); categorias.saveAndFlush(bebidas);
+        // Simula a próxima requisição, sem reutilizar a entidade recém-inserida nesta sessão.
+        entityManager.clear();
+        var atual=analisar(NotaFiscalExemplo.CHAVE,"beb gaise h2o limao","KG");
+        assertEquals(antiga.id(),atual.id()); assertTrue(atual.version()>antiga.version());
+        assertEquals(bebidas.getId(),atual.itens().getFirst().categoriaId());
+        assertThrows(ConflictException.class,()->notas.confirmar(antiga.id(),confirmar(antiga,null,categoriaId,BigDecimal.ONE)));
+        var concluida=notas.confirmar(atual.id(),confirmar(atual,null,bebidas.getId(),BigDecimal.ONE));
+        var repetida=analisar(NotaFiscalExemplo.CHAVE,"beb gaise h2o limao","KG");
+        assertEquals(concluida.version(),repetida.version());
+        assertEquals(concluida.itens(),repetida.itens());
+    }
+
+    @Test void catalogoExistenteMantemCategoriaMasAvisaDivergencia() {
+        var bebidas=new CategoriaModel(); bebidas.setNome("Bebidas"); categorias.saveAndFlush(bebidas);
+        var produto=new ProdutoDTO(); produto.setNome("BEB GAISE H2O LIMAO");
+        produto.setCategoriaId(categoriaId); produto.setUnidadeMedida(UnidadeMedida.UN);
+        var criado=produtos.criar(produto);
+        var item=analisar(NotaFiscalExemplo.CHAVE,"BEB GAISE H2O LIMAO","UN").itens().getFirst();
+        assertEquals(criado.getId(),item.produtoId()); assertEquals(categoriaId,item.categoriaId());
+        assertEquals("NOME_EXATO",item.origemCategoria()); assertTrue(item.revisarCategoria());
+        assertTrue(item.motivoCategoria().contains("categoria foi preservada"));
+    }
+
+    @Test void compostoAmbiguoPodeConfirmarSemClassificacaoComConferenciaFinal() {
+        var laticinios=new CategoriaModel(); laticinios.setNome("Laticínios"); categorias.saveAndFlush(laticinios);
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"LEITE DE COCO","KG");
+        assertNull(nota.itens().getFirst().categoriaId()); assertTrue(nota.itens().getFirst().revisarCategoria());
+        var concluida=notas.confirmar(nota.id(),confirmar(nota,null,null,BigDecimal.ONE));
+        assertEquals("Sem classificação",categorias.findById(concluida.itens().getFirst().categoriaId()).orElseThrow().getNome());
+        assertFalse(concluida.itens().getFirst().revisarCategoria());
+        assertEquals("REVISAO",concluida.itens().getFirst().origemCategoria());
+    }
 
     NotaFiscalDTO analisar(String chave, String nome, String unidade) {
         var arquivo=new MockMultipartFile("arquivos","nota.xml","application/xml",NotaFiscalExemplo.xml(chave,nome,"AR1",unidade,"2.000","20.00").getBytes());

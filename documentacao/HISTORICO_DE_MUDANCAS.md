@@ -1,5 +1,186 @@
 # Histórico de mudanças do EstoQ
 
+## 23/10/2026 — filtro por usuário em Movimentações
+
+O Histórico de Movimentações ganha um seletor pesquisável de **Usuário**, com
+nome, e-mail, perfil e indicação de inativo. A lista percorre todas as páginas
+da equipe do restaurante. **Todos os usuários** remove somente esse filtro;
+tipo, produto e período continuam combinados. A seleção fica na URL como
+`usuario`, enviada à API no parâmetro existente `usuarioId`.
+
+A tabela mostra o nome do responsável e os totais acompanham os registros
+filtrados. Usuários desativados continuam disponíveis para consulta histórica.
+Falhas ao carregar a equipe não limpam o filtro; há uma ação para tentar
+novamente. A API acrescenta `usuarioNome` às respostas, usando o relacionamento
+já carregado pela consulta. Sem migração e sem mudanças de permissão: a tela
+permanece exclusiva do ADMIN e os dados seguem isolados por restaurante.
+
+## 23/10/2026 — efeito tátil somente no Dashboard
+
+Cards clicáveis e botões da Visão geral recebem pressão rápida e retorno por
+mola, adaptados da referência **Tactile Button — Originkit**, usando `motion/react`.
+A base laranja usa o tema existente; fontes, textos, tamanhos e destinos foram
+preservados. A profundidade foi ajustada para 6 px para caber nos espaçamentos
+atuais. O card Embalagens abertas continua levando a Desperdício.
+
+O contexto de animação existe somente no Dashboard: menu, alertas do cabeçalho,
+demais telas, controles desabilitados e indicadores sem permissão de navegação
+não recebem o efeito. Teclado, cancelamento de toque, saída do ponteiro e perda
+de foco liberam a pressão. A preferência de movimento reduzido desativa o
+deslocamento e as transições, inclusive ao mudar com a página aberta; desativá-la
+reativa o efeito. Foco e comportamento nativo de links/formulários
+permanecem preservados.
+
+## 23/10/2026 — destino do card Embalagens abertas
+
+O card **Embalagens abertas** do Dashboard passa a abrir **Desperdício**, onde
+fica o bloco de embalagens abertas. Apenas o destino mudou; visual e permissões
+foram mantidos.
+
+## 22/10/2026 — cards do Dashboard com navegação
+
+Os seis indicadores da Visão geral passam a ser links para o ADMIN, inclusive
+quando o contador está zerado: Produtos ativos → Catálogo; Estoque baixo e
+Próximos a vencer → Estoque; Vencidos → Desperdício; Embalagens abertas → Consumo;
+Balanços pendentes → Balanço. A navegação abre a tela correspondente, sem aplicar
+novos filtros automaticamente. As cores, dimensões e valores foram preservados.
+
+`StatCard` aceita `to` opcional e usa um link nativo com foco de teclado; sem
+destino, permanece informativo. O Nutricionista não recebe links para áreas
+restritas e o Operacional continua entrando diretamente no Estoque. Sem alteração
+de API, banco ou permissões. Cobertura em `frontend/tests/dashboard-cards.spec.ts`.
+
+## 22/10/2026 — sugestões de categorias de NF-e mais específicas
+
+O classificador local reconhece mais abreviações fiscais e prioriza o nome
+completo normalizado, desconsiderando a embalagem, antes da primeira palavra.
+Tipos diferentes não herdam categorias pelo mesmo termo genérico; filé de
+tilápia não recebe a categoria de filé de frango. Prefixos específicos distinguem
+bebida láctea e batata palha. Produtos inativos e Sem classificação não propagam
+novas sugestões. Casos conflitantes continuam para revisão; escolhas manuais,
+categorias de produtos existentes, custos e conversões permanecem preservados.
+Sem dependências novas, serviços externos ou migração. Detalhes em
+[IMPORTACAO_NOTAS_FISCAIS.md](IMPORTACAO_NOTAS_FISCAIS.md).
+
+## 22/10/2026 — perfil Operacional na interface
+
+O perfil antes exibido como **Cozinha** passa a se chamar **Operacional** no
+menu, na lista e nos formulários de usuários, além dos textos explicativos.
+O identificador `COZINHA` permanece no banco, na API e nas verificações de
+permissão: contas existentes continuam funcionando sem migração. Estoque,
+Consumo, Desperdício, Balanço e consulta ao Catálogo mantêm os mesmos acessos;
+Movimentações continua restrita ao ADMIN. Referências a cozinha como restaurante
+ou ambiente de trabalho não foram renomeadas.
+
+## 21/10/2026 — finalização de balanço sem itens
+
+A correção anterior tratava saldos zerados, mas não o retrato com **0 itens**.
+O ADMIN agora pode usar **Finalizar sem itens**, com confirmação explícita, para
+encerrar esses balanços, inclusive os que já estavam em contagem. A API aceita
+`itens: []` quando o balanço realmente não tem itens, mantendo as validações de
+estado, versão e permissão. Não cria contagens nem movimentações de estoque.
+
+## 21/10/2026 — balanço zerado pode ser finalizado
+
+Balanços com todos os saldos zerados exibiam `0` nos campos, mas os itens
+continuavam sem contagem e o botão de confirmação não aparecia. A tela agora
+explica que o valor exibido é uma sugestão e oferece **Aceitar saldo do sistema**,
+que preenche somente os itens ainda não contados, preserva contagens salvas e
+exige confirmação explícita. O ADMIN continua responsável por confirmar o balanço.
+Sem migração; API e regras de concorrência documentadas em
+[API_ENDPOINTS.md](API_ENDPOINTS.md), [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md)
+e [THREADS_E_SINGLETON.md](THREADS_E_SINGLETON.md).
+
+## 21/10/2026 — atalho de nota fiscal e permissões da cozinha
+
+O Catálogo passa a exibir **Importar nota fiscal** ao lado de **Novo produto**,
+restrito ao ADMIN, com o mesmo link para `/notas-fiscais` já usado em
+Movimentações. O perfil COZINHA perde o item **Movimentações** do menu e o acesso
+direto à tela; Estoque, Consumo, Desperdício, Balanço e Catálogo permanecem.
+Nenhuma API ou migração foi alterada. Validação em 1440, 390 e 320 px, com 89
+testes Playwright e CI aprovada em dev e homologação. Detalhes em
+[Mudanças de frontend](FRONTEND_CATALOGO_E_PERFIS.md) e
+[Homologação detalhada](HOMOLOGACAO_DETALHADA_2026_10_21.md).
+
+## 21/10/2026 — desperdício em vermelho e sino da referência
+
+As barras do bloco Desperdício em Relatórios usam o vermelho de erro `#BE1328`
+sobre trilho `#FFF0F2`, sem alterar medidas. O botão da central de alertas
+mantém 44 × 44 px e passa a exibir superfície branca, ícone `#52545B` e ponto
+laranja forte `#EF7320`; a ação “Marcar como visto” usa `#C85200` e a contagem
+continua acessível pelo rótulo e pelo painel. Sem mudanças de layout, navegação
+ou comportamento. Detalhes em [Tema Nutrigo](TEMA_NUTRIGO.md).
+
+## 21/10/2026 — cores e tipografia Nutrigo
+
+Tema baseado no CSS dos componentes Figma exportado pelo usuário: superfícies
+claras, acento verde `#C2E66E` e Poppins 400/500/600 hospedada localmente.
+Tons de texto e estados receberam ajustes explícitos de contraste. Medidas,
+layout, imagens, sombras, animações e funcionalidades foram preservados.
+Quebras naturais da nova fonte foram registradas sem compensar o layout.
+Valores de origem, ajustes e verificações em [Tema Nutrigo](TEMA_NUTRIGO.md).
+Validação restrita à homologação; a produção depende de aprovação.
+
+## 20/10/2026 — preparação da homologação online
+
+Blueprint separado para o backend de homologação, perfil prod/homologacao e
+identificação pública do ambiente junto à versão. Configuração Vercel separa
+a API de testes da produção e bloqueia previews sem destino de teste definido.
+Banner identifica o site de homologação. Medidor HTTP valida ambiente/commit,
+autentica uma conta de teste e registra latência e erros de consultas reais.
+Provisionamento e validação online dependem do acesso às contas dos provedores;
+os arquivos não criam o ambiente automaticamente.
+
+## 20/10/2026 — branch de homologação
+
+Branch `homologacao` criada a partir da versão estável compartilhada por dev e main.
+O fluxo passa a ser dev → homologacao → main, com CI em pushes e pull requests
+nas três branches. A promoção usa o commit aprovado, para não levar alterações
+posteriores da dev sem revisão. A branch não cria infraestrutura de testes;
+backend e banco separados ainda precisam ser provisionados para um site de homologação.
+
+## 19/10/2026 — categorias de itens da nota fiscal
+
+Abreviações de bebidas e prioridade do tipo sobre sabor corrigem H2O de limão.
+Histórico de fornecedor exige descrição/unidade compatíveis para reutilizar produto
+e fator. Sugestões mostram origem, motivo e aviso em casos ambíguos; a revisão
+continua com uma única conferência final. Reanálise de rascunho recalcula sugestões
+e invalida versões antigas. V10 adiciona explicações sem alterar notas confirmadas.
+Produtos existentes mantêm a categoria cadastrada e indicam divergências para
+correção no Catálogo. Sem novas dependências ou serviços externos.
+
+## 19/10/2026 — estoque mínimo padrão de 3
+
+Produtos novos recebem mínimo 3 na unidade de cadastro, inclusive na importação
+de notas, que usa ProdutoService. Médio e máximo começam em 3 para respeitar a
+ordem dos níveis. O formulário permite personalizar ou informar zero.
+A migração V9 atualiza uma única vez os mínimos existentes zerados, preserva
+mínimos personalizados e eleva médio/máximo apenas quando necessário.
+Versões dos parâmetros alterados são incrementadas para proteger edições abertas.
+
+## 19/10/2026 — botão compacto de recalcular CMV
+
+Botão Recalcular com 132 × 44 px, mantendo cores, tipografia, ícone, sombra e
+estrutura dos filtros. No celular permanece abaixo das datas e à direita.
+Tamanho estável durante o carregamento e área de toque de 44 px.
+Sem alteração nos cálculos ou na API.
+
+## 19/10/2026 — faturamento e totais nos PDFs
+
+Exportações de faturamento diário e consumo por dia da semana; CMV mensal e
+embalagens abertas disponibilizados na interface. Todos os relatórios possuem
+fechamento com valores monetários, contagens ou quantidades por unidade.
+Faturamento parcial preserva pendências e separa a referência histórica, sem
+dupla contagem. Layout permite vários totais com paginação.
+Regras em [Relatórios em PDF](RELATORIOS_PDF.md).
+
+## 19/10/2026 — base diária de faturamento para CMV
+
+Faturamento salvo por restaurante/data com correção por versão, distinção entre
+zero e pendência e soma automática para os relatórios, dashboard e PDF. Totais
+antigos por período ficam preservados, sem rateio nem dupla contagem. APIs e
+publicação descritas em [Faturamento diário](FATURAMENTO_DIARIO.md).
+
 ## 18/10/2026 — confirmação na criação e alteração de senha
 
 Cadastro público, criação/edição de usuários e redefinição pela PLATAFORMA exigem

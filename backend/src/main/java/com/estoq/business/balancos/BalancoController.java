@@ -51,6 +51,12 @@ public class BalancoController {
         return service.registrarContagem(id, itemId, dto);
     }
 
+    @PostMapping("/api/balancos/{id}/contagens/sistema")
+    public BalancoDTO preencherContagensComSistema(@PathVariable Long id,
+            @Valid @RequestBody VersaoBalancoRequestDTO dto) {
+        return service.preencherContagensComSistema(id, dto);
+    }
+
     @PostMapping("/api/balancos/{id}/confirmar")
     public BalancoDTO confirmar(@PathVariable Long id, @Valid @RequestBody ConfirmarBalancoRequestDTO dto) {
         return service.confirmar(id, dto);

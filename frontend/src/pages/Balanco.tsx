@@ -16,6 +16,7 @@ import {
   Badge,
   StatusBadge,
   EmptyState,
+  Confirm,
 } from "../components/UI";
 import { fmtDateTime, fmtNum, parseDecimal } from "../lib/format";
 import type {
@@ -50,6 +51,8 @@ export function Balanco() {
   );
   const [agendaRevision, setAgendaRevision] = useState(0);
   const [showNew, setShowNew] = useState(false);
+  const [aceitarSistema, setAceitarSistema] = useState<BalancoDTO | null>(null);
+  const [confirmarVazio, setConfirmarVazio] = useState<BalancoDTO | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [busyLabel, setBusyLabel] = useState("");
   const [rascunhos, setRascunhos] = useState<Record<number, boolean>>({});
@@ -125,6 +128,30 @@ export function Balanco() {
     }
   };
 
+  const aceitarSaldoSistema = async (balanco: BalancoDTO) => {
+    if (rascunhos[balanco.id]) {
+      toast.warning("Salve as contagens em edição", "Há valores digitados que ainda não foram confirmados.");
+      setAceitarSistema(null);
+      return;
+    }
+    await doAction(balanco.id, "Saldo do sistema aceito", () =>
+      api.post<BalancoDTO>(`/api/balancos/${balanco.id}/contagens/sistema`, { version: balanco.version })
+    );
+    setAceitarSistema(null);
+  };
+
+  const pendentesAceitar = aceitarSistema?.itens.filter((i) => i.quantidadeFisica === null).length ?? 0;
+
+  const confirmarBalanco = async (balanco: BalancoDTO) => {
+    await doAction(balanco.id, "Balanço confirmado", () =>
+      api.post<BalancoDTO>(`/api/balancos/${balanco.id}/confirmar`, {
+        version: balanco.version,
+        itens: balanco.itens.map(i => ({ id: i.id, version: i.version })),
+      })
+    );
+    setConfirmarVazio(null);
+  };
+
   return (
     <>
       <PageHeader
@@ -160,7 +187,7 @@ export function Balanco() {
                   Fazer o primeiro
                 </Button>
               ) : (
-                <p className="muted">A Cozinha inicia balanços; a confirmação é do administrador.</p>
+                <p className="muted">O perfil Operacional inicia balanços; a confirmação é do administrador.</p>
               )
             }
           />
@@ -169,9 +196,10 @@ export function Balanco() {
             {data?.map((b) => {
               const total = b.itens.length;
               const counted = b.itens.filter((i) => i.quantidadeFisica !== null).length;
+              const pendentes = total - counted;
               const pct = total ? Math.round((counted / total) * 100) : 0;
               const needConfirm =
-                b.status === "EM_ANDAMENTO" && isAdmin && counted === total && total > 0;
+                b.status === "EM_ANDAMENTO" && isAdmin && counted === total;
               const canAjustar = b.status === "CONCLUIDO" && isAdmin && b.itens.some((i) => !i.ajusteAplicado);
               return (
                 <article key={b.id} className={`balanco ${!expanded.has(b.id) ? "balanco--collapsed" : ""}`}>
@@ -235,18 +263,35 @@ export function Balanco() {
                           Iniciar contagem
                         </Button>
                       )}
+                      {b.status === "EM_ANDAMENTO" && canMove && pendentes > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon="refresh"
+                          loading={busy === b.id && busyLabel === "Saldo do sistema aceito"}
+                          onClick={() => {
+                            if (rascunhos[b.id]) {
+                              toast.warning("Salve as contagens em edição",
+                                "Há valores digitados que ainda não foram confirmados.");
+                              return;
+                            }
+                            setAceitarSistema(b);
+                          }}
+                        >
+                          Aceitar saldo do sistema
+                        </Button>
+                      )}
                       {needConfirm && (
                         <Button
                           size="sm"
                           variant="ink"
                           loading={busy === b.id && busyLabel === "Balanço confirmado"}
-                          onClick={() =>
-                            void doAction(b.id, "Balanço confirmado", () =>
-                              api.post<BalancoDTO>(`/api/balancos/${b.id}/confirmar`, { version: b.version, itens: b.itens.map(i => ({ id: i.id, version: i.version })) })
-                            )
-                          }
+                          onClick={() => {
+                            if (total === 0) setConfirmarVazio(b);
+                            else void confirmarBalanco(b);
+                          }}
                         >
-                          Confirmar balanço
+                          {total === 0 ? "Finalizar sem itens" : "Confirmar balanço"}
                         </Button>
                       )}
                       {canAjustar && (
@@ -266,6 +311,15 @@ export function Balanco() {
                     </div>
                   </header>
 
+                  {total === 0 && b.status !== "PENDENTE" && (
+                    <div id={`balanco-itens-${b.id}`} hidden={!expanded.has(b.id)}>
+                      <p className="balanco__count">
+                        {b.status === "CONCLUIDO"
+                          ? "Balanço concluído sem itens."
+                          : "Este balanço tem 0 itens. O administrador pode finalizá-lo sem alterar o estoque."}
+                      </p>
+                    </div>
+                  )}
                   {total > 0 && (
                     <div id={`balanco-itens-${b.id}`} hidden={!expanded.has(b.id)}>
                       <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${pct}% dos itens contados`}>
@@ -273,6 +327,9 @@ export function Balanco() {
                       </div>
                       <p className="balanco__count">
                         {counted} de {total} itens contados
+                        {counted < total && (
+                          <span className="muted"> — os campos mostram o saldo do sistema, mas ainda não foram confirmados.</span>
+                        )}
                       </p>
                       {b.status === "EM_ANDAMENTO" && (
                         <ItensContagem
@@ -322,6 +379,47 @@ export function Balanco() {
           </div>
         )}
       </Card>
+
+      <Confirm
+        open={confirmarVazio !== null}
+        title="Finalizar balanço sem itens?"
+        message="Este balanço tem 0 itens. Ele será marcado como concluído, sem criar contagens nem alterar o estoque."
+        confirmLabel="Finalizar sem itens"
+        loading={busy === confirmarVazio?.id && busyLabel === "Balanço confirmado"}
+        onConfirm={() => {
+          if (confirmarVazio) void confirmarBalanco(confirmarVazio);
+        }}
+        onClose={() => {
+          if (busy === null) setConfirmarVazio(null);
+        }}
+      />
+
+      <Confirm
+        open={aceitarSistema !== null}
+        title="Aceitar saldo do sistema?"
+        message={
+          aceitarSistema ? (
+            <>
+              <p>
+                <strong>{pendentesAceitar} {pendentesAceitar === 1 ? "item" : "itens"}</strong>{" "}
+                {pendentesAceitar === 1 ? "será preenchido" : "serão preenchidos"} com o saldo atual do
+                sistema. Em um balanço zerado, isso registra 0 nos itens pendentes.
+              </p>
+              <p className="muted">
+                Itens já contados não serão alterados; as contagens salvas permanecem como estão.
+              </p>
+            </>
+          ) : null
+        }
+        confirmLabel="Aceitar saldo"
+        loading={busy === aceitarSistema?.id && busyLabel === "Saldo do sistema aceito"}
+        onConfirm={() => {
+          if (aceitarSistema) void aceitarSaldoSistema(aceitarSistema);
+        }}
+        onClose={() => {
+          if (!busy) setAceitarSistema(null);
+        }}
+      />
 
       {showNew && (
         <NovoBalanco

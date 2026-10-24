@@ -80,7 +80,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(29, 39, 51, 0.4);
+    background: rgba(39, 41, 50, 0.4);
     border: none;
     opacity: 0;
     pointer-events: none;

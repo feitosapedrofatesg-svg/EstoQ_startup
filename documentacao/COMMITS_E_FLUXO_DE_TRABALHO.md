@@ -1,13 +1,14 @@
 # Commits, branches e validação
 
-Revisão: **12/10/2026**. Repositório: `/home/pedro/EstoQ`.
+Revisão: **20/10/2026**. Repositório local: `/home/pedro/estoq-cmv`.
 Remote: `https://github.com/feitosapedrofatesg-svg/EstoQ_startup.git`.
 
 ## Branches e entrega
 
 | Branch | Função |
 | --- | --- |
-| `dev` | Desenvolvimento e validação. |
+| `dev` | Desenvolvimento das mudanças e validação inicial. |
+| `homologacao` | Versão candidata, testes e aprovação antes de publicar. |
 | `main` | Versão publicada; push dispara os deploys automáticos. |
 
 Não há fluxo com master. Atualize referências, integre trabalho remoto e revise
@@ -22,11 +23,24 @@ git merge --ff-only origin/main
 git add <arquivos>
 git commit -m "fix(<escopo>): <resultado concreto>"
 git push origin dev
-# Aguardar a CI da dev; então publicar.
-git switch main
+# Aguardar a CI da dev; então preparar a candidata.
+git switch homologacao
+git merge --ff-only origin/homologacao
 git merge --ff-only dev
+git push origin homologacao
+git rev-parse HEAD
+# Aguardar a CI, testar e registrar o hash aprovado em homologacao.
+git switch main
+git merge --ff-only origin/main
+git merge --ff-only HASH_APROVADO
 git push origin main
 ```
+
+Substitua `HASH_APROVADO` pelo hash completo testado em homologacao. Não integre
+dev diretamente em main: a dev pode ter recebido mudanças depois dos testes.
+Após o push, verifique a publicação.
+Veja o [guia de homologação](HOMOLOGACAO.md) para os comandos completos e as
+diferenças entre a branch e um ambiente de testes separado.
 
 Se fast-forward não for possível, conferir a divergência, integrar os commits e
 resolver conflitos antes de continuar. Os comandos acima não descartam alterações.
@@ -35,7 +49,7 @@ Use Conventional Commits: feat, fix, docs, test ou chore, com escopo útil.
 ## CI ativa
 
 O workflow real é [.github/workflows/validacao.yml](../.github/workflows/validacao.yml),
-ativo em pushes e pull requests para dev/main. `ci.yml.example` é uma cópia de
+ativo em pushes e pull requests para dev/homologacao/main. `ci.yml.example` é uma cópia de
 referência; não precisa ser instalado como outro workflow.
 
 - Backend: Java 21, Tesseract em português e `mvn test`.

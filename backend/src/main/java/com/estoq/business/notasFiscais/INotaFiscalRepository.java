@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
 
 public interface INotaFiscalRepository extends IGenericRepository<NotaFiscalModel> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<NotaFiscalModel> findByChaveAndAtivoTrue(String chave);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from NotaFiscalModel n where n.id=:id and n.ativo=true")

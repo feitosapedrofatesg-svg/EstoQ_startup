@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public class RelatorioService {
     private final IProdutoRepository produtos;
     private final IMovimentacaoEstoqueRepository movimentos;
     private final ParametroCmvService parametroCmv;
+    private final CmvReceitaBaseService receitasCmv;
 
     public List<EstoqueDTO> estoqueAtual() {
         return estoque.listar(false, false);
@@ -70,6 +72,10 @@ public class RelatorioService {
 
     public List<ProdutoAbertoDTO> produtosAbertos() {
         return abertos.listar(null, false);
+    }
+
+    public FaturamentoPeriodoDTO faturamento(LocalDate inicio, LocalDate fim) {
+        return receitasCmv.faturamento(inicio, fim);
     }
 
     public List<DesperdicioDTO> desperdicio(LocalDateTime inicio, LocalDateTime fim) {
@@ -159,6 +165,9 @@ public class RelatorioService {
 
     public CmvResumoDTO calcularCmv(LocalDateTime inicio, LocalDateTime fim, BigDecimal receitaBase) {
         var posicao = posicaoHistorica.obter(inicio, fim);
+        var faturamento = receitasCmv.faturamento(horario.diaLocal(inicio), horario.diaLocal(fim.minusNanos(1)));
+        boolean receitaPorPeriodo = receitaBase != null || faturamento.receitaPorPeriodo();
+        if (receitaBase == null) receitaBase = faturamento.receitaBase();
         var historico = movimentacoesEntre(inicio, fim);
         var compras = zero();
         var consumido = zero();
@@ -190,7 +199,7 @@ public class RelatorioService {
         var perdasNaoExplicadas = money(cmv.subtract(consumido.add(desperdicio)));
         return new CmvResumoDTO(inicio, fim, estoqueInicial, compras, estoqueFinal, cmv, receitaBase,
                 cmvPercentual == null ? null : cmvPercentual, ideal, diferenca, consumido, desperdicio,
-                desperdicioSobre, perdasNaoExplicadas);
+                desperdicioSobre, perdasNaoExplicadas, faturamento.totalInformado(), faturamento.diasPendentes(), receitaPorPeriodo);
     }
 
     public List<CmvMensalDTO> cmvPorMes(LocalDateTime inicio, LocalDateTime fim) {

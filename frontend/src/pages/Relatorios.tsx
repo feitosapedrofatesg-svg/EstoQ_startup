@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useFetch } from "../lib/hooks";
 import { api, downloadBlob } from "../lib/api";
 import {
@@ -10,8 +10,12 @@ import {
   NumberField,
   DataTable,
   EmptyState,
+  Modal,
+  Select,
 } from "../components/UI";
 import { BarChart, HBars, CmvGauge } from "../components/Charts";
+import { AvisoFaturamento, FaturamentoDiario } from "../components/FaturamentoDiario";
+import { useSearchParams } from "react-router-dom";
 import {
   fmtMoney,
   fmtPct,
@@ -19,11 +23,9 @@ import {
   fmtDateTime,
   fmtDiaSemana,
   hojeISO,
-  parseDecimal,
 } from "../lib/format";
 import type {
   CmvMensalDTO,
-  CmvReceitaBaseDTO,
   CmvResumoDTO,
   ConsumoDiaSemanaDTO,
   ConsumoMedioDTO,
@@ -37,8 +39,14 @@ import { ListaComRolagem } from "../responsividade/tablet/ListaComRolagem";
 
 export function Relatorios() {
   const toast = useToast();
-  const [inicio, setInicio] = useState(hojeISO);
-  const [fim, setFim] = useState(hojeISO);
+  const [parametros] = useSearchParams();
+  const de = parametros.get("inicio");
+  const ate = parametros.get("fim");
+  const dataValida = (d: string | null) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d)
+    && !Number.isNaN(Date.parse(d)) && new Date(d).toISOString().slice(0, 10) === d;
+  const periodoValido = dataValida(de) && dataValida(ate) && de! <= ate!;
+  const [inicio, setInicio] = useState(() => periodoValido ? de! : hojeISO());
+  const [fim, setFim] = useState(() => periodoValido ? ate! : hojeISO());
   const periodo = { inicio, fim };
 
   return (
@@ -57,7 +65,7 @@ export function Relatorios() {
       </div>
 
       <Reposicao />
-      <Pdfs toast={toast} {...periodo} />
+      <ExportacaoRelatorios toast={toast} {...periodo} />
       <MetaCmv />
     </>
   );
@@ -76,7 +84,7 @@ const CMV_ROWS = (d: CmvResumoDTO) => [
   { label: "+ Compras no período", value: fmtMoney(d.valorCompras) },
   { label: "− Estoque no fim do período", value: fmtMoney(d.valorEstoqueFinal) },
   { label: "CMV do período", value: fmtMoney(d.cmv), strong: true },
-  { label: "Receita base (informada)", value: fmtMoney(d.receitaBase ?? 0) },
+  { label: "Faturamento usado no cálculo", value: d.receitaBase == null ? "Pendente" : fmtMoney(d.receitaBase) },
 ];
 
 interface PeriodoRelatorios { inicio: string; fim: string }
@@ -87,65 +95,8 @@ function diasPeriodo({ inicio, fim }: PeriodoRelatorios) {
 }
 
 function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { setInicio: (data: string) => void; setFim: (data: string) => void }) {
-  const [receitaBase, setReceitaBase] = useState<number | null>(null);
-  const [tmpReceita, setTmpReceita] = useState("");
-  const [carregandoReceita, setCarregandoReceita] = useState(true);
-  const [salvandoReceita, setSalvandoReceita] = useState(false);
-  const toast = useToast();
-  const toastRef = useRef(toast);
-  toastRef.current = toast;
-  const periodoRef = useRef(`${inicio}|${fim}`);
-  periodoRef.current = `${inicio}|${fim}`;
-
-  useEffect(() => {
-    let ativo = true;
-    const chavePeriodo = `${inicio}|${fim}`;
-    const periodo = new URLSearchParams({ inicio, fim }).toString();
-    setCarregandoReceita(true);
-    setReceitaBase(null);
-    setTmpReceita("");
-    api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?${periodo}`)
-      .then((salva) => {
-        if (!ativo || periodoRef.current !== chavePeriodo) return;
-        setReceitaBase(salva.receitaBase);
-        setTmpReceita(salva.receitaBase === null ? "" : String(salva.receitaBase).replace(".", ","));
-      })
-      .catch((e) => {
-        if (ativo) toastRef.current.error("Não foi possível carregar a receita base", (e as Error).message);
-      })
-      .finally(() => {
-        if (ativo) setCarregandoReceita(false);
-      });
-    return () => {
-      ativo = false;
-    };
-  }, [inicio, fim]);
-
-  const salvarReceita = async () => {
-    const chavePeriodo = `${inicio}|${fim}`;
-    setSalvandoReceita(true);
-    try {
-      const salva = await api.put<CmvReceitaBaseDTO>("/api/relatorios/cmv/receita-base", {
-        inicio,
-        fim,
-        receitaBase: parseDecimal(tmpReceita),
-      });
-      if (periodoRef.current === chavePeriodo) setReceitaBase(salva.receitaBase);
-    } catch (e) {
-      toast.error("Não foi possível salvar a receita base", (e as Error).message);
-    } finally {
-      setSalvandoReceita(false);
-    }
-  };
-
-  const qs = new URLSearchParams();
-  qs.set("inicio", inicio);
-  qs.set("fim", fim);
-  if (receitaBase !== null) qs.set("receitaBase", String(receitaBase));
-
-  const { data, loading, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs.toString()}`);
-  const dataAtual = !carregandoReceita && data?.receitaBase === receitaBase ? data : null;
-  const calculando = carregandoReceita || loading || (data !== null && dataAtual === null);
+  const qs = new URLSearchParams({ inicio, fim });
+  const { data: dataAtual, loading: calculando, error, refresh } = useFetch<CmvResumoDTO>(`/api/relatorios/cmv?${qs}`);
 
   return (
     <Section title="Período dos relatórios e CMV">
@@ -158,21 +109,6 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
             <Input id="relatorios-fim" type="date" min={inicio} value={fim} onChange={e => { if (e.target.value && e.target.value >= inicio) setFim(e.target.value); }} />
           </Field>
         </div>
-        <Field className="cmv-filter-field cmv-filter-field--revenue" label="Receita base do período (R$)" htmlFor="cmv-receita">
-          <div className="input-group">
-            <input
-              id="cmv-receita"
-              className="input"
-              inputMode="decimal"
-              placeholder="Opcional, para calcular o % do CMV"
-              value={tmpReceita}
-              onChange={(e) => setTmpReceita(e.target.value)}
-              onBlur={() => void salvarReceita()}
-              disabled={carregandoReceita || salvandoReceita}
-            />
-            <span className="input-group__suffix">R$</span>
-          </div>
-        </Field>
         <Button
           className="cmv-filters__refresh"
           variant="accent"
@@ -184,6 +120,7 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
         </Button>
       </div>
 
+      {error && <p className="alertbanner alertbanner--bad" role="alert">{error}</p>}
       {calculando && (
         <p className="muted">Calculando…</p>
       )}
@@ -203,6 +140,7 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
             </div>
           </div>
 
+          <AvisoFaturamento {...dataAtual} />
           <div className="cmv-table-cols">
             <table className="table table--narrow">
               <tbody>
@@ -241,6 +179,7 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
           </div>
         </>
       )}
+      <FaturamentoDiario key={`${inicio}|${fim}`} inicio={inicio} fim={fim} historico />
     </Section>
   );
 }
@@ -323,7 +262,7 @@ function Desperdicio({ inicio, fim }: PeriodoRelatorios) {
 
       <h3 className="section-title">Por motivo</h3>
       {porMotivo.length > 0 ? (
-        <HBars rows={porMotivo} ariaLabel="Desperdício por motivo" />
+        <HBars rows={porMotivo} ariaLabel="Desperdício por motivo" tone="bad" />
       ) : (
         <p className="muted">Sem desperdício no período.</p>
       )}
@@ -453,53 +392,70 @@ function Reposicao() {
   );
 }
 
-function Pdfs({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<typeof useToast> }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const docs: { tipo: string; label: string }[] = [
-    { tipo: "estoque-atual", label: "Estoque atual" },
-    { tipo: "proximos-vencimento", label: "Próximos vencimentos" },
-    { tipo: "vencidos", label: "Vencidos" },
-    { tipo: "consumo-medio", label: "Consumo médio" },
-    { tipo: "reposicao-sugerida", label: "Reposição sugerida" },
-    { tipo: "cmv", label: "CMV" },
-    { tipo: "desperdicio", label: "Desperdício" },
-  ];
+const RELATORIOS_EXPORTACAO = [
+  { tipo: "estoque-atual", label: "Estoque atual", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "proximos-vencimento", label: "Próximos vencimentos", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "vencidos", label: "Vencidos", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "produtos-abertos", label: "Embalagens abertas", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "reposicao-sugerida", label: "Reposição sugerida", grupo: "Estoque", usaPeriodo: false },
+  { tipo: "consumo-medio", label: "Consumo médio", grupo: "Consumo e perdas", usaPeriodo: true },
+  { tipo: "consumo-dia-semana", label: "Consumo por dia da semana", grupo: "Consumo e perdas", usaPeriodo: true },
+  { tipo: "desperdicio", label: "Desperdício", grupo: "Consumo e perdas", usaPeriodo: true },
+  { tipo: "faturamento", label: "Faturamento", grupo: "Financeiro", usaPeriodo: true },
+  { tipo: "cmv", label: "CMV", grupo: "Financeiro", usaPeriodo: true },
+  { tipo: "cmv-mensal", label: "CMV mensal", grupo: "Financeiro", usaPeriodo: true },
+];
 
-  const download = async (tipo: string, label: string) => {
-    setBusy(tipo);
+function ExportacaoRelatorios({ toast, inicio, fim }: PeriodoRelatorios & { toast: ReturnType<typeof useToast> }) {
+  const [aberto, setAberto] = useState(false);
+  const [tipo, setTipo] = useState(RELATORIOS_EXPORTACAO[0].tipo);
+  const [formato, setFormato] = useState<"pdf" | "csv" | "xls">("xls");
+  const [busy, setBusy] = useState(false);
+  const rel = RELATORIOS_EXPORTACAO.find(r => r.tipo === tipo) ?? RELATORIOS_EXPORTACAO[0];
+
+  const exportar = async () => {
+    setBusy(true);
     try {
-      const qs = new URLSearchParams({ inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
-      if (tipo === "cmv") {
-        const receita = await api.get<CmvReceitaBaseDTO>(`/api/relatorios/cmv/receita-base?inicio=${inicio}&fim=${fim}`);
-        if (receita.receitaBase !== null) qs.set("receitaBase", String(receita.receitaBase));
-      }
-      const blob = await api.blob(`/api/relatorios/pdf/${tipo}?${qs}`);
-      const estampa = `${inicio}-a-${fim}`;
-      downloadBlob(blob, `estoQ-${tipo}-${estampa}.pdf`);
-      toast.success(`${label} gerado em PDF`);
+      const qs = new URLSearchParams({ tipo, formato, inicio, fim, dias: String(diasPeriodo({ inicio, fim })) });
+      const blob = await api.blob(`/api/relatorios/exportar?${qs}`);
+      const ext = formato === "xls" ? "xls" : formato;
+      downloadBlob(blob, `estoQ-${tipo}-${inicio}-a-${fim}.${ext}`);
+      toast.success(rel.usaPeriodo ? "Relatório gerado com o período selecionado" : "Relatório gerado com a posição atual");
+      setAberto(false);
     } catch (e) {
-      toast.error("Não foi possível gerar o PDF", (e as Error).message);
+      toast.error("Não foi possível exportar o relatório", (e as Error).message);
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
   return (
-    <Section title="Exportar em PDF">
-      <p className="muted">CMV, desperdício e consumo usam o período acima. Estoque, vencimentos e reposição mostram a situação atual.</p>
-      <div className="pdf-grid">
-        {docs.map((d) => (
-          <Button
-            key={d.tipo}
-            variant="outline"
-            icon="download"
-            loading={busy === d.tipo}
-            onClick={() => void download(d.tipo, d.label)}
-          >
-            {d.label}
-          </Button>
-        ))}
-      </div>
+    <Section title="Exportar relatórios">
+      <p className="muted">Exportação unificada em PDF, Excel (.XLS) ou CSV. Relatórios de estoque, vencimentos, embalagens abertas e reposição usam a posição atual; consumo, desperdício, faturamento e CMV usam o período definido acima.</p>
+      <Button variant="accent" icon="download" onClick={() => setAberto(true)}>Exportar relatório</Button>
+      <Modal open={aberto} onClose={() => setAberto(false)} title="Exportar relatório" footer={<>
+        <Button variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
+        <Button variant="accent" icon="download" loading={busy} onClick={() => void exportar()}>Exportar {formato.toUpperCase()}</Button>
+      </>}>
+        <div className="form-grid">
+          <Field label="Relatório" htmlFor="export-tipo">
+            <Select id="export-tipo" value={tipo} onChange={e => setTipo(e.target.value)}>
+              {RELATORIOS_EXPORTACAO.map(r => <option key={r.tipo} value={r.tipo}>{r.label} — {r.grupo}{r.usaPeriodo ? " (período)" : " (posição atual)"}</option>)}
+            </Select>
+          </Field>
+          <Field label="Formato" htmlFor="export-formato">
+            <Select id="export-formato" value={formato} onChange={e => setFormato(e.target.value as "pdf" | "csv" | "xls")}>
+              <option value="xls">Excel (.XLS) - Mais profissional</option>
+              <option value="pdf">PDF</option>
+              <option value="csv">CSV</option>
+            </Select>
+          </Field>
+          <Field label="Período" htmlFor="export-periodo">
+            <Input id="export-periodo" value={rel.usaPeriodo ? `${inicio} a ${fim}` : "Posição atual"} readOnly />
+          </Field>
+        </div>
+        <p className="muted">O arquivo Excel (.XLS) vem com cabeçalho, cores, bordas, totais e formatação pronta para impressão.</p>
+      </Modal>
     </Section>
   );
 }

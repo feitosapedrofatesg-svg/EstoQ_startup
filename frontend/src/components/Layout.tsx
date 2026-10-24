@@ -3,6 +3,7 @@ import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../store/auth";
 import { api } from "../lib/api";
 import type { AlertaDTO, Perfil } from "../lib/types";
+import { PERFIL_LABEL } from "../lib/perfis";
 import { Icon, type IconName } from "./Icon";
 import { fmtDateTime, diasAtrasISO, hojeISO } from "../lib/format";
 import { useToast } from "../store/toast";
@@ -50,7 +51,6 @@ function buildNav(perfil: Perfil): NavGroup[] {
       { to: "/estoque", label: "Estoque", icon: "boxes" },
       { to: "/consumo", label: "Consumo", icon: "check-circle" },
       { to: "/desperdicio", label: "Desperdício", icon: "trash" },
-      { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
       { to: "/balanco", label: "Balanço físico", icon: "scale" }
     );
   } else {
@@ -93,13 +93,7 @@ function Brand() {
 }
 
 function RoleLabel({ perfil }: { perfil: Perfil }) {
-  const map: Record<Perfil, string> = {
-    ADMIN: "Administrador",
-    COZINHA: "Cozinha",
-    NUTRICIONISTA: "Nutricionista",
-    PLATAFORMA: "Plataforma",
-  };
-  return <span className="role-tag role-tag--plataforma">{map[perfil]}</span>;
+  return <span className="role-tag role-tag--plataforma">{PERFIL_LABEL[perfil]}</span>;
 }
 
 function AlertBell() {
@@ -157,11 +151,7 @@ function AlertBell() {
         aria-expanded={open}
       >
         <Icon name="bell" size={20} />
-        {count > 0 && (
-          <span className="bell__badge" aria-hidden="true">
-            {count > 9 ? "9+" : count}
-          </span>
-        )}
+        {count > 0 && <span className="bell__badge" aria-hidden="true" />}
       </button>
       {open && (
         <div className="bell__panel" role="dialog" aria-label="Central de alertas">
@@ -310,4 +300,3 @@ export function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

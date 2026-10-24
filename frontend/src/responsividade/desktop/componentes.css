@@ -213,12 +213,11 @@ code {
 
 .bell__badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  display: grid;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  display: block;
 }
 
 .bell__panel {
@@ -1145,10 +1144,13 @@ code {
 }
 
 .cmv-filters__refresh {
-  align-self: stretch;
-  min-width: 142px;
-  min-height: 100%;
-  padding-inline: 18px;
+  align-self: center;
+  justify-self: start;
+  width: 132px;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding-inline: 12px;
 }
 
 .modal__body .form-grid-2,

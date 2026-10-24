@@ -20,6 +20,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @Transactional(readOnly=true)
 public class NotaFiscalService {
+    private final jakarta.persistence.EntityManager entityManager;
     private final DadosAlteradosService sincronizacao;
     private final INotaFiscalRepository repository;
     private final IVinculoFornecedorRepository vinculos;
@@ -43,7 +44,9 @@ public class NotaFiscalService {
         var existente = repository.findByChaveAndAtivoTrue(dados.chave()).orElse(null);
         if (existente!=null) {
             if (!existente.isConfirmada()) {
-                sugerirCategorias(existente);
+                // A revisão anterior não pode confirmar sugestões que acabaram de mudar.
+                entityManager.lock(existente, jakarta.persistence.LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+                sugerirItens(existente);
                 repository.saveAndFlush(existente);
             }
             return adapter.toDto(existente);
@@ -59,11 +62,6 @@ public class NotaFiscalService {
             avisos.add("Ajuste rateado para fechar o total da nota: " + dados.valorTotal().subtract(somaLiquida).toPlainString() + ". Confira descontos, frete e despesas.");
         nota.setAvisos(String.join("\n",avisos));
         var valores = rateio.calcular(dados);
-        var ativos = catalogo.findAllByAtivoTrue();
-        var vinculosLidos = vinculos.findByDocumentoFornecedorAndCodigoInAndAtivoTrue(dados.documentoFornecedor(),
-                dados.itens().stream().map(DadosNota.ItemLido::codigo).toList());
-        var porCodigo = new HashMap<String, VinculoFornecedorModel>();
-        vinculosLidos.forEach(v -> porCodigo.put(v.getCodigo(), v));
         for(int i=0;i<dados.itens().size();i++) {
             var lido = dados.itens().get(i);
             var item = new ItemNotaFiscalModel();
@@ -74,20 +72,35 @@ public class NotaFiscalService {
             item.setValorEntrada(valores.get(i));
             item.setValorRateado(valores.get(i).subtract(lido.valorBruto().subtract(lido.desconto())));
             item.setValidade(lido.validade()); item.setIncerto(lido.incerto());
-            associador.sugerir(item,ativos,porCodigo.get(item.getCodigo()));
             nota.getItens().add(item);
         }
-        sugerirCategorias(nota);
+        sugerirItens(nota);
         repository.saveAndFlush(nota);
         return adapter.toDto(nota);
     }
 
-    private void sugerirCategorias(NotaFiscalModel nota) {
+    private void sugerirItens(NotaFiscalModel nota) {
         var ativos = catalogo.findAllByAtivoTrue();
         var disponiveis = categorias.findAllByAtivoTrue();
+        var porCodigo = new HashMap<String, VinculoFornecedorModel>();
+        vinculos.findByDocumentoFornecedorAndCodigoInAndAtivoTrue(nota.getDocumentoFornecedor(),
+            nota.getItens().stream().map(ItemNotaFiscalModel::getCodigo).toList())
+            .forEach(v -> porCodigo.put(v.getCodigo(), v));
         for (var item : nota.getItens()) {
-            if (item.getProdutoId()==null && item.getCategoriaId()==null)
-                item.setCategoriaId(associadorCategoria.sugerir(item.getNomeProduto(),ativos,disponiveis));
+            associador.sugerir(item,ativos,porCodigo.get(item.getCodigo()));
+            var sugestao = associadorCategoria.analisar(item.getDescricao(),
+                item.getProdutoId()==null ? ativos : List.of(), disponiveis);
+            if (item.getProdutoId()==null) {
+                item.setCategoriaId(sugestao.categoriaId());
+                item.setOrigemCategoria(sugestao.origem());
+                item.setMotivoCategoria(item.getMotivoCategoria()==null ? sugestao.motivo()
+                    : item.getMotivoCategoria() + " " + sugestao.motivo());
+                item.setRevisarCategoria(item.isRevisarCategoria() || sugestao.revisar());
+            } else if (sugestao.categoriaId()!=null && !sugestao.categoriaId().equals(item.getCategoriaId())) {
+                item.setRevisarCategoria(true);
+                item.setMotivoCategoria(item.getMotivoCategoria()
+                    + " A descrição sugere outra categoria. Confira o cadastro do produto; sua categoria foi preservada.");
+            }
         }
     }
 
@@ -151,6 +164,8 @@ public class NotaFiscalService {
             var resultado = entradas.registrarEntrada(new EntradaRequestDTO(produtoId,quantidade,escolha.valorEntrada(),
                     escolha.unidadeEstoque(),escolha.validade(),"NF-e " + nota.getNumero() + "/" + nota.getSerie()
                     + " • " + nota.getFornecedor() + " • item " + item.getNumero(),escolha.valorEntrada().signum()==0));
+            item.setOrigemCategoria("REVISAO"); item.setRevisarCategoria(false);
+            item.setMotivoCategoria("Categoria do produto após a conferência e confirmação da nota.");
             item.setProdutoId(produtoId); item.setCategoriaId(produto.getCategoria().getId()); item.setNomeProduto(produto.getNome());
             item.setUnidadeEstoque(escolha.unidadeEstoque()); item.setFator(escolha.fator());
             item.setQuantidadeEntrada(quantidade); item.setValorEntrada(escolha.valorEntrada());

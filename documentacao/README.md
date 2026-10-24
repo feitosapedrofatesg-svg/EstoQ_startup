@@ -1,6 +1,7 @@
 # Documentação do EstoQ
 
-Revisão do índice: **18/10/2026**. Inclui as entregas de responsividade e consumo rápido.
+Revisão do índice: **21/10/2026**. Inclui a homologação online, o tema Nutrigo e
+as mudanças recentes de Catálogo e permissões.
 
 O EstoQ é uma aplicação web multitenant para estoque, consumo, desperdício,
 balanço e CMV de restaurantes. Cada restaurante compartilha seus dados entre
@@ -21,7 +22,12 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 | [Cache e sincronização](CACHE_E_SINCRONIZACAO.md) | Prazos, SSE, conflitos, rascunhos e desempenho. |
 | [Backup](BACKUP_E_RESTAURACAO.md) | Backup completo exclusivo da PLATAFORMA e restauração. |
 | [Deploy](DEPLOY_VERCEL_RENDER_NEON.md) | Configuração, migrações e verificação da publicação. |
-| [Git e CI](COMMITS_E_FLUXO_DE_TRABALHO.md) | Branches dev/main, testes e publicação. |
+| [Homologação](HOMOLOGACAO.md) | Fluxo dev → homologacao → main e promoção por hash. |
+| [Deploy da homologação](DEPLOY_HOMOLOGACAO.md) | Recursos, URLs, medições e uso gratuito. |
+| [Homologação detalhada 21/10](HOMOLOGACAO_DETALHADA_2026_10_21.md) | Candidata, validações, limitações e promoção. |
+| [Git e CI](COMMITS_E_FLUXO_DE_TRABALHO.md) | Branches dev/homologacao/main, testes e publicação. |
+| [Tema Nutrigo](TEMA_NUTRIGO.md) | Cores, tipografia e validação do tema aplicado. |
+| [Frontend: catálogo e perfis](FRONTEND_CATALOGO_E_PERFIS.md) | Atalho de nota fiscal e bloqueio de Movimentações na cozinha. |
 | [Responsividade](RESPONSIVIDADE.md) | Layout, listas recolhidas e rolagem. |
 | [Threads e concorrência](THREADS_E_SINGLETON.md) | Singleton didático, transações, versões e SSE. |
 | [Histórico de mudanças](HISTORICO_DE_MUDANCAS.md) | Entregas recentes com os respectivos commits. |

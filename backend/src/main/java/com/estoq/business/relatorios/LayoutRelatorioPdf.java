@@ -49,16 +49,10 @@ final class LayoutRelatorioPdf {
             if (dados.linhas().isEmpty()) { texto("Nenhum registro para os filtros selecionados.", MARGEM + 8, y - 22, normal, FONTE); y -= 38; }
             for (int i = 0; i < dados.linhas().size(); i++) {
                 // Reservar espaço na última linha evita um total sozinho na página seguinte.
-                reserva = i == dados.linhas().size() - 1 && dados.total() != null ? 44 : 0;
+                reserva = i == dados.linhas().size() - 1 && !dados.totais().isEmpty() ? 44 : 0;
                 linhaTabela(dados.linhas().get(i), i % 2 == 1);
             }
-            if (dados.total() != null) {
-                y -= 10;
-                fundo(y - 32, 32, PAPEL);
-                texto(dados.total().rotulo(), MARGEM + 8, y - 20, negrito, 10);
-                String valor = dados.total().valor();
-                texto(valor, largura - MARGEM - 8 - medida(valor, negrito, 12), y - 20, negrito, 12);
-            }
+            desenharTotais();
             if (desenho != null) desenho.close();
             for (int i = 0; i < doc.getNumberOfPages(); i++) {
                 try (var rodape = new PDPageContentStream(doc, doc.getPage(i), PDPageContentStream.AppendMode.APPEND, true, true)) {
@@ -74,6 +68,22 @@ final class LayoutRelatorioPdf {
             return saida.toByteArray();
         } finally {
             if (desenho != null) desenho.close();
+        }
+    }
+
+    private void desenharTotais() throws IOException {
+        reserva = 0;
+        for (var total : dados.totais()) {
+            float disponivel = largura - 2 * MARGEM - 32;
+            var rotulo = quebrar(total.rotulo(), negrito, 10, disponivel * 0.60f);
+            var valor = quebrar(total.valor(), negrito, 11, disponivel * 0.40f);
+            float h = Math.max(rotulo.size(), valor.size()) * ENTRELINHA + 18;
+            if (y - h - 10 < RODAPE) novaPagina(false);
+            y -= 10;
+            fundo(y - h, h, PAPEL);
+            for (int i = 0; i < rotulo.size(); i++) texto(rotulo.get(i), MARGEM + 8, y - 20 - i * ENTRELINHA, negrito, 10);
+            for (int i = 0; i < valor.size(); i++) texto(valor.get(i), largura - MARGEM - 8 - medida(valor.get(i), negrito, 11), y - 20 - i * ENTRELINHA, negrito, 11);
+            y -= h;
         }
     }
 

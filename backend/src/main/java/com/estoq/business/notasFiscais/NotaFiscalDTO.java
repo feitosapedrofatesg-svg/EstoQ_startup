@@ -12,5 +12,6 @@ public record NotaFiscalDTO(Long id, Long version, String chave, String forneced
             BigDecimal quantidadeNota, BigDecimal valorBruto, BigDecimal desconto, BigDecimal valorRateado,
             BigDecimal valorEntrada, Long produtoId, Long categoriaId, String nomeProduto,
             UnidadeMedida unidadeEstoque, BigDecimal fator, BigDecimal quantidadeEntrada, LocalDate validade,
-            boolean selecionado, boolean embalagemConfirmada, boolean incerto, Long movimentacaoId) { }
+            boolean selecionado, boolean embalagemConfirmada, boolean incerto, Long movimentacaoId,
+            String origemCategoria, String motivoCategoria, boolean revisarCategoria) { }
 }

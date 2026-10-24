@@ -18,16 +18,10 @@ import {
 } from "../components/UI";
 import { fmtDateTime } from "../lib/format";
 import type { Page, Perfil, UsuarioResponseDTO } from "../lib/types";
+import { PERFIL_LABEL } from "../lib/perfis";
 import { useToast } from "../store/toast";
 
 const PERFIS: Perfil[] = ["ADMIN", "COZINHA", "NUTRICIONISTA"];
-
-const PERFIL_LABEL: Record<Perfil, string> = {
-  ADMIN: "Administrador",
-  COZINHA: "Cozinha",
-  NUTRICIONISTA: "Nutricionista",
-  PLATAFORMA: "Plataforma",
-};
 
 const PERFIL_TONE: Record<Perfil, "neutral" | "accent" | "info" | "good"> = {
   ADMIN: "neutral",
@@ -121,7 +115,7 @@ export function Usuarios() {
         {!loading && users.length === 0 ? (
           <EmptyState
             title="Nenhum usuário"
-            text="Adicione os perfis que vão operar o sistema: administração, cozinha e nutrição."
+            text="Adicione os perfis que vão operar o sistema: Administrador, Operacional e Nutricionista."
           />
         ) : (
           <DataTable caption="Usuários do sistema" headers={["Nome", "E-mail", "Perfil", "Situação", "Criado em", ""]}>
@@ -278,7 +272,7 @@ function UsuarioForm({
         <Select value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}>
           {PERFIS.map((p) => (
             <option key={p} value={p}>
-              {PERFIL_LABEL[p]} — {p === "ADMIN" ? "tudo" : p === "COZINHA" ? "movimentações e estoque" : "CMV e relatórios"}
+              {PERFIL_LABEL[p]} — {p === "ADMIN" ? "tudo" : p === "COZINHA" ? "estoque e operação diária" : "CMV e relatórios"}
             </option>
           ))}
         </Select>

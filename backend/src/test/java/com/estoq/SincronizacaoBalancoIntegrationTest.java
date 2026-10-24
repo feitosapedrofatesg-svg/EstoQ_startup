@@ -248,6 +248,30 @@ class SincronizacaoBalancoIntegrationTest {
         assertTrue(estatisticas.getPrepareStatementCount() < 5, "Ler alertas não deve carregar parâmetros por produto.");
     }
 
+    @Test void adminFinalizaBalancoGeralSemItensViaHttp() throws Exception {
+        var vazio = restaurante("semProdutos");
+        autenticar(vazio);
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var iniciado = balancos.iniciar(criado.id(), new VersaoBalancoRequestDTO(criado.version()));
+        assertEquals(StatusBalanco.EM_ANDAMENTO, iniciado.status());
+        assertTrue(iniciado.itens().isEmpty());
+        var cliente = login(vazio);
+        var path = "/api/balancos/" + iniciado.id() + "/confirmar";
+        assertEquals(400, post(cliente, path, "{\"version\":" + iniciado.version() + "}").statusCode());
+        assertEquals(409, post(cliente, path,
+                "{\"version\":" + (iniciado.version() + 1) + ",\"itens\":[]}").statusCode());
+        assertEquals(403, post(login(cozinha), path,
+                "{\"version\":" + iniciado.version() + ",\"itens\":[]}").statusCode());
+        var resposta = post(cliente, path, "{\"version\":" + iniciado.version() + ",\"itens\":[]}");
+        assertEquals(200, resposta.statusCode(), resposta.body());
+        assertTrue(resposta.body().contains("\"status\":\"CONCLUIDO\""));
+        assertEquals(StatusBalanco.CONCLUIDO, balancos.buscar(iniciado.id()).status());
+        assertEquals(0, app.getBean(IMovimentacaoEstoqueRepository.class).count());
+        autenticar(admin);
+        assertEquals(StatusBalanco.EM_ANDAMENTO, balancos.buscar(contado.id()).status());
+        assertEquals(0, BigDecimal.TEN.compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+    }
+
     @Test void retratoEmLoteRespeitaCategoriasDoBalancoParcial() {
         var categorias = app.getBean(ICategoriaRepository.class).findAllByAtivoTrue();
         var extra = new ProdutoDTO(); extra.setNome("Produto de outra categoria");

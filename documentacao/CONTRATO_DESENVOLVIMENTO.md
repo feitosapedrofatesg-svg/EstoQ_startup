@@ -46,6 +46,8 @@ Sessão HTTP com BCrypt, cookie HttpOnly/Secure em produção e CSRF. O tenant �
 resolvido pela sessão, nunca aceito livremente do request. SQL nativo deve
 incluir predicado de restaurante; o isolamento do ORM não corrige SQL sem filtro.
 
+A interface exibe **Operacional** para o identificador `COZINHA`; banco, API e
+permissões mantêm esse identificador, sem migração.
 A autorização segue `SecurityConfig`: COZINHA pode desperdício operacional e
 contagem, mas não entrada/exclusão administrativa/conclusão/ajustes. Relatórios
 são ADMIN/NUTRICIONISTA. PLATAFORMA administra restaurantes e acessa exclusivamente
@@ -94,8 +96,10 @@ testes; não grave documentos fiscais reais no repositório. A CI ativa é
 `.github/workflows/validacao.yml`.
 
 Atualize a API, os documentos do módulo e o histórico da mudança. Preserve
-coerência entre Markdown e Word. Entregue pela dev, confira a CI e integre a main
-com fast-forward. Publicação só está concluída após verificar deploy e site.
+coerência entre Markdown e Word. O fluxo atual é dev → homologacao → main:
+confira a CI, valide o commit em homologacao e integre somente a versão aprovada
+na main com fast-forward. Veja [HOMOLOGACAO.md](HOMOLOGACAO.md).
+Publicação só está concluída após verificar deploy e site.
 
 Consulte [API_ENDPOINTS.md](API_ENDPOINTS.md),
 [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md) e

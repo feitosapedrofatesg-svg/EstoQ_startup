@@ -241,9 +241,23 @@ que define a arquitetura, regras de negócio e escopo. As principais decisões:
 
 O cache do navegador é separado por restaurante, usuário e perfil e invalidado nas mudanças de sessão. Respostas antigas não atualizam uma nova sessão. Catálogo, categorias e usuários têm paginação de 50 registros e busca no servidor por `q`; seletores percorrem todas as páginas de categorias. Parâmetros de estoque são consultados por `GET /api/parametros-estoque/por-produto/{produtoId}` (ADMIN).
 
+Novos produtos começam com estoque mínimo **3**, na unidade de cadastro. Médio
+e máximo também iniciam em 3 para manter a ordem dos níveis e podem ser editados.
+A migração V9 aplica esse mínimo uma única vez aos registros existentes zerados,
+preservando mínimos personalizados. Depois disso, o administrador pode escolher
+outro mínimo, inclusive zero para desativar o alerta de estoque baixo.
+
 O CMV reconstrói os saldos nos limites do período desfazendo todas as movimentações posteriores, inclusive ajustes e registros de lotes/produtos desativados. Os intervalos têm início inclusivo e término exclusivo; a data final informada inclui o dia inteiro. Quantidade e preço conservam sua precisão até os resultados monetários. ADMIN e NUTRICIONISTA configuram a meta de CMV.
 
-O GitHub Actions valida pushes e pull requests em `dev` e `main`. Para testar a interface com APIs fictícias:
+O fluxo de entrega é `dev → homologacao → main`. O GitHub Actions valida pushes
+e pull requests nas três branches. Veja o [guia de homologação](documentacao/HOMOLOGACAO.md)
+para aprovar uma versão antes de publicar.
+
+Para preparar um site de testes com banco próprio e medir latência, consulte
+[homologação online](documentacao/DEPLOY_HOMOLOGACAO.md). O provisionamento nos
+provedores precisa ser concluído antes de usar esse ambiente.
+
+Para testar a interface com APIs fictícias:
 
 ```bash
 cd frontend

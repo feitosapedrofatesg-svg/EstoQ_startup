@@ -46,13 +46,13 @@ public class ParametroEstoqueModel extends TenantEntity {
     private BigDecimal consumoMedioDiario = BigDecimal.ZERO;
 
     @Column(precision = 18, scale = 3, nullable = false)
-    private BigDecimal estoqueMinimo = BigDecimal.ZERO;
+    private BigDecimal estoqueMinimo = new BigDecimal("3");
 
     @Column(precision = 18, scale = 3, nullable = false)
-    private BigDecimal estoqueMedio = BigDecimal.ZERO;
+    private BigDecimal estoqueMedio = new BigDecimal("3");
 
     @Column(precision = 18, scale = 3, nullable = false)
-    private BigDecimal estoqueMaximo = BigDecimal.ZERO;
+    private BigDecimal estoqueMaximo = new BigDecimal("3");
 
     @Column(nullable = false)
     private Integer diasAlertaVencimento = 0;

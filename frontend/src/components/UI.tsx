@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { Icon, type IconName } from "./Icon";
 import { parseDecimal } from "../lib/format";
 import { rotularLinhas } from "../responsividade/celular/TabelaResponsiva";
+import { useDashboardTactile } from "./DashboardTactile";
 
 /* ------------------------------------------------------------------ Button */
 
@@ -36,13 +37,16 @@ export function Button({
   disabled,
   ...rest
 }: BtnProps) {
+  const tactile = useDashboardTactile<HTMLButtonElement>(disabled || loading, rest);
   return (
     <button
       type="button"
-      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className}`}
+      ref={tactile.ref}
+      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className} ${tactile.className}`}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}
+      {...tactile.events}
     >
       {loading ? (
         <span className="spinner spinner--sm" aria-hidden="true" />
@@ -71,10 +75,13 @@ export function LinkButton({
   className?: string;
   children: ReactNode;
 }) {
+  const tactile = useDashboardTactile<HTMLAnchorElement>();
   return (
     <Link
       to={to}
-      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className}`}
+      ref={tactile.ref}
+      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className} ${tactile.className}`}
+      {...tactile.events}
     >
       {icon && <Icon name={icon} size={size === "lg" ? 20 : 17} />}
       {children}
@@ -160,6 +167,7 @@ export function StatCard({
   tone = "neutral",
   icon,
   big,
+  to,
 }: {
   label: string;
   value: ReactNode;
@@ -167,9 +175,11 @@ export function StatCard({
   tone?: "neutral" | "accent" | "good" | "warn" | "bad" | "info";
   icon?: IconName;
   big?: boolean;
+  to?: string;
 }) {
-  return (
-    <div className={`stat stat--${tone}`}>
+  const tactile = useDashboardTactile<HTMLAnchorElement>(!to);
+  const content = (
+    <>
       <div className="stat__row">
         <span className="stat__label">{label}</span>
         {icon && (
@@ -180,7 +190,14 @@ export function StatCard({
       </div>
       <div className={`stat__value ${big ? "stat__value--big" : ""}`}>{value}</div>
       {sub && <div className="stat__sub">{sub}</div>}
-    </div>
+    </>
+  );
+  return to ? (
+    <Link to={to} ref={tactile.ref} className={`stat stat--${tone} stat--link ${tactile.className}`} {...tactile.events}>
+      {content}
+    </Link>
+  ) : (
+    <div className={`stat stat--${tone}`}>{content}</div>
   );
 }
 

@@ -57,6 +57,12 @@ páginas; não resolve o limite pedindo uma página arbitrariamente enorme.
 Unidades: `KG`, `G`, `L`, `ML`, `UN`. Produtos podem ter múltiplos lotes.
 Consulta auxiliar ADMIN: `GET /api/parametros-estoque/por-produto/{produtoId}`.
 
+Cada produto novo recebe parâmetros com mínimo/médio/máximo em 3 na unidade de
+cadastro. Os níveis continuam editáveis, respeitando mínimo ≤ médio ≤ máximo;
+mínimo zero desativa o alerta de estoque baixo. A V9 atualiza uma única vez os
+mínimos antigos zerados, preservando os personalizados e elevando os demais
+níveis somente quando necessário. Um zero escolhido após a V9 é preservado.
+
 ## Estoque e lotes
 
 | Método | Rota | Permissão / notas |
@@ -93,6 +99,14 @@ operar sobre o lote selecionado para detectar alterações concorrentes.
 | POST | `/api/produtos-abertos/abrir` | ADMIN/COZINHA; `{produtoId, loteId, quantidadeDaEmbalagem, quantoUsouAgora, versionLote?, observacao?}`. |
 | POST | `/api/produtos-abertos/{id}/consumir` | ADMIN/COZINHA; `{quantidade, version?, versionLote?, observacao?}`. |
 | POST | `/api/produtos-abertos/{id}/desperdicar` | ADMIN/COZINHA; mesmos campos de quantidade/versões/observação. |
+
+Movimentos incluem `usuarioId` e `usuarioNome` (nome atual do responsável no
+cadastro). O filtro `usuarioId` combina com produto, lote, tipo e período,
+inclusive para usuários inativos, sempre no restaurante da sessão. A tela
+Movimentações é exclusiva do ADMIN; consulta a equipe em `/api/usuarios` com
+paginação e mantém a seleção na URL como `?usuario=ID`. Usuário sem registros
+ou de outro restaurante não retorna movimentos. Datas locais podem ser enviadas
+como `dataInicio`/`dataFim`, sem misturar com `inicio`/`fim` em UTC.
 
 Tipos de movimento: ENTRADA, CONSUMO, DESPERDICIO e AJUSTE. A abertura sem uso
 não cria um tipo ABERTURA no histórico. Motivos: VENCIMENTO, DETERIORACAO,
@@ -133,6 +147,7 @@ sem outro endpoint de PDF e sem gravar consumo.
 | POST | `/api/balancos` | ADMIN/COZINHA; `{tipo: "GERAL"}` ou `{tipo: "PARCIAL", categorias: [1,2]}`. Corpo ausente cria GERAL. |
 | POST | `/api/balancos/{id}/iniciar` | ADMIN/COZINHA; `{version}`. |
 | PUT | `/api/balancos/{id}/itens/{itemId}/contagem` | ADMIN/COZINHA; `{quantidadeFisica, version}` do item. |
+| POST | `/api/balancos/{id}/contagens/sistema` | ADMIN/COZINHA; `{version}` do balanço. Preenche somente itens sem contagem com o saldo do sistema; não sobrescreve contagens salvas. |
 | POST | `/api/balancos/{id}/confirmar` | ADMIN; versão do balanço e versões de todos os itens. |
 | POST | `/api/balancos/{id}/gerar-ajustes` | ADMIN; `{version}` do balanço. |
 
@@ -143,8 +158,14 @@ Exemplo de conclusão (IDs/versões fictícios, sempre obtidos da leitura atual)
 ```
 
 O conjunto precisa corresponder aos itens completos do balanço, todos contados.
-`BalancoDTO` e cada `ItemBalancoDTO` incluem `version`. Gravações bloqueiam o
-balanço pai e validam estado. Versão antiga: 409. Campo obrigatório ausente: 400.
+Se o balanço em andamento tiver **0 itens**, o ADMIN pode encerrá-lo enviando
+`{version, itens: []}`. Na tela, **Finalizar sem itens** exige confirmação
+explícita; não cria contagens ou movimentações de estoque.
+Em um balanço zerado, `POST /contagens/sistema` registra explicitamente o saldo
+do sistema nos itens ainda sem contagem; isso evita que um campo apenas exibido
+como `0` seja tratado como contado. `BalancoDTO` e cada `ItemBalancoDTO` incluem
+`version`. Gravações bloqueiam o balanço pai e validam estado. Versão antiga: 409.
+Campo obrigatório ausente: 400.
 Não gravar contagem em CONCLUIDO; não há rota de reabertura. Ajustes são idempotentes.
 
 Configuração, apenas ADMIN: GET/POST `/api/configuracoes-balanco` e
@@ -180,6 +201,13 @@ Ver [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md).
 Item de confirmação: `id`, `selecionado`, `produtoId`, `nomeProduto`,
 `categoriaId`, `unidadeEstoque`, `quantidadeNota`, `fator`, `valorEntrada`,
 `validade`, `embalagemConfirmada`, `leituraConferida`, conforme a decisão.
+O item retornado na análise/consulta inclui `origemCategoria`, `motivoCategoria`
+(opcionais em dados antigos) e `revisarCategoria`. Origens: `FORNECEDOR`,
+`CODIGO_BARRAS`, `NOME_EXATO`, `CATALOGO`, `DESCRICAO`, `NAO_IDENTIFICADA`, `REVISAO`.
+São explicações, não novos campos obrigatórios de confirmação. Reanalisar um
+rascunho recalcula as sugestões e incrementa `version`; confirmação antiga recebe
+409. Notas confirmadas não são reanalisadas nem duplicadas.
+
 A conferência final vale globalmente; inconsistências continuam sendo validadas.
 O serviço bloqueia a nota e confirma tudo em uma transação; repetição não duplica
 estoque. A chave fiscal é única por restaurante. Ver o documento de importação.
@@ -204,17 +232,27 @@ Sem datas, as rotas de período usam os padrões definidos no controller.
 | GET | `/api/relatorios/cmv/mensal` | CMV por mês. |
 | GET | `/api/relatorios/cmv/receita-base` | Período obrigatório. |
 | PUT | `/api/relatorios/cmv/receita-base` | Salva receita informada por período. |
+| GET | `/api/relatorios/faturamento-diario` | Lista dias e total com início/fim inclusivos. |
+| PUT | `/api/relatorios/faturamento-diario` | Salva ou corrige data/valor usando version. |
 | GET | `/api/relatorios/reposicao-sugerida` | `dias` opcional. |
 | GET | `/api/relatorios/pdf/{tipo}` | PDF com os filtros correspondentes. |
 | GET | `/api/dashboard/resumo` | Indicadores e CMV. |
 | GET/PUT | `/api/parametros-cmv` | Meta: ID/versão/`percentualIdeal`. |
 
 Tipos PDF: `estoque-atual`, `proximos-vencimento`, `vencidos`, `produtos-abertos`,
-`desperdicio`, `consumo-medio`, `cmv`, `cmv-mensal`, `reposicao-sugerida`.
+`desperdicio`, `consumo-medio`, `consumo-dia-semana`, `faturamento`, `cmv`,
+`cmv-mensal`, `reposicao-sugerida`. Todos estão disponíveis no bloco Exportar em PDF.
+Os fechamentos somam valores monetários exibidos e quantidades por unidade, sem
+somar médias ou percentuais. Faturamento identifica dias pendentes e total parcial.
+Detalhes em [Relatórios em PDF](RELATORIOS_PDF.md).
 
 CMV = estoque inicial + compras − estoque final. Sem receita válida não calcula
 percentual. Perdas não explicadas = CMV − (consumo registrado + desperdício).
 A receita base por período não significa integração com vendas/PDV.
+
+O CMV resolve automaticamente o faturamento diário completo ou o total antigo do
+intervalo exato, sem somar as duas bases. Dias pendentes não são dias com R$ 0.
+Regras, campos e compatibilidade em [Faturamento diário](FATURAMENTO_DIARIO.md).
 
 ## Backup e documentação interativa
 

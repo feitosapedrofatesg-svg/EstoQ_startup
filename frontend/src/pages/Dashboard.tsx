@@ -4,9 +4,11 @@ import { useFetch } from "../lib/hooks";
 import { api } from "../lib/api";
 import { PageHeader, Card, StatCard, Badge, EmptyState, LinkButton, Button } from "../components/UI";
 import { CmvGauge } from "../components/Charts";
-import { fmtMoney, fmtPct, fmtDateTime, fmtDataHoje, diasAtrasISO, hojeISO } from "../lib/format";
+import { AvisoFaturamento, FaturamentoDiario } from "../components/FaturamentoDiario";
+import { fmtMoney, fmtPct, fmtDate, fmtDateTime, fmtDataHoje, diasAtrasISO, hojeISO } from "../lib/format";
 import type { AlertaDTO, DashboardResumoDTO } from "../lib/types";
 import { useToast } from "../store/toast";
+import { DashboardTactile, DashboardTactileAction } from "../components/DashboardTactile";
 
 const ALERT_TONE: Record<AlertaDTO["tipo"], "bad" | "warn" | "info" | "good"> = {
   VENCIDO: "bad",
@@ -25,8 +27,10 @@ const ALERT_LABEL: Record<AlertaDTO["tipo"], string> = {
 };
 
 export function Dashboard() {
-  const { user, isAdmin, isCozinha, canReport, canMove } = useAuth();
-  const periodo = new URLSearchParams({ inicio: diasAtrasISO(30), fim: hojeISO() });
+  const { user, isAdmin, isCozinha, canReport, canMove, canSeeEstoque, canSeeCatalogo } = useAuth();
+  const inicio = diasAtrasISO(29);
+  const fim = hojeISO();
+  const periodo = new URLSearchParams({ inicio, fim });
   const { data, loading, error, refresh } = useFetch<DashboardResumoDTO>(`/api/dashboard/resumo?${periodo}`, [], true);
   const canSeeAlerts = isAdmin || isCozinha;
   const { data: alerts, refresh: refreshAlerts } = useFetch<AlertaDTO[]>(
@@ -44,7 +48,7 @@ export function Dashboard() {
   };
 
   return (
-    <>
+    <DashboardTactile>
       <PageHeader
         title={<>Olá, {user?.nome.split(" ")[0]}.</>}
         subtitle={<span className="capitalize">{fmtDataHoje()}</span>}
@@ -76,31 +80,37 @@ export function Dashboard() {
       {data && (
         <>
           <div className="stat-grid">
-            <StatCard label="Produtos ativos" value={data.totalProdutosAtivos} icon="boxes" />
+            <StatCard label="Produtos ativos" value={data.totalProdutosAtivos} icon="boxes"
+              to={canSeeCatalogo ? "/catalogo" : undefined} />
             <StatCard
               label="Estoque baixo"
               value={data.produtosEstoqueBaixo}
               tone={data.produtosEstoqueBaixo > 0 ? "warn" : "neutral"}
               icon="alert-triangle"
+              to={canSeeEstoque ? "/estoque" : undefined}
             />
             <StatCard
               label="Próximos a vencer"
               value={data.lotesProximosVencimento}
               tone={data.lotesProximosVencimento > 0 ? "warn" : "neutral"}
               icon="clock"
+              to={canSeeEstoque ? "/estoque" : undefined}
             />
             <StatCard
               label="Vencidos"
               value={data.lotesVencidos}
               tone={data.lotesVencidos > 0 ? "bad" : "neutral"}
               icon="alert-circle"
+              to={canMove ? "/desperdicio" : undefined}
             />
-            <StatCard label="Embalagens abertas" value={data.produtosAbertosAtivos} tone="accent" icon="box-open" />
+            <StatCard label="Embalagens abertas" value={data.produtosAbertosAtivos} tone="accent" icon="box-open"
+              to={canMove ? "/desperdicio" : undefined} />
             <StatCard
               label="Balanços pendentes"
               value={data.balancosPendentes}
               tone={data.balancosPendentes > 0 ? "info" : "neutral"}
               icon="scale"
+              to={canMove ? "/balanco" : undefined}
             />
           </div>
 
@@ -108,14 +118,17 @@ export function Dashboard() {
             <Card title="CMV — custo da mercadoria vendida">
               {canReport ? (
                 <div className="cmv-block">
-                  <div className="cmv-block__money">{fmtMoney(data.cmvPeriodo)}</div>
-                  <p className="muted">nos últimos 30 dias</p>
+                  <div className="cmv-block__money" aria-label="CMV percentual dos últimos 30 dias">{fmtPct(data.cmvPercentual)}</div>
+                  <p className="muted">nos últimos 30 dias: {fmtDate(inicio)} a {fmtDate(fim)}</p>
                   <CmvGauge
                     percentual={data.cmvPercentual}
                     ideal={data.cmvIdeal}
                     label="Percentual de CMV"
                   />
+                  <AvisoFaturamento {...data} />
                   <div className="cmv-block__rows">
+                    <div className="cmv-row"><span>Custo das mercadorias no período</span><strong>{fmtMoney(data.cmvPeriodo)}</strong></div>
+                    <div className="cmv-row"><span>Faturamento usado no cálculo</span><strong>{data.receitaBase == null ? "Pendente" : fmtMoney(data.receitaBase)}</strong></div>
                     <div className="cmv-row">
                       <span>Desperdício no período</span>
                       <strong>{fmtMoney(data.valorDesperdicioPeriodo)}</strong>
@@ -131,11 +144,13 @@ export function Dashboard() {
                       <strong>{fmtPct(data.diferencaCmvParaMeta)}</strong>
                     </div>
                   </div>
+                  <FaturamentoDiario key={`${inicio}|${fim}`} inicio={inicio} fim={fim} />
+                  <LinkButton to={`/relatorios?${periodo}`} variant="outline" icon="chart">Ver relatório destes 30 dias</LinkButton>
                 </div>
               ) : (
                 <EmptyState
                   title="Os relatórios de CMV ficam com o nutricionista"
-                  text="O perfil Cozinha registra entradas, consumo e desperdício. A análise de CMV é feita pelo nutricionista ou administrador."
+                  text="O perfil Operacional registra consumo, desperdício e contagens de balanço. A análise de CMV é feita pelo nutricionista ou administrador."
                 />
               )}
             </Card>
@@ -154,12 +169,12 @@ export function Dashboard() {
                           <p>{a.mensagem}</p>
                           <p className="alert-list__time">{fmtDateTime(a.dataGeracao)}</p>
                         </div>
-                        <button
+                        <DashboardTactileAction
                           className="link-btn"
                           onClick={() => void markSeen(a.id)}
                         >
                           Marcar como visto
-                        </button>
+                        </DashboardTactileAction>
                       </li>
                     ))}
                   </ul>
@@ -177,6 +192,6 @@ export function Dashboard() {
           </div>
         </>
       )}
-    </>
+    </DashboardTactile>
   );
 }

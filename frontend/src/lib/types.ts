@@ -152,6 +152,7 @@ export interface MovimentacaoDTO {
   loteVersion: number | null;
   quantidadeLoteAtual: number | null;
   usuarioId: number | null;
+  usuarioNome?: string | null;
   produtoAbertoId: number | null;
   quantidade: number;
   quantidadeAnterior: number | null;
@@ -248,6 +249,9 @@ export interface CmvResumoDTO {
   cmv: number;
   receitaBase: number | null;
   cmvPercentual: number | null;
+  faturamentoInformado: number;
+  diasFaturamentoPendentes: number;
+  receitaPorPeriodo: boolean;
   percentualIdeal: number | null;
   diferencaPercentualParaMeta: number | null;
   valorConsumoRegistrado: number;
@@ -282,6 +286,16 @@ export interface DashboardResumoDTO {
   cmvIdeal: number | null;
   diferencaCmvParaMeta: number | null;
   perdasNaoExplicadasPeriodo: number;
+  receitaBase: number | null;
+  faturamentoInformado: number;
+  diasFaturamentoPendentes: number;
+  receitaPorPeriodo: boolean;
+}
+
+export interface FaturamentoDiarioDTO { data: string; valor: number | null; version: number | null }
+export interface FaturamentoPeriodoDTO {
+  inicio: string; fim: string; totalInformado: number; diasInformados: number; diasPendentes: number;
+  receitaBase: number | null; receitaPorPeriodo: boolean; dias: FaturamentoDiarioDTO[];
 }
 
 export interface DesperdicioDTO {
@@ -349,6 +363,7 @@ export interface ItemNotaFiscalDTO {
   produtoId: number | null; categoriaId: number | null; nomeProduto: string; unidadeEstoque: UnidadeMedida;
   fator: number; quantidadeEntrada: number | null; validade: string | null;
   selecionado: boolean; embalagemConfirmada: boolean; incerto: boolean; movimentacaoId: number | null;
+  origemCategoria?: string | null; motivoCategoria?: string | null; revisarCategoria?: boolean;
 }
 export interface NotaFiscalDTO {
   id: number; version: number; chave: string; fornecedor: string; documentoFornecedor: string;

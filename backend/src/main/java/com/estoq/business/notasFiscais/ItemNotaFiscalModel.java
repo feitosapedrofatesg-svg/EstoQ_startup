@@ -26,6 +26,9 @@ public class ItemNotaFiscalModel extends TenantEntity {
     @Column(nullable = false, precision = 18, scale = 2) private BigDecimal valorEntrada;
     private Long produtoId;
     private Long categoriaId;
+    @Column(length = 30) private String origemCategoria;
+    @Column(length = 500) private String motivoCategoria;
+    @Column(nullable = false) private boolean revisarCategoria;
     @Column(length = 120) private String nomeProduto;
     @Enumerated(EnumType.STRING) @Column(length = 10) private UnidadeMedida unidadeEstoque;
     @Column(precision = 18, scale = 6) private BigDecimal fator;

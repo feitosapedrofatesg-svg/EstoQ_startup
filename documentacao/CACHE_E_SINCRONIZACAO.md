@@ -60,13 +60,15 @@ infraestrutura compartilhada que ainda não foi implementada.
 ## Proteção das gravações de balanço
 
 O backend adquire lock pessimista no balanço pai antes de consultar os itens;
-a consulta de lock não usa joins. Contagem, conclusão e ajustes passam pelo
-mesmo ponto de serialização. O estado é conferido dentro da transação.
+a consulta de lock não usa joins. Contagem, aceite do saldo do sistema,
+conclusão e ajustes passam pelo mesmo ponto de serialização. O estado é
+conferido dentro da transação.
 
 | Operação | Versão exigida |
 | --- | --- |
 | Iniciar | `version` do balanço. |
 | Contar | `version` do item, mais `quantidadeFisica`. |
+| Aceitar saldo do sistema | `version` do balanço; preenche só itens sem contagem. |
 | Confirmar | `version` do balanço e lista completa de `{id, version}` dos itens. |
 | Gerar ajustes | `version` do balanço. |
 

@@ -210,3 +210,22 @@ Referências: [Render gratuito](https://render.com/docs/free),
 [Blueprints](https://render.com/docs/blueprint-spec),
 [configuração Vercel](https://vercel.com/docs/project-configuration/vercel-ts),
 [limites de projetos Supabase](https://supabase.com/docs/guides/platform/billing-faq).
+
+
+## Atualização 24/10/2026 — Backend migrado para Virgínia
+
+O backend de homologação foi migrado para a mesma região da produção (**Virgínia, us-east**).
+
+- Novo serviço: `estoq-backend-homologacao-va` (`srv-dbe20d7avr4c739qfk4g`)
+- URL: `https://estoq-backend-homologacao-va.onrender.com`
+- Região: Virgínia (free)
+- Branch: `homologacao`
+- Perfil: `prod,homologacao`
+- Health check: `/api/saude/vivo`
+- Banco: continua no mesmo projeto Supabase (Oregon, us-west-2) — apenas o backend mudou de região
+
+O `ESTOQ_API_ORIGIN` do projeto Vercel `estoq-homologacao` foi atualizado para apontar
+ao novo backend. O serviço antigo `estoq-backend-homologacao` (Oregon) foi suspenso
+como rede de segurança (pode ser reativado rapidamente se necessário).
+
+Testado: login, `/api/saude/vivo` e `/api/saude/pronto`, exportação CSV funcionando.

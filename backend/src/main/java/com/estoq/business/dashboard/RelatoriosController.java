@@ -180,7 +180,7 @@ public class RelatoriosController {
         if (!"pdf".equals(formato) && !"csv".equals(formato)) {
             throw new FieldValidationException("formato", "Formato deve ser pdf ou csv.");
         }
-        String nomeBase = "estoq-" + tipo + "-" + (inicio == null ? horario.hoje() : inicio) + "-a-" + (fim == null ? horario.hoje() : fim);
+        String nomeBase = "estoQ-" + tipo + "-" + (inicio == null ? horario.hoje() : inicio) + "-a-" + (fim == null ? horario.hoje() : fim);
         String nomeArquivo = URLEncoder.encode(nomeBase + "." + formato, StandardCharsets.UTF_8).replace("+", "%20");
         if ("pdf".equals(formato)) {
             byte[] bytes = pdfs.gerar(tipo, inicio, fim, dias, receitaBase);
@@ -206,15 +206,37 @@ public class RelatoriosController {
         DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         DateTimeFormatter DATAHORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
+        String titulo = switch (tipo) {
+            case "estoque-atual" -> "Estoque atual";
+            case "proximos-vencimento" -> "Lotes próximos do vencimento";
+            case "vencidos" -> "Lotes vencidos";
+            case "produtos-abertos" -> "Embalagens abertas";
+            case "desperdicio" -> "Desperdício no período";
+            case "consumo-medio" -> "Consumo médio";
+            case "consumo-dia-semana" -> "Consumo por dia da semana";
+            case "faturamento" -> "Faturamento no período";
+            case "cmv" -> "Custo da mercadoria vendida (CMV)";
+            case "cmv-mensal" -> "CMV mês a mês";
+            case "reposicao-sugerida" -> "Reposição sugerida";
+            default -> "Relatório";
+        };
+        boolean usaPeriodo = List.of("desperdicio", "consumo-medio", "consumo-dia-semana", "faturamento", "cmv", "cmv-mensal").contains(tipo);
+        out.println("EstoQ");
+        out.println(titulo);
+        out.println(usaPeriodo ? "Período;" + periodoInicio.format(DATA) + " a " + periodoFim.format(DATA) : "Posição;" + periodoFim.format(DATA));
+        out.println("Gerado em;" + java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + " (UTC-3)");
+        out.println();
+
         switch (tipo) {
             case "estoque-atual" -> {
                 out.println("Produto;Categoria;Unidade;Saldo;Valor em estoque");
                 var valorTotal = BigDecimal.ZERO;
                 for (var l : relatorios.estoqueAtual()) {
                     valorTotal = valorTotal.add(l.valorEstoque() == null ? BigDecimal.ZERO : l.valorEstoque());
-                    out.printf("%s;%s;%s;%s;%s%n", l.produtoNome().replace(";", ",").replace("\"", "'"), l.categoriaNome() == null ? "" : l.categoriaNome().replace(";", ",").replace("\"", "'"), l.unidadeMedida(), l.saldoAtual() == null ? "" : l.saldoAtual().toString().replace(".", ","), l.valorEstoque() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", l.valorEstoque()).replace(".", ","));
+                    out.printf("%s;%s;%s;%s;%s%n", l.produtoNome(), l.categoriaNome() == null ? "" : l.categoriaNome(), l.unidadeMedida(), l.saldoAtual() == null ? "" : l.saldoAtual().toString().replace(".", ","), l.valorEstoque() == null ? "0,00" : String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", l.valorEstoque()).replace(".", ","));
                 }
-                out.printf(";;;TOTAL;%s%n", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","));
+                out.println();
+                out.printf("TOTAL EM ESTOQUE;;;%s;%s%n", "", String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", valorTotal).replace(".", ","));
             }
             case "proximos-vencimento" -> {
                 out.println("Produto;Lote;Validade;Dias restantes;Quantidade;Unidade;Preço unitário;Valor do saldo");

@@ -1,3 +1,4 @@
+import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -224,7 +225,7 @@ export function Movimentacoes() {
                   <strong>{m.produtoNome}</strong>
                   {m.observacao && <span className="cell-sub">{m.observacao}</span>}
                 </td>
-                <td className="muted-cell">{m.loteCodigo ?? "—"}</td>
+                <td className="muted-cell">{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
                 <td>
                   <span className={m.tipo === "DESPERDICIO" ? "text-bad" : ""}>
                     {m.tipo === "ENTRADA" ? "+" : m.tipo === "AJUSTE" && (m.diferencaApurada ?? 0) >= 0 ? "+" : "−"}
@@ -281,6 +282,7 @@ function RegisterEntrada({
   const [produtoId, setProdutoId] = useState(initialProduto);
   const [quantidade, setQuantidade] = useState<number | null>(null);
   const [observacao, setObservacao] = useState("");
+  const [loteFabricante, setLoteFabricante] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -323,6 +325,7 @@ function RegisterEntrada({
         dataValidade: dataValidade || null,
         semCusto,
         observacao: observacao || null,
+        loteFabricante: loteFabricante.trim() || null,
       });
       onDone();
     } catch (e) {
@@ -367,6 +370,9 @@ function RegisterEntrada({
         required
       />
 
+      <Field label="Lote do fabricante (opcional)" htmlFor="entrada-lote-fabricante">
+        <Input id="entrada-lote-fabricante" maxLength={50} value={loteFabricante} onChange={e => setLoteFabricante(e.target.value)} placeholder="Número impresso na embalagem" />
+      </Field>
       <div className="form-grid-2">
         <NumberField
           label="Quantidade"

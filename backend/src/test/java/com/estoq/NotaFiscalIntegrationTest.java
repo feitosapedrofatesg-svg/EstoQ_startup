@@ -44,6 +44,18 @@ class NotaFiscalIntegrationTest {
     }
     @AfterEach void limpar() { SecurityContextHolder.clearContext(); }
 
+    @Test void loteDoFabricanteEntraNaRevisaoENaoDuplicaNaRepeticao() {
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ","KG");
+        var i=nota.itens().getFirst();
+        var escolha=new ConfirmarNotaDTO.Item(i.id(),true,null,i.nomeProduto(),categoriaId,
+                UnidadeMedida.KG,i.quantidadeNota(),BigDecimal.ONE,i.valorEntrada(),null,true,true," FAB-123 ");
+        var pedido=new ConfirmarNotaDTO(nota.version(),List.of(escolha),true);
+        var confirmada=notas.confirmar(nota.id(),pedido);
+        assertEquals("FAB-123",confirmada.itens().getFirst().loteFabricante());
+        assertEquals(confirmada,notas.confirmar(nota.id(),pedido));
+        assertEquals(0,new BigDecimal("2").compareTo(produtos.buscar(confirmada.itens().getFirst().produtoId()).getSaldoAtual()));
+    }
+
     @Test void bebidaAbreviadaSugereBebidasPreservandoDescricaoECustos() {
         var bebidas=new CategoriaModel(); bebidas.setNome("Bebidas"); categorias.saveAndFlush(bebidas);
         var hortifruti=new CategoriaModel(); hortifruti.setNome("Hortifruti"); categorias.saveAndFlush(hortifruti);

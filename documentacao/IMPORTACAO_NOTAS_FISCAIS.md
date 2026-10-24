@@ -179,3 +179,14 @@ avisa as outras sessões do mesmo restaurante via SSE após o commit.
 
 Veja [API_ENDPOINTS.md](API_ENDPOINTS.md) para o payload de confirmação e
 [CACHE_E_SINCRONIZACAO.md](CACHE_E_SINCRONIZACAO.md) para consistência entre aparelhos.
+
+## Lote do fabricante
+
+A revisão de cada item e a entrada manual aceitam `loteFabricante` opcional,
+com até 50 caracteres. O sistema mantém seu código interno `L-xxxxxx`.
+O número do fabricante pode se repetir: cada entrada continua com seu próprio
+custo, quantidade e validade. Não há leitura automática desse campo no OCR.
+O número informado acompanha o lote, o histórico e as exportações.
+
+A migração V12 adiciona somente colunas opcionais; os lotes existentes
+continuam válidos e seus saldos não são alterados. Aplicar junto da V11.

@@ -117,6 +117,21 @@ class EstoqueIntegrationTest {
                 .movimentacoes().getFirst().loteId();
     }
 
+    @Test
+    void loteFabricanteRepetidoPreservaEntradasECustosSeparados() {
+        var primeira = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("2"), n("20"),
+                UnidadeMedida.KG, null, null, false, " FAB-123 ")).movimentacoes().getFirst();
+        var segunda = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("3"), n("60"),
+                UnidadeMedida.KG, null, null, false, "FAB-123")).movimentacoes().getFirst();
+        assertFalse(primeira.loteId().equals(segunda.loteId()));
+        assertFalse(primeira.loteCodigo().equals(segunda.loteCodigo()));
+        assertEquals("FAB-123", primeira.loteFabricante());
+        assertEquals("FAB-123", lotes.findById(segunda.loteId()).orElseThrow().getLoteFabricante());
+        igual("10", lotes.findById(primeira.loteId()).orElseThrow().getPrecoUnitario());
+        igual("20", lotes.findById(segunda.loteId()).orElseThrow().getPrecoUnitario());
+        igual("5", estoque.obterSaldo(produtoId));
+    }
+
     @Autowired com.estoq.business.movimentacoesEstoque.MovimentacaoRegistroService registros;
 
     @Test void historicoMostraMovimentacaoMaisRecentePrimeiro() {

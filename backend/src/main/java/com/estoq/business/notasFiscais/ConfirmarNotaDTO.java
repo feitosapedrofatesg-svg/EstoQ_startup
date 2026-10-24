@@ -12,5 +12,10 @@ public record ConfirmarNotaDTO(@NotNull Long version, @NotEmpty @Size(max=1000) 
     public record Item(@NotNull Long id, boolean selecionado, Long produtoId,
             @Size(max=120) String nomeProduto, Long categoriaId, UnidadeMedida unidadeEstoque,
             BigDecimal quantidadeNota, BigDecimal fator, BigDecimal valorEntrada, LocalDate validade,
-            boolean embalagemConfirmada, boolean leituraConferida) { }
+            boolean embalagemConfirmada, boolean leituraConferida,
+        @Size(max = 50) String loteFabricante) {
+    public Item(Long id, boolean selecionado, Long produtoId, String nomeProduto, Long categoriaId, UnidadeMedida unidadeEstoque, BigDecimal quantidadeNota, BigDecimal fator, BigDecimal valorEntrada, LocalDate validade, boolean embalagemConfirmada, boolean leituraConferida) {
+        this(id, selecionado, produtoId, nomeProduto, categoriaId, unidadeEstoque, quantidadeNota, fator, valorEntrada, validade, embalagemConfirmada, leituraConferida, null);
+    }
+ }
 }

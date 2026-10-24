@@ -1,3 +1,4 @@
+import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
 import { useId, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -79,13 +80,13 @@ export function Desperdicio() {
 
   const lotesVisiveis = useMemo(() => (lotes ?? []).filter((l) =>
     l.quantidadeAtual > 0 && (situacao !== "VENCIDOS" || l.vencido) &&
-    `${l.produtoNome} ${l.codigo}`.toLocaleLowerCase("pt-BR").includes(buscaLotes.toLocaleLowerCase("pt-BR"))
+    `${l.produtoNome} ${fmtLote(l.codigo, l.loteFabricante)}`.toLocaleLowerCase("pt-BR").includes(buscaLotes.toLocaleLowerCase("pt-BR"))
   ), [lotes, situacao, buscaLotes]);
   const historico = useMemo(() => (registros ?? []).filter((m) => {
     const balanco = m.tipo === "AJUSTE";
     const motivo = balanco ? "BALANCO" : m.motivo;
     return (motivoFiltro === "TODOS" || motivoFiltro === motivo) &&
-      `${m.produtoNome} ${m.loteCodigo ?? ""} ${m.descricaoMotivo ?? ""} ${m.observacao ?? ""}`
+      `${m.produtoNome} ${m.loteCodigo ?? ""} ${m.loteFabricante ?? ""} ${m.descricaoMotivo ?? ""} ${m.observacao ?? ""}`
         .toLocaleLowerCase("pt-BR").includes(buscaHistorico.toLocaleLowerCase("pt-BR"));
   }).sort((a, b) => b.dataHora.localeCompare(a.dataHora) || b.id - a.id),
   [registros, motivoFiltro, buscaHistorico]);
@@ -126,7 +127,7 @@ export function Desperdicio() {
             {lotesVisiveis.map((l) => (
               <tr key={l.id}>
                 <td><strong>{l.produtoNome}</strong></td>
-                <td>{l.codigo}</td>
+                <td>{fmtLote(l.codigo, l.loteFabricante)}</td>
                 <td className={l.vencido ? "text-bad" : ""}>{fmtDate(l.dataValidade)}</td>
                 <td>{fmtNum(l.quantidadeAtual)} {l.unidadeMedida.toLowerCase()}</td>
                 <td>{fmtMoney(l.quantidadeAtual * l.precoUnitario)}</td>
@@ -178,7 +179,7 @@ export function Desperdicio() {
               <tr key={m.id}>
                 <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
                 <td><strong>{m.produtoNome}</strong>{m.observacao && <span className="cell-sub">{m.observacao}</span>}</td>
-                <td>{m.loteCodigo ?? "—"}</td>
+                <td>{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
                 <td className="text-bad">{fmtNum(Math.abs(m.quantidade))}</td>
                 <td>{m.tipo === "AJUSTE" ? "Diferença negativa de balanço" : (MOTIVO_LABEL[m.motivo as MotivoDesperdicio] ?? m.motivo ?? "—")}
                   {m.descricaoMotivo && m.tipo !== "AJUSTE" && <span className="cell-sub">{m.descricaoMotivo}</span>}
@@ -200,7 +201,7 @@ export function Desperdicio() {
             {abertos.map((p) => (
               <tr key={p.id}>
                 <td><strong>{p.produtoNome}</strong></td>
-                <td>Lote {p.loteCodigo} · vence {fmtDate(p.dataValidade)}</td>
+                <td>Lote {fmtLote(p.loteCodigo, p.loteFabricante)} · vence {fmtDate(p.dataValidade)}</td>
                 <td>{fmtDateTime(p.dataAbertura)}</td>
                 <td>{fmtNum(p.quantidadeRestante)} {p.unidadeMedida.toLowerCase()}</td>
                 <td><Button size="sm" variant="danger" onClick={() => setAlvo(p)}>Registrar desperdício</Button></td>

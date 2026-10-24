@@ -109,6 +109,7 @@ export interface ParametroEstoqueDTO extends BaseDTO {
 }
 
 export interface LoteDTO {
+  loteFabricante?: string | null;
   id: number;
   version: number;
   codigo: string;
@@ -141,6 +142,7 @@ export interface EstoqueDTO {
 }
 
 export interface MovimentacaoDTO {
+  loteFabricante?: string | null;
   unidadeMedida?: UnidadeMedida;
   id: number;
   tipo: TipoMovimentacao;
@@ -174,6 +176,7 @@ export interface MovimentacaoResultadoDTO {
 }
 
 export interface ProdutoAbertoDTO {
+  loteFabricante?: string | null;
   id: number;
   version: number;
   produtoId: number;
@@ -299,6 +302,7 @@ export interface FaturamentoPeriodoDTO {
 }
 
 export interface DesperdicioDTO {
+  loteFabricante?: string | null;
   dataHora: string;
   motivo: MotivoDesperdicio;
   descricaoMotivo: string | null;
@@ -358,6 +362,7 @@ export interface ParametroCmvDTO {
 }
 
 export interface ItemNotaFiscalDTO {
+  loteFabricante?: string | null;
   id: number; numero: number; codigo: string; descricao: string; unidadeNota: string;
   quantidadeNota: number; valorBruto: number; desconto: number; valorRateado: number; valorEntrada: number;
   produtoId: number | null; categoriaId: number | null; nomeProduto: string; unidadeEstoque: UnidadeMedida;

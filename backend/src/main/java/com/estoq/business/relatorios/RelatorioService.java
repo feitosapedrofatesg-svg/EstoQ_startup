@@ -83,7 +83,7 @@ public class RelatorioService {
         return movimentos.desperdiciosEntre(inicio, fim).stream()
                 .map(d -> new DesperdicioDTO(d.getDataHora(), DesperdicioClassificacao.motivo(d), DesperdicioClassificacao.descricao(d),
                         d.getProduto().getId(), d.getProduto().getNome(), d.getLote().getCodigo(), DesperdicioClassificacao.quantidade(d),
-                        DesperdicioClassificacao.valor(d), d.getProduto().getUnidadeMedida().name()))
+                        DesperdicioClassificacao.valor(d), d.getProduto().getUnidadeMedida().name(), d.getLote().getLoteFabricante()))
                 .toList();
     }
 

@@ -69,7 +69,16 @@ public class LoteService {
 
     @Transactional
     public LoteModel criar(ProdutoModel produto, BigDecimal inicial, BigDecimal saldo, BigDecimal preco, LocalDate validade) {
+        return criar(produto, inicial, saldo, preco, validade, null);
+    }
+
+    @Transactional
+    public LoteModel criar(ProdutoModel produto, BigDecimal inicial, BigDecimal saldo, BigDecimal preco, LocalDate validade, String fabricante) {
+        String numero = fabricante == null || fabricante.isBlank() ? null : fabricante.trim();
+        if (numero != null && numero.length() > 50)
+            throw new com.estoq.core.exceptions.FieldValidationException("loteFabricante", "O lote do fabricante deve ter até 50 caracteres.");
         var lote = new LoteModel();
+        lote.setLoteFabricante(numero);
         lote.setProduto(produto);
         lote.setQuantidadeInicial(inicial);
         lote.setQuantidadeAtual(saldo);

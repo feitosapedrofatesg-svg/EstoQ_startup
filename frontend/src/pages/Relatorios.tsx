@@ -1,3 +1,4 @@
+import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
 import { useMemo, useState, type ReactNode } from "react";
 import { useFetch } from "../lib/hooks";
@@ -279,7 +280,7 @@ function Desperdicio({ inicio, fim }: PeriodoRelatorios) {
                   <td>
                     <strong>{d.produtoNome}</strong>
                   </td>
-                  <td className="muted-cell">{d.loteCodigo ?? "—"}</td>
+                  <td className="muted-cell">{fmtLote(d.loteCodigo, d.loteFabricante)}</td>
                   <td>{d.motivo.replaceAll("_", " ")}</td>
                   <td>{fmtNum(d.quantidade)} {d.unidadeMedida?.toLowerCase()}</td>
                   <td className="text-bad">{fmtMoney(d.valorPrejuizo)}</td>

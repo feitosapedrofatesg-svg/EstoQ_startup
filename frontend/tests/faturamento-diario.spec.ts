@@ -50,7 +50,7 @@ async function prepararCmv(page: Page) {
       return route.fulfill({ json: { data: envio.data, ...salvo } });
     }
     if (url.pathname === "/api/relatorios/cmv") return route.fulfill({ json: cmv(url) });
-    if (url.pathname.includes("/pdf/")) return route.fulfill({ contentType: "application/pdf", body: "%PDF-1.4" });
+    if (url.pathname.includes("/pdf/") || url.pathname.endsWith("/exportar")) return route.fulfill({ contentType: "application/pdf", body: "%PDF-1.4" });
     return route.fallback();
   });
   await page.route("**/api/dashboard/resumo**", route => {
@@ -76,9 +76,12 @@ test("salvar o dia completa os 30 dias e mantém o percentual ao abrir relatóri
   await expect(page.getByLabel("Até", { exact: true })).toHaveValue("2026-10-19");
   await expect(page.getByRole("img", { name: "Percentual de CMV: 30%, meta 30%", exact: true })).toBeVisible();
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "CMV", exact: true }).click();
+  await page.getByRole("button", { name: "Exportar relatório", exact: true }).click();
+  await page.locator("#export-tipo").selectOption("cmv");
+  await page.locator("#export-formato").selectOption("pdf");
+  await page.getByRole("button", { name: "Exportar PDF", exact: true }).click();
   await download;
-  const pdf = estado.consultas.find(u => u.pathname === "/api/relatorios/pdf/cmv");
+  const pdf = estado.consultas.find(u => u.pathname === "/api/relatorios/exportar" && u.searchParams.get("tipo") === "cmv");
   expect(pdf?.searchParams.get("inicio")).toBe("2026-09-20");
   expect(pdf?.searchParams.get("fim")).toBe("2026-10-19");
   expect(pdf?.searchParams.has("receitaBase")).toBe(false);

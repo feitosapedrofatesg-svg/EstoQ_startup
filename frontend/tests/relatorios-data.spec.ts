@@ -32,6 +32,7 @@ test("um período atualiza os relatórios e os PDFs sem filtros independentes", 
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exportar relatório", exact: true }).click();
   await page.locator("#export-tipo").selectOption("cmv");
+  await page.locator("#export-formato").selectOption("pdf");
   await page.getByRole("button", { name: "Exportar PDF", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("estoQ-cmv-2026-08-10-a-2026-08-15.pdf");
   const pdf = consultas.find(u => u.pathname.endsWith("/exportar"));

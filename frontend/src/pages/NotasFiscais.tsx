@@ -120,8 +120,8 @@ export function NotasFiscais() {
       const resultado = await api.post<NotaFiscalDTO>(`/api/notas-fiscais/${nota.id}/confirmar`, {
         version: nota.version, custosConferidos,
         itens: itens.map(({ id, selecionado, produtoId, nomeProduto, categoriaId, unidadeEstoque, quantidadeNota,
-          fator, valorEntrada, validade }) => ({ id, selecionado, produtoId,
-          nomeProduto, categoriaId, unidadeEstoque, quantidadeNota, fator, valorEntrada, validade,
+          fator, valorEntrada, validade, loteFabricante }) => ({ id, selecionado, produtoId,
+          nomeProduto, categoriaId, unidadeEstoque, quantidadeNota, fator, valorEntrada, validade, loteFabricante: loteFabricante?.trim() || null,
           embalagemConfirmada: custosConferidos, leituraConferida: custosConferidos })),
       });
       mostrar(resultado);
@@ -229,6 +229,7 @@ export function NotasFiscais() {
             </Select></Field>
             <CampoDecimal label="Conteúdo de cada unidade da nota" id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
             <CampoDecimal label="Custo total deste item (R$)" id={`nota-custo-${item.id}`} value={item.valorEntrada} onValue={valorEntrada => alterar(item.id, { valorEntrada })} />
+            <Field label="Lote do fabricante (opcional)" htmlFor={`nota-lote-${item.id}`}><Input id={`nota-lote-${item.id}`} maxLength={50} value={item.loteFabricante ?? ""} onChange={e => alterar(item.id, { loteFabricante: e.target.value })} /></Field>
             <Field label="Validade (opcional)" htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
           </div>
           <p><strong>Entrada: {fmtNum(item.quantidadeNota * item.fator)} {item.unidadeEstoque}</strong> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</p>

@@ -37,6 +37,7 @@ public class LoteModel extends TenantEntity {
 
     @Column(nullable = false, length = 50)
     private String codigo;
+    @jakarta.persistence.Column(length = 50) private String loteFabricante;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)

@@ -24,6 +24,6 @@ public class MovimentacaoAdapter {
                 m.getTipo() == TipoMovimentacao.AJUSTE ? m.getDelta() : null,
                 perda ? DesperdicioClassificacao.motivo(m).name() : null,
                 perda ? DesperdicioClassificacao.descricao(m) : null,
-                m.getObservacao(), m.getProduto().getUnidadeMedida());
+                m.getObservacao(), m.getProduto().getUnidadeMedida(), l == null ? null : l.getLoteFabricante());
     }
 }

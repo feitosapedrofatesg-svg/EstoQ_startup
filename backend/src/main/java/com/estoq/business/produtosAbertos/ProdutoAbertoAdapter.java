@@ -18,6 +18,6 @@ public class ProdutoAbertoAdapter {
         return new ProdutoAbertoDTO(a.getId(), a.getVersion(), p.getId(), p.getNome(), p.getUnidadeMedida().name(), l.getId(),
                 l.getCodigo(), l.getDataValidade(), a.getUsuario() == null ? null : a.getUsuario().getId(), a.getDataAbertura(),
                 a.getQuantidadeAberta(), a.getQuantidadeUtilizada(), a.getQuantidadeRestante(), a.isFinalizado(),
-                l.getQuantidadeAtual(), estoque.obterSaldo(p.getId()));
+                l.getQuantidadeAtual(), estoque.obterSaldo(p.getId()), l.getLoteFabricante());
     }
 }

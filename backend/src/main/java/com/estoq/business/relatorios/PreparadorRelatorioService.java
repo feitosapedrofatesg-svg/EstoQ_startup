@@ -58,7 +58,7 @@ public class PreparadorRelatorioService {
                 var valorTotal = BigDecimal.ZERO;
                 for (var l : relatorios.proximosVencimento()) {
                     var valor = l.quantidadeAtual().multiply(l.precoUnitario());
-                    linhas.add(java.util.Arrays.asList(l.produtoNome(), l.codigo(), data(l.dataValidade()), l.diasParaVencimento() == null ? "-" : l.diasParaVencimento().toString(), qtd(l.quantidadeAtual(), l.unidadeMedida().name()), moeda(valor)));
+                    linhas.add(java.util.Arrays.asList(l.produtoNome(), lote(l.codigo(), l.loteFabricante()), data(l.dataValidade()), l.diasParaVencimento() == null ? "-" : l.diasParaVencimento().toString(), qtd(l.quantidadeAtual(), l.unidadeMedida().name()), moeda(valor)));
                     valorTotal = valorTotal.add(valorMonetario(valor));
                     totais.quantidade("Saldo total", l.quantidadeAtual(), l.unidadeMedida().name());
                 }
@@ -71,7 +71,7 @@ public class PreparadorRelatorioService {
                 var valorTotal = BigDecimal.ZERO;
                 for (var l : relatorios.vencidos()) {
                     var valor = l.quantidadeAtual().multiply(l.precoUnitario());
-                    linhas.add(java.util.Arrays.asList(l.produtoNome(), l.codigo(), data(l.dataValidade()), qtd(l.quantidadeAtual(), l.unidadeMedida().name()), moeda(valor)));
+                    linhas.add(java.util.Arrays.asList(l.produtoNome(), lote(l.codigo(), l.loteFabricante()), data(l.dataValidade()), qtd(l.quantidadeAtual(), l.unidadeMedida().name()), moeda(valor)));
                     valorTotal = valorTotal.add(valorMonetario(valor));
                     totais.quantidade("Saldo total", l.quantidadeAtual(), l.unidadeMedida().name());
                 }
@@ -82,7 +82,7 @@ public class PreparadorRelatorioService {
                 titulo = "Embalagens abertas";
                 colunas = List.of(c("Produto", 3), c("Lote", 2.5f), c("Abertura", 1.8f), n("Quantidade aberta", 2), n("Restante", 2));
                 for (var p : relatorios.produtosAbertos()) {
-                    linhas.add(java.util.Arrays.asList(p.produtoNome(), p.loteCodigo(), p.dataAbertura() == null ? "-" : horario.diaLocal(p.dataAbertura()).format(DATA), qtd(p.quantidadeAberta(), p.unidadeMedida()), qtd(p.quantidadeRestante(), p.unidadeMedida())));
+                    linhas.add(java.util.Arrays.asList(p.produtoNome(), lote(p.loteCodigo(), p.loteFabricante()), p.dataAbertura() == null ? "-" : horario.diaLocal(p.dataAbertura()).format(DATA), qtd(p.quantidadeAberta(), p.unidadeMedida()), qtd(p.quantidadeRestante(), p.unidadeMedida())));
                     totais.quantidade("Quantidade aberta total", p.quantidadeAberta(), p.unidadeMedida());
                     totais.quantidade("Quantidade restante total", p.quantidadeRestante(), p.unidadeMedida());
                 }
@@ -91,14 +91,14 @@ public class PreparadorRelatorioService {
             }
             case "desperdicio" -> {
                 titulo = "Desperdício no período";
-                colunas = List.of(c("Data e hora", 1.9f), c("Produto", 3), c("Motivo", 2.8f), n("Quantidade", 1.5f), n("Prejuízo", 1.9f));
+                colunas = List.of(c("Data e hora", 1.9f), c("Produto", 3), c("Lote", 2), c("Motivo", 2.8f), n("Quantidade", 1.5f), n("Prejuízo", 1.9f));
                 var perdas = relatorios.desperdicio(de, ate);
                 var valorTotal = BigDecimal.ZERO;
                 for (var d : perdas) {
                     // A descrição é opcional; o motivo cadastrado continua identificando a perda.
                     String motivo = d.descricaoMotivo();
                     if (motivo == null || motivo.isBlank()) motivo = d.motivo() == null ? "Não informado" : d.motivo().name().replace('_', ' ');
-                    linhas.add(java.util.Arrays.asList(d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), d.produtoNome(), motivo, qtd(d.quantidade(), d.unidadeMedida()), moeda(d.valorPrejuizo())));
+                    linhas.add(java.util.Arrays.asList(d.dataHora().atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), d.produtoNome(), lote(d.loteCodigo(), d.loteFabricante()), motivo, qtd(d.quantidade(), d.unidadeMedida()), moeda(d.valorPrejuizo())));
                     valorTotal = valorTotal.add(valorMonetario(d.valorPrejuizo()));
                     totais.quantidade("Quantidade perdida total", d.quantidade(), d.unidadeMedida());
                 }
@@ -210,6 +210,10 @@ public class PreparadorRelatorioService {
             periodo = "Posição atual em " + horario.hoje().format(DATA) + " (não é um estoque histórico)";
         }
         return new DocumentoRelatorioPdf(titulo, periodo, colunas, linhas, resumo, observacao, totais.listar());
+    }
+
+    private static String lote(String codigo, String fabricante) {
+        return codigo + (fabricante == null ? "" : " · fabricante " + fabricante);
     }
 
     private static Coluna c(String titulo, float peso) { return new Coluna(titulo, peso, false); }

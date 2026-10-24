@@ -163,12 +163,13 @@ public class NotaFiscalService {
             var quantidade = validation.quantidade(escolha);
             var resultado = entradas.registrarEntrada(new EntradaRequestDTO(produtoId,quantidade,escolha.valorEntrada(),
                     escolha.unidadeEstoque(),escolha.validade(),"NF-e " + nota.getNumero() + "/" + nota.getSerie()
-                    + " • " + nota.getFornecedor() + " • item " + item.getNumero(),escolha.valorEntrada().signum()==0));
+                    + " • " + nota.getFornecedor() + " • item " + item.getNumero(),escolha.valorEntrada().signum()==0, escolha.loteFabricante()));
             item.setOrigemCategoria("REVISAO"); item.setRevisarCategoria(false);
             item.setMotivoCategoria("Categoria do produto após a conferência e confirmação da nota.");
             item.setProdutoId(produtoId); item.setCategoriaId(produto.getCategoria().getId()); item.setNomeProduto(produto.getNome());
             item.setUnidadeEstoque(escolha.unidadeEstoque()); item.setFator(escolha.fator());
             item.setQuantidadeEntrada(quantidade); item.setValorEntrada(escolha.valorEntrada());
+            item.setLoteFabricante(escolha.loteFabricante()==null || escolha.loteFabricante().isBlank() ? null : escolha.loteFabricante().trim());
             item.setValidade(escolha.validade()); item.setEmbalagemConfirmada(true);
             item.setMovimentacaoId(resultado.movimentacoes().getFirst().id());
             salvarVinculo(nota,item,vinculosAtuais);

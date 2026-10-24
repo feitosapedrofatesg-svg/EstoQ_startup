@@ -1,5 +1,12 @@
 # Histórico de mudanças do EstoQ
 
+## 24/10/2026 — lote do fabricante
+
+Campo opcional na entrada manual e em cada item da NF-e. Código interno,
+custos e saldos continuam separados mesmo quando o número se repete.
+Informação exibida nas consultas de lotes, movimentações e exportações.
+Migração V12 adiciona duas colunas opcionais; deve acompanhar a V11.
+
 ## 24/10/2026 — camadas e exportações compartilhadas
 
 Controller delega PDF/CSV/XLS aos serviços; os três formatos usam a mesma

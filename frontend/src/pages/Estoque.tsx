@@ -1,3 +1,4 @@
+import { fmtLote } from "../lib/format";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/auth";
@@ -234,7 +235,7 @@ function ProdutoDetalhe({
             return (
               <tr key={l.id}>
                 <td>
-                  <strong>{l.codigo}</strong>
+                  <strong>{fmtLote(l.codigo, l.loteFabricante)}</strong>
                 </td>
                 <td className="muted-cell">{fmtDate(l.dataEntrada)}</td>
                 <td className={l.vencido ? "text-bad" : ""}>

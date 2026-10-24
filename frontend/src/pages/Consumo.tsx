@@ -1,3 +1,4 @@
+import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -106,7 +107,7 @@ export function Consumo() {
                 </td>
                 <td>
                   <span className="cell-sub">
-                    Lote {p.loteCodigo} · vence {fmtDate(p.dataValidade)}
+                    Lote {fmtLote(p.loteCodigo, p.loteFabricante)} · vence {fmtDate(p.dataValidade)}
                   </span>
                 </td>
                 <td className="muted-cell">{fmtDateTime(p.dataAbertura)}</td>
@@ -174,7 +175,7 @@ export function Consumo() {
                   <strong>{m.produtoNome}</strong>
                   {m.observacao && <span className="cell-sub">{m.observacao}</span>}
                 </td>
-                <td className="muted-cell">{m.loteCodigo ?? "—"}</td>
+                <td className="muted-cell">{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
                 <td>{fmtNum(m.quantidade)} {m.unidadeMedida?.toLowerCase()}</td>
                 <td>{fmtMoney(m.custoConsumo ?? 0)}</td>
               </tr>

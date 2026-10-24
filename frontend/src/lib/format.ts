@@ -128,3 +128,7 @@ export function parseDecimal(s: string): number | null {
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
 }
+
+export function fmtLote(codigo: string | null | undefined, fabricante?: string | null): string {
+  return `${codigo ?? "—"}${fabricante ? ` · fabricante ${fabricante}` : ""}`;
+}

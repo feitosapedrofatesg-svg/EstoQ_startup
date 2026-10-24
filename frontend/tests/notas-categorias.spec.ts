@@ -23,12 +23,14 @@ test("bebida mostra motivo da sugestão e mantém a conferência final", async (
   const estado = await prepararNota(page);
   await expect(page.getByText("Tipo reconhecido na descrição: Bebidas.", { exact: false })).toBeVisible();
   await expect(page.locator("#nota-categoria-1")).toHaveValue("125");
+  await page.locator("#nota-lote-1").fill(" FAB-123 ");
   await page.getByLabel("Conferi os itens, os descontos e os custos rateados").check();
   await page.getByRole("button", { name: "Confirmar entrada no estoque" }).click();
   await expect(page.getByText(/Esta nota já foi importada/)).toBeVisible();
   expect(estado.confirmacoes[0].version).toBe(2);
   expect(estado.confirmacoes[0].itens[0].categoriaId).toBe(125);
   expect(estado.confirmacoes[0].itens[0].fator).toBe(1);
+  expect(estado.confirmacoes[0].itens[0].loteFabricante).toBe("FAB-123");
 });
 
 test("aviso de categoria permite confirmar item desconhecido sem escolha obrigatória", async ({ page }) => {

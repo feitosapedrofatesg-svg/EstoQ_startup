@@ -34,6 +34,7 @@ public class ItemNotaFiscalModel extends TenantEntity {
     @Column(precision = 18, scale = 6) private BigDecimal fator;
     @Column(precision = 18, scale = 3) private BigDecimal quantidadeEntrada;
     private LocalDate validade;
+    @jakarta.persistence.Column(length = 50) private String loteFabricante;
     @Column(nullable = false) private boolean selecionado = true;
     @Column(nullable = false) private boolean embalagemConfirmada;
     @Column(nullable = false) private boolean incerto;

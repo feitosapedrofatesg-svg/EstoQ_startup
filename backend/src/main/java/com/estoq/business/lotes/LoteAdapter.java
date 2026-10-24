@@ -15,6 +15,6 @@ public class LoteAdapter {
         var hoje = horario.hoje();
         return new LoteDTO(l.getId(), l.getVersion(), l.getCodigo(), l.getProduto().getId(), l.getProduto().getNome(),
                 l.getProduto().getUnidadeMedida(), l.getQuantidadeInicial(), l.getQuantidadeAtual(), l.getDataEntrada(),
-                l.getDataValidade(), l.getPrecoUnitario(), l.estaVencido(hoje), l.estaDisponivel(hoje), l.diasParaVencimento(hoje));
+                l.getDataValidade(), l.getPrecoUnitario(), l.estaVencido(hoje), l.estaDisponivel(hoje), l.diasParaVencimento(hoje), l.getLoteFabricante());
     }
 }

@@ -33,7 +33,7 @@ public class EntradaService {
         var produto = produtos.encontrar(d.produtoId());
         var quantidade = ConversorUnidade.converter(d.quantidade(), d.unidadeCompra(), produto.getUnidadeMedida());
         var preco = semCusto ? BigDecimal.ZERO : d.valorTotalPago().divide(quantidade, 6, RoundingMode.HALF_UP);
-        var lote = lotes.criar(produto, quantidade, quantidade, preco, d.dataValidade());
+        var lote = lotes.criar(produto, quantidade, quantidade, preco, d.dataValidade(), d.loteFabricante());
         var e = new EntradaModel();
         e.setValorTotalPago(semCusto ? BigDecimal.ZERO : d.valorTotalPago());
         e.setUnidadeCompra(d.unidadeCompra());

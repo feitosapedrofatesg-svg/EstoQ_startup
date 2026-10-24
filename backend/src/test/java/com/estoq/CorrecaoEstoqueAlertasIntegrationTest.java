@@ -41,6 +41,7 @@ class CorrecaoEstoqueAlertasIntegrationTest {
 
     @BeforeEach void preparar() {
         when(horario.hoje()).thenReturn(dia);
+        when(horario.inicioUtc(org.mockito.ArgumentMatchers.any())).thenCallRealMethod();
         var usuario = new UsuarioModel(); usuario.setNome("Responsável"); usuario.setEmail("alertas@teste.local");
         usuario.setSenha("hash-ficticio"); usuario.setPerfil(Perfil.ADMIN); usuarios.saveAndFlush(usuario);
         var principal = UsuarioPrincipal.of(usuario);

@@ -125,7 +125,7 @@ public class RelatorioService {
             var nome = dto.getNome();
             var unidade = dto.getUnidadeMedida().name();
             return new ConsumoMedioDTO(e.getKey(), nome, unidade, total, dias,
-                    total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP));
+                    mediaDiaria(total, dias));
         }).toList();
     }
 
@@ -215,29 +215,54 @@ public class RelatorioService {
         return resultado;
     }
 
+    private BigDecimal mediaDiaria(BigDecimal total, long dias) {
+        return total.divide(BigDecimal.valueOf(dias), 3, RoundingMode.HALF_UP);
+    }
+
+    private int periodoAnalise(ProdutoModel produto) {
+        var par = produto.getParametro();
+        return par != null && par.getPeriodoAnaliseDias() != null && par.getPeriodoAnaliseDias() > 0
+                ? par.getPeriodoAnaliseDias() : 30;
+    }
+
     public List<ReposicaoSugeridaDTO> reposicaoSugerida(Integer dias) {
         if (dias != null && (dias < 1 || dias > 365))
             throw new FieldValidationException("dias", "Informe de 1 a 365 dias para reposição.");
-        var reposDias = dias != null && dias > 0 ? dias : 7;
+        int reposDias = dias == null ? 7 : dias;
+        var hoje = horario.hoje();
+        var catalogo = produtos.findAllByAtivoTrue();
+        var inicios = new HashMap<Long, LocalDateTime>();
+        for (var produto : catalogo) {
+            inicios.put(produto.getId(), horario.inicioUtc(hoje.minusDays(periodoAnalise(produto) - 1L)));
+        }
+        var inicioMaisAntigo = inicios.values().stream().min(LocalDateTime::compareTo).orElse(null);
+        var consumos = new HashMap<Long, BigDecimal>();
+        if (inicioMaisAntigo != null) {
+            for (var movimento : movimentos.consumosEntre(inicioMaisAntigo, horario.inicioUtc(hoje.plusDays(1)))) {
+                var id = movimento.getProduto().getId();
+                var inicio = inicios.get(id);
+                if (inicio != null && !movimento.getDataHora().isBefore(inicio)) {
+                    consumos.merge(id, movimento.getQuantidade(), BigDecimal::add);
+                }
+            }
+        }
         var saldos = estoque.posicoesDisponiveis();
         var resultado = new ArrayList<ReposicaoSugeridaDTO>();
-        for (var produto : produtos.findAllByAtivoTrue()) {
+        for (var produto : catalogo) {
             var par = produto.getParametro();
-            if (par == null) {
-                continue;
-            }
-            var consumo = s(par.getConsumoMedioDiario());
-            var lead = par.getTempoReposicaoDias() != null && par.getTempoReposicaoDias() > 0
-                    ? par.getTempoReposicaoDias()
-                    : reposDias;
+            int periodo = periodoAnalise(produto);
+            boolean automatico = consumos.containsKey(produto.getId());
+            var consumo = automatico ? mediaDiaria(consumos.get(produto.getId()), periodo)
+                    : s(par == null ? null : par.getConsumoMedioDiario());
+            int lead = par != null && par.getTempoReposicaoDias() != null && par.getTempoReposicaoDias() > 0
+                    ? par.getTempoReposicaoDias() : reposDias;
             var posicao = saldos.get(produto.getId());
             var saldo = s(posicao == null ? null : posicao.getSaldo());
             var sugestao = consumo.multiply(BigDecimal.valueOf(lead)).subtract(saldo).setScale(3, RoundingMode.HALF_UP);
-            if (sugestao.signum() <= 0) {
-                continue;
-            }
+            if (sugestao.signum() <= 0) continue;
             resultado.add(new ReposicaoSugeridaDTO(produto.getId(), produto.getNome(), produto.getCategoria().getNome(),
-                    produto.getUnidadeMedida(), saldo, s(par.getEstoqueMinimo()), consumo, lead, sugestao));
+                    produto.getUnidadeMedida(), saldo, s(par == null ? null : par.getEstoqueMinimo()), consumo, lead,
+                    sugestao, automatico ? "AUTOMATICO" : "MANUAL", periodo, hoje.minusDays(periodo - 1L), hoje));
         }
         return resultado.stream().sorted(Comparator.comparing(ReposicaoSugeridaDTO::quantidadeSugerida).reversed())
                 .toList();

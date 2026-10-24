@@ -361,7 +361,7 @@ function Reposicao() {
         ) : data && data.length === 0 ? (
           <EmptyState
             title="Nada a repor"
-            text="Todos os produtos estão nos níveis ideais para os próximos dias."
+            text="Sem sugestão positiva com as médias disponíveis. Sem histórico de consumo, cadastre uma média manual no produto."
             icon="check-circle"
           />
         ) : (
@@ -380,6 +380,7 @@ function Reposicao() {
                 </td>
                 <td className="muted-cell">
                   {fmtNum(r.consumoMedioDiario)} {r.unidadeMedida}/dia
+                  <small className="block muted">{r.origemMedia === "AUTOMATICO" ? `Automático · ${r.periodoAnaliseDias ?? 30} dias` : "Manual · sem histórico"}</small>
                 </td>
                 <td>
                   <strong className="text-good">

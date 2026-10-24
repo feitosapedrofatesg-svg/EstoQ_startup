@@ -347,6 +347,10 @@ export interface ReposicaoSugeridaDTO {
   consumoMedioDiario: number;
   diasReposicao: number;
   quantidadeSugerida: number;
+  origemMedia?: "AUTOMATICO" | "MANUAL";
+  periodoAnaliseDias?: number;
+  inicioAnalise?: string;
+  fimAnalise?: string;
 }
 
 export interface BackupDTO {

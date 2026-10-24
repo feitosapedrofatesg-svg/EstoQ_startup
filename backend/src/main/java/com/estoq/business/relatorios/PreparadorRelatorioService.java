@@ -196,13 +196,15 @@ public class PreparadorRelatorioService {
             }
             case "reposicao-sugerida" -> {
                 titulo = "Reposição sugerida";
-                colunas = List.of(c("Produto", 4), n("Saldo atual", 2.5f), n("Quantidade sugerida", 2.5f), n("Prazo (dias)", 1.5f));
+                colunas = List.of(c("Produto", 3), n("Saldo", 1.5f), n("Média/dia", 1.5f), c("Origem da média", 2.5f), n("Comprar", 1.5f), n("Prazo", 1));
                 for (var r : relatorios.reposicaoSugerida(null)) {
-                    linhas.add(java.util.Arrays.asList(r.produtoNome(), qtd(r.saldoAtual(), r.unidadeMedida().name()), qtd(r.quantidadeSugerida(), r.unidadeMedida().name()), Integer.toString(r.diasReposicao())));
+                    linhas.add(java.util.Arrays.asList(r.produtoNome(), qtd(r.saldoAtual(), r.unidadeMedida().name()), qtd(r.consumoMedioDiario(), r.unidadeMedida().name()),
+                            "AUTOMATICO".equals(r.origemMedia()) ? "Automático · " + r.periodoAnaliseDias() + " dias" : "Manual · sem histórico",
+                            qtd(r.quantidadeSugerida(), r.unidadeMedida().name()), Integer.toString(r.diasReposicao())));
                     totais.quantidade("Quantidade sugerida total", r.quantidadeSugerida(), r.unidadeMedida().name());
                 }
                 totais.adicionar("Produtos a repor", Integer.toString(linhas.size()));
-                observacao = "Quantidades sugeridas, sem orçamento ou estimativa de preço. Prazos não são somados.";
+                observacao = "Posição atual, independente do filtro de datas. Média automática inclui hoje; sem histórico, usa a manual. Lotes vencidos excluídos. Estoque mínimo apenas informativo. Prazos não são somados.";
             }
             default -> throw new BusinessException("Relatório PDF não suportado: " + tipo, HttpStatus.BAD_REQUEST);
         }

@@ -633,6 +633,19 @@ class BalancoCmvIntegrationTest {
         assertEquals(20, sugestoes.getFirst().diasReposicao());
     }
 
+    @Test
+    void reposicaoCalculaPeloHistoricoRealSemSobrescreverManual() {
+        var par = produtos.encontrar(produtoId).getParametro();
+        par.setTempoReposicaoDias(30);
+        par.setConsumoMedioDiario(new BigDecimal("99"));
+        consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("6"), null, null));
+        var sugestao = relatorios.reposicaoSugerida(null).getFirst();
+        assertEquals("AUTOMATICO", sugestao.origemMedia());
+        assertEquals(0, new BigDecimal("0.2").compareTo(sugestao.consumoMedioDiario()));
+        assertEquals(0, new BigDecimal("2").compareTo(sugestao.quantidadeSugerida()));
+        assertEquals(0, new BigDecimal("99").compareTo(par.getConsumoMedioDiario()));
+    }
+
     private long contarAbertos(TipoAlerta tipo) {
         return alertaRepository.findAllByAtivoTrueOrderByDataGeracaoDesc().stream()
                 .filter(a -> !a.isVisualizado() && a.getTipo() == tipo).count();

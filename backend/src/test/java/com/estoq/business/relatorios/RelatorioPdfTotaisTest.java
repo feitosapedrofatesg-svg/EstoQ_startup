@@ -138,9 +138,11 @@ class RelatorioPdfTotaisTest {
     @Test
     void reposicaoMostraQuantidadePorUnidadeSemInventarOrcamento() throws Exception {
         when(relatorios.reposicaoSugerida(null)).thenReturn(List.of(
-                new ReposicaoSugeridaDTO(1L, "Arroz", "Grãos", UnidadeMedida.KG, n("0"), n("1"), n("1"), 7, n("7")),
+                new ReposicaoSugeridaDTO(1L, "Arroz", "Grãos", UnidadeMedida.KG, n("0"), n("1"), n("1"), 7, n("7"), "AUTOMATICO", 30, null, null),
                 new ReposicaoSugeridaDTO(2L, "Óleo", "Óleos", UnidadeMedida.L, n("0"), n("1"), n("2"), 7, n("14"))));
         String texto = gerar("reposicao-sugerida");
+        assertTrue(texto.contains("Automático"));
+        assertTrue(texto.contains("sem histórico"));
         assertTrue(texto.contains("Produtos a repor 2"));
         assertTrue(texto.contains("Quantidade sugerida total (kg) 7"));
         assertTrue(texto.contains("Quantidade sugerida total (l) 14"));

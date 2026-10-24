@@ -425,7 +425,7 @@ function ProdutoForm({
             <NumberField label="Estoque mínimo" htmlFor="produto-estoque-minimo" value={minimo} onValue={setMinimo} min={0} placeholder="Ex.: 3" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
             <NumberField label="Estoque médio" htmlFor="produto-estoque-medio" value={medio} onValue={setMedio} min={0} placeholder="Ex.: 4" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
             <NumberField label="Estoque máximo" htmlFor="produto-estoque-maximo" value={maximo} onValue={setMaximo} min={0} placeholder="Ex.: 8" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
-            <NumberField label="Consumo médio diário" value={consumo} onValue={setConsumo} min={0} placeholder="Ex.: 0,4" suffix={unidadeMedida === "UN" ? "UN/dia" : `${unidadeMedida}/dia`} />
+            <NumberField label="Consumo diário manual (sem histórico)" value={consumo} onValue={setConsumo} min={0} placeholder="Ex.: 0,4" suffix={unidadeMedida === "UN" ? "UN/dia" : `${unidadeMedida}/dia`} />
             <NumberField label="Tempo de reposição (dias)" value={diasReposicao} onValue={setDiasReposicao} min={0} placeholder="Ex.: 2" />
             <NumberField label="Dias de alerta de validade" value={diasAlerta} onValue={setDiasAlerta} min={0} placeholder="Ex.: 7" />
           </div>

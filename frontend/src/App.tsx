@@ -1,10 +1,11 @@
 import { NotasFiscais } from "./pages/NotasFiscais";
-import { BrowserRouter, Navigate, Route, Routes, Link } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, Link, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./store/auth";
 import { ToastProvider } from "./store/toast";
 import { Layout } from "./components/Layout";
 import { Icon } from "./components/Icon";
 import { Login } from "./pages/Login";
+import { ConfirmarEmail, VerificarEmail } from "./pages/ConfirmacaoEmail";
 import { Registro } from "./pages/Registro";
 import { Plataforma } from "./pages/Plataforma";
 import { Dashboard } from "./pages/Dashboard";
@@ -74,6 +75,9 @@ function AppRoutes() {
     isPlataforma,
   } = useAuth();
 
+  const location = useLocation();
+  if (location.pathname === "/confirmar-email") return <ConfirmarEmail />;
+  if (location.pathname === "/verificar-email") return <VerificarEmail />;
   if (!ready) return <Splash />;
 
   // Sem sessão: só as telas públicas de entrada e cadastro.

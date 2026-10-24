@@ -14,6 +14,7 @@ export function Login() {
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailPendente, setEmailPendente] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,10 +24,12 @@ export function Login() {
     }
     setLoading(true);
     setError(null);
+    setEmailPendente(false);
     try {
       await login(email.trim().toLowerCase(), senha);
     } catch (err) {
       if (err instanceof ApiError) {
+        setEmailPendente(err.motive === "EMAIL_NAO_CONFIRMADO");
         if ([502, 503, 504].includes(err.status)) {
           setError("Serviço de acesso temporariamente indisponível. Tente novamente mais tarde.");
         } else if (err.status === 429) {
@@ -116,6 +119,8 @@ export function Login() {
           <Button type="submit" block size="lg" loading={loading} className="login__submit">
             Entrar
           </Button>
+
+          {emailPendente && <p className="login__signup"><Link to="/verificar-email" state={{ email }} className="login__signup-link">Reenviar confirmação de e-mail</Link></p>}
 
           <p className="login__signup">
             Sua cozinha ainda não usa o estoQ?{" "}

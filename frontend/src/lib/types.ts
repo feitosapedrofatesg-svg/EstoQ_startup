@@ -72,6 +72,8 @@ export interface RestauranteDTO {
 }
 
 export interface UsuarioResponseDTO {
+  confirmacaoEmailPendente?: boolean;
+  emailConfirmadoEm?: string | null;
   id: number;
   version: number;
   nome: string;

@@ -380,7 +380,7 @@ function Reposicao() {
                 </td>
                 <td className="muted-cell">
                   {fmtNum(r.consumoMedioDiario)} {r.unidadeMedida}/dia
-                  <small className="block muted">{r.origemMedia === "AUTOMATICO" ? `Automático · ${r.periodoAnaliseDias ?? 30} dias` : "Manual · sem histórico"}</small>
+                  <small className="muted" style={{ display: "block" }}>{r.origemMedia === "AUTOMATICO" ? `Automático · ${r.periodoAnaliseDias ?? 30} dias` : "Manual · sem histórico"}</small>
                 </td>
                 <td>
                   <strong className="text-good">

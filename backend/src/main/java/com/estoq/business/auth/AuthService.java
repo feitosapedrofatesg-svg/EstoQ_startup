@@ -33,6 +33,8 @@ public class AuthService {
         var ip = request.getRemoteAddr();
         tentativas.reservar(dto.email(), ip);
         var auth = autenticar(dto, ip);
+        if (auth.getPrincipal() instanceof UsuarioPrincipal p && p.emailPendente())
+            throw new com.estoq.business.confirmacaoEmail.EmailNaoConfirmadoException();
         if (request.getSession(false) != null) {
             request.changeSessionId();
         }

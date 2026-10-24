@@ -19,7 +19,7 @@ public class SessaoValidaService {
     public boolean validar(UsuarioPrincipal p) {
         return usuarios.findByIdAndAtivoTrue(p.id()).map(u -> u.getEmail().equals(p.email())
                 && u.getSenha().equals(p.senha()) && u.getPerfil().name().equals(p.perfil())
-                && Objects.equals(u.getRestauranteId(), p.restauranteId())
+                && !u.emailPendente() && Objects.equals(u.getRestauranteId(), p.restauranteId())
                 && (p.restauranteId() == null || p.restauranteId() == 0
                     || restaurantes.findById(p.restauranteId()).map(r -> r.isAtivo()).orElse(false))).orElse(false);
     }

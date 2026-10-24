@@ -272,3 +272,21 @@ dev habilita, produção mantém desabilitado por padrão.
 ## Ajustes de 18/10/2026
 
 Consulte o [anexo de correções](REVISAO_SEGURANCA_2026_10_18.md#api-ajustada): filtros locais `dataInicio`/`dataFim`, custos semanais `valorTotal`/`valorMedio`, unidade no desperdício e endpoints públicos de saúde.
+
+## Confirmação de e-mail e lote do fabricante (24/10)
+
+- `POST /api/auth/email/confirmar`: `{ "token": "token recebido" }`; público,
+  exige CSRF; 204 ao confirmar, 400 para link inválido, vencido ou utilizado.
+- `POST /api/auth/email/reenviar`: `{ "email": "pessoa@dominio.com" }`; público,
+  exige CSRF; 202 com mensagem genérica, 429 por excesso de pedidos do IP.
+  Envios limitados a 1/minuto e 5/hora por conta. O link anterior é invalidado.
+- Cadastro retorna 201 com `confirmacaoEmailPendente`. Login correto com
+  pendência retorna 403 e `motive=EMAIL_NAO_CONFIRMADO` no ErrorResponse do core.
+  Senha incorreta continua 401. A API de usuários retorna a pendência e a data
+  `emailConfirmadoEm`; legado dispensado tem data nula e pendência false.
+- Entrada manual e cada item da confirmação da NF-e aceitam `loteFabricante`
+  opcional, até 50 caracteres. O campo acompanha lotes e movimentações.
+- Reposição acrescenta origem e janela da média; veja REPOSICAO_SUGERIDA.md.
+
+A ativação real do e-mail depende de OAuth e teste do remetente; default false.
+Aplicar V11 (confirmação) e V12 (lote opcional) juntas antes de subir o código.

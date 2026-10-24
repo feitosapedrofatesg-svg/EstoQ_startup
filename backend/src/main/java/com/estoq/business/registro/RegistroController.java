@@ -26,10 +26,10 @@ public class RegistroController {
     private int maxTentativas;
 
     @PostMapping
-    public ResponseEntity<Void> registrar(@Valid @RequestBody RegistroRequestDTO dto,
+    public ResponseEntity<RegistroResponseDTO> registrar(@Valid @RequestBody RegistroRequestDTO dto,
             jakarta.servlet.http.HttpServletRequest request) {
         limites.reservar("cadastro:" + request.getRemoteAddr(), maxTentativas, java.time.Duration.ofHours(1));
-        service.registrar(dto);
-        return ResponseEntity.status(201).build();
+        boolean pendente = service.registrar(dto);
+        return ResponseEntity.status(201).body(new RegistroResponseDTO(pendente));
     }
 }

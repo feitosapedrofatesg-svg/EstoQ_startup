@@ -9,6 +9,14 @@ import com.estoq.core.repositories.IGenericRepository;
 import java.util.Optional;
 
 public interface IUsuarioRepository extends IGenericRepository<UsuarioModel> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from UsuarioModel u where u.id=:id")
+    Optional<UsuarioModel> bloquearPorId(Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from UsuarioModel u where lower(u.email)=lower(:email) and u.ativo=true")
+    Optional<UsuarioModel> bloquearPorEmail(String email);
+
 
     @Query("select u from UsuarioModel u where lower(u.nome) like lower(concat('%',:q,'%')) or lower(u.email) like lower(concat('%',:q,'%'))")
     Page<UsuarioModel> pesquisar(String q, Pageable pageable);

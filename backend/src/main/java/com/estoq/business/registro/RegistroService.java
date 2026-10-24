@@ -42,9 +42,10 @@ public class RegistroService {
     private final IConfiguracaoBalancoRepository configuracoesBalanco;
     private final PasswordEncoder encoder;
     private final CategoriaPadraoService categoriasPadrao;
+    private final com.estoq.business.confirmacaoEmail.ConfirmacaoEmailService confirmacaoEmail;
 
     @Transactional
-    public void registrar(RegistroRequestDTO dto) {
+    public boolean registrar(RegistroRequestDTO dto) {
         if (usuarios.existsByEmailIgnoreCase(dto.email())) {
             throw new ConflictException("E-mail já cadastrado. Faça o login ou use outro e-mail.");
         }
@@ -58,11 +59,14 @@ public class RegistroService {
         admin.setSenha(encoder.encode(dto.senha()));
         admin.setPerfil(Perfil.ADMIN);
         admin.setRestauranteId(restaurante.getId());
+        confirmacaoEmail.preparar(admin);
         usuarios.saveAndFlush(admin);
 
         criarParametroCmv(restaurante.getId());
         criarConfiguracaoBalanco(restaurante.getId());
         categoriasPadrao.inicializar(restaurante.getId());
+        confirmacaoEmail.solicitar(admin);
+        return admin.emailPendente();
     }
 
     private void criarParametroCmv(Long restauranteId) {

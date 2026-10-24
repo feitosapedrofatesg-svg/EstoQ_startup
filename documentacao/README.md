@@ -1,6 +1,6 @@
 # Documentação do EstoQ
 
-Revisão do índice: **21/10/2026**. Inclui a homologação online, o tema Nutrigo e
+Revisão do índice: **24/10/2026**. Inclui a homologação online, o tema Nutrigo e
 as mudanças recentes de Catálogo e permissões.
 
 O EstoQ é uma aplicação web multitenant para estoque, consumo, desperdício,
@@ -16,6 +16,8 @@ as próprias sessões e permanece isolado dos demais. O sistema exige conexão.
 | [Contrato de desenvolvimento](CONTRATO_DESENVOLVIMENTO.md) | Padrão de camadas, responsabilidades e critérios para evoluir o código. |
 | [Resumo do sistema](RESUMO_SESSAO_BACKEND.md) | Arquitetura, módulos, regras, execução local e validação. |
 | [API](API_ENDPOINTS.md) | Rotas, perfis, versões de balanço, autenticação e formatos. |
+| [Confirmação de e-mail](../apis/google/README.md) | Gmail API, autorização do remetente e ativação. |
+| [Reposição sugerida](REPOSICAO_SUGERIDA.md) | Média automática, alternativa manual e prazo de compra. |
 | [Notas fiscais](IMPORTACAO_NOTAS_FISCAIS.md) | XML, PDF, fotos, categorias e confirmação de entrada. |
 | [Relatórios impressos](RELATORIOS_IMPRESSOS.md) | Layout de PDF, impressão de consumo e limites de paginação. |
 | [Consumo rápido](CONSUMO_RAPIDO.md) | Seleção por toque, confirmação conjunta e impressão. |

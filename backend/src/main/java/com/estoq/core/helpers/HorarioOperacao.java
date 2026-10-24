@@ -21,6 +21,10 @@ public class HorarioOperacao {
         this.relogio = relogio;
     }
 
+    public LocalDateTime agoraUtc() {
+        return LocalDateTime.now(relogio.withZone(ZoneOffset.UTC));
+    }
+
     public LocalDate hoje() {
         return LocalDate.now(relogio.withZone(FUSO));
     }

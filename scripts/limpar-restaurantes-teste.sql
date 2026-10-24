@@ -10,7 +10,7 @@ BEGIN
     END IF;
 END $$;
 -- Bloqueia escritas durante a validação e exclusão; leituras continuam disponíveis.
-LOCK TABLE restaurantes, balanco_categorias, itens_nota_fiscal, vinculos_fornecedor, notas_fiscais, operacoes_consumo, cmv_receitas_periodo, alertas, auditoria, auditoria_plataforma, ajustes, consumos, desperdicios, entradas, movimentacoes, itens_balanco, balancos, produtos_abertos, parametros_estoque, lotes, produtos, categorias, configuracoes_balanco, parametros_cmv, usuarios IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE confirmacoes_email, restaurantes, balanco_categorias, itens_nota_fiscal, vinculos_fornecedor, notas_fiscais, operacoes_consumo, cmv_receitas_periodo, alertas, auditoria, auditoria_plataforma, ajustes, consumos, desperdicios, entradas, movimentacoes, itens_balanco, balancos, produtos_abertos, parametros_estoque, lotes, produtos, categorias, configuracoes_balanco, parametros_cmv, usuarios IN SHARE ROW EXCLUSIVE MODE;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM usuarios WHERE perfil='PLATAFORMA' AND ativo=true) THEN
@@ -91,6 +91,9 @@ DELETE FROM produtos WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM categorias WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM configuracoes_balanco WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM parametros_cmv WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
+-- Confirmações não têm tenant próprio; pertencem ao usuário da loja selecionada.
+DELETE FROM confirmacoes_email WHERE usuario_id IN
+    (SELECT id FROM usuarios WHERE restaurante_id IN (SELECT id FROM alvos_limpeza));
 DELETE FROM usuarios WHERE restaurante_id IN (SELECT id FROM alvos_limpeza);
 DELETE FROM restaurantes WHERE id IN (SELECT id FROM alvos_limpeza);
 -- Sequências, schema, migrações e contas da plataforma permanecem intactos.

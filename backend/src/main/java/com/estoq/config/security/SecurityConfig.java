@@ -84,6 +84,7 @@ public class SecurityConfig {
                                                 // O pedido original já foi autorizado; o encerramento SSE pode ocorrer após logout.
                                                 .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                                                 .requestMatchers("/api/saude/vivo", "/api/saude/pronto", "/api/auth/csrf", "/api/auth/login", "/api/registro",
+                                                                "/api/auth/email/confirmar", "/api/auth/email/reenviar",
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()

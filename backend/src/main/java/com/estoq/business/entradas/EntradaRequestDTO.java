@@ -19,7 +19,8 @@ public record EntradaRequestDTO(
         @Size(max = 500) String observacao,
         Boolean semCusto,
         @Size(max = 50) String loteFabricante) {
-    public EntradaRequestDTO(Long produtoId, BigDecimal quantidade, BigDecimal valorTotalPago, UnidadeMedida unidadeCompra, LocalDate dataValidade, String observacao, Boolean semCusto) {
+    public EntradaRequestDTO(Long produtoId, BigDecimal quantidade, BigDecimal valorTotalPago, UnidadeMedida
+            unidadeCompra, LocalDate dataValidade, String observacao, Boolean semCusto) {
         this(produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade, observacao, semCusto, null);
     }
 

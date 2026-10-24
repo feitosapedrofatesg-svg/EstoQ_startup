@@ -108,7 +108,8 @@ export function NumberField({
   required?: boolean;
   suffix?: string;
 }) {
-  const id = htmlFor ?? useId();
+  const autoId = useId();
+  const id = htmlFor ?? autoId;
   const [text, setText] = useState(value === null ? "" : String(value).replace(".", ","));
 
   useEffect(() => {
@@ -139,7 +140,7 @@ export function NumberField({
   };
 
   return (
-    <Field label={label} htmlFor={htmlFor} hint={hint} error={error} required={required}>
+    <Field label={label} htmlFor={id} hint={hint} error={error} required={required}>
       <div className="input-group">
         <input
           id={id}

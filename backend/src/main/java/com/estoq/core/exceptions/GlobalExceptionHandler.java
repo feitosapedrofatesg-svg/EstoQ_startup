@@ -73,6 +73,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(404).body(ErrorResponse.error("Recurso não encontrado."));
     }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> metodoInvalido(Exception ex) {
+        return ResponseEntity.status(405).body(ErrorResponse.error("Método não permitido para esta operação."));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> inesperado(Exception ex) {
         log.error("Falha inesperada ao processar requisição", ex);

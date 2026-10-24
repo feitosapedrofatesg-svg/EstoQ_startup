@@ -32,14 +32,15 @@ export function Registro() {
     setLoading(true);
     setError(null);
     try {
-      await api.post("/api/registro", {
+      const resposta = await api.post<{ confirmacaoEmailPendente?: boolean }>("/api/registro", {
         nomeLoja: nomeLoja.trim(),
         nomeResponsavel: nomeResponsavel.trim(),
         email: email.trim().toLowerCase(),
         senha,
       });
-      toast.success("Conta criada! Agora é só entrar.");
-      navigate("/login", { state: { email: email.trim().toLowerCase() } });
+      const pendente = resposta?.confirmacaoEmailPendente;
+      toast.success(pendente ? "Conta criada! Confirme seu e-mail para entrar." : "Conta criada! Agora é só entrar.");
+      navigate(pendente ? "/verificar-email" : "/login", { state: { email: email.trim().toLowerCase() } });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

@@ -126,7 +126,7 @@ export function Usuarios() {
                   <strong>{u.nome}</strong>
                   {u.id === user?.id && <span className="cell-sub">é você</span>}
                 </td>
-                <td className="muted-cell">{u.email}</td>
+                <td className="muted-cell">{u.email}{u.confirmacaoEmailPendente && <small className="muted" style={{ display: "block" }}>Confirmação de e-mail pendente</small>}</td>
                 <td>
                   <StatusBadge tone={PERFIL_TONE[u.perfil]}>{PERFIL_LABEL[u.perfil]}</StatusBadge>
                 </td>
@@ -216,7 +216,7 @@ function UsuarioForm({
     setError(null);
     try {
       if (u) {
-        await api.put(`/api/usuarios/${u.id}`, {
+        const atualizado = await api.put<UsuarioResponseDTO>(`/api/usuarios/${u.id}`, {
           version: u.version,
           nome: nome.trim(),
           email: email.trim().toLowerCase(),
@@ -224,15 +224,15 @@ function UsuarioForm({
           senha: senha || null,
           ativo: u.ativo,
         });
-        toast.success("Usuário atualizado");
+        toast.success("Usuário atualizado", atualizado?.confirmacaoEmailPendente ? "O usuário precisa confirmar o e-mail para entrar. Pode solicitar outro link na tela de acesso." : undefined);
       } else {
-        await api.post("/api/usuarios", {
+        const criado = await api.post<UsuarioResponseDTO>("/api/usuarios", {
           nome: nome.trim(),
           email: email.trim().toLowerCase(),
           senha,
           perfil,
         });
-        toast.success("Usuário criado");
+        toast.success("Usuário criado", criado?.confirmacaoEmailPendente ? "O usuário precisa confirmar o e-mail para entrar." : undefined);
       }
       onDone();
     } catch (e) {

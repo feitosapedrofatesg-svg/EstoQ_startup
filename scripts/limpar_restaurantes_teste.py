@@ -112,6 +112,8 @@ def main():
         contagens = []
         for tabela in tabelas:
             filtro = f'restaurante_id IN (SELECT id FROM "{args.schema}".restaurantes)'
+            if tabela == 'confirmacoes_email':
+                filtro = f'usuario_id IN (SELECT id FROM "{args.schema}".usuarios WHERE {filtro})'
             if tabela in ('ajustes','consumos','desperdicios','entradas'):
                 filtro = f'id IN (SELECT id FROM "{args.schema}".movimentacoes WHERE {filtro})'
             contagens.append(f"SELECT '{tabela}' AS tabela, count(*) AS registros "

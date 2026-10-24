@@ -33,4 +33,14 @@ public class UsuarioModel extends TenantEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Perfil perfil;
+
+    @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("false")
+    private boolean confirmacaoEmailObrigatoria;
+
+    private java.time.LocalDateTime emailConfirmadoEm;
+
+    public boolean emailPendente() {
+        return confirmacaoEmailObrigatoria && emailConfirmadoEm == null;
+    }
 }

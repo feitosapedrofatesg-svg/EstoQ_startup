@@ -8,8 +8,11 @@ import java.time.LocalDateTime;
 public record DesperdicioDTO(LocalDateTime dataHora, MotivoDesperdicio motivo, String descricaoMotivo,
         Long produtoId, String produtoNome, String loteCodigo, BigDecimal quantidade, BigDecimal valorPrejuizo, String unidadeMedida,
         String loteFabricante) {
-    public DesperdicioDTO(LocalDateTime dataHora, MotivoDesperdicio motivo, String descricaoMotivo, Long produtoId, String produtoNome, String loteCodigo, BigDecimal quantidade, BigDecimal valorPrejuizo, String unidadeMedida) {
-        this(dataHora, motivo, descricaoMotivo, produtoId, produtoNome, loteCodigo, quantidade, valorPrejuizo, unidadeMedida, null);
+    public DesperdicioDTO(LocalDateTime dataHora, MotivoDesperdicio motivo, String descricaoMotivo, Long produtoId,
+            String produtoNome, String loteCodigo, BigDecimal quantidade, BigDecimal valorPrejuizo, String
+            unidadeMedida) {
+        this(dataHora, motivo, descricaoMotivo, produtoId, produtoNome, loteCodigo, quantidade, valorPrejuizo,
+                unidadeMedida, null);
     }
 
 }

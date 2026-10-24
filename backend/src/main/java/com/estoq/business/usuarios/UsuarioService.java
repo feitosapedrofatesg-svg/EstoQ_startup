@@ -33,6 +33,7 @@ public class UsuarioService {
     private final IRestauranteRepository restaurantes;
     private final UsuarioAtual usuarioAtual;
     private final AuditService auditoria;
+    private final com.estoq.business.confirmacaoEmail.ConfirmacaoEmailService confirmacaoEmail;
 
     public Page<UsuarioResponseDTO> listar(Pageable p, String q) {
         return (q == null || q.isBlank() ? repository.findAll(p) : repository.pesquisar(q.trim(), p)).map(adapter::toDto);
@@ -55,7 +56,9 @@ public class UsuarioService {
         u.setPerfil(dto.perfil());
         u.setSenha(encoder.encode(dto.senha()));
         validation.validate(u);
+        confirmacaoEmail.preparar(u);
         repository.saveAndFlush(u);
+        confirmacaoEmail.solicitar(u);
         sincronizacao.registrar(u);
         auditar("USUARIO_CRIADO", u, responsavel);
         return adapter.toDto(u);
@@ -73,8 +76,11 @@ public class UsuarioService {
         if (dto.perfil() == Perfil.PLATAFORMA) {
             throw new BusinessException("O perfil PLATAFORMA não pode ser atribuído pela loja.", HttpStatus.BAD_REQUEST);
         }
+        var novoEmail = dto.email().trim().toLowerCase(Locale.ROOT);
+        boolean mudouEmail = !novoEmail.equalsIgnoreCase(u.getEmail());
         u.setNome(dto.nome().trim());
-        u.setEmail(dto.email().trim().toLowerCase(Locale.ROOT));
+        u.setEmail(novoEmail);
+        if (mudouEmail) confirmacaoEmail.preparar(u);
         u.setPerfil(dto.perfil());
         u.setAtivo(dto.ativo());
         if (dto.senha() != null) {
@@ -82,6 +88,7 @@ public class UsuarioService {
         }
         validation.validate(u);
         repository.flush();
+        if (mudouEmail) confirmacaoEmail.solicitar(u);
         sincronizacao.registrar(u);
         auditar("USUARIO_ATUALIZADO", u, responsavel);
         return adapter.toDto(u);

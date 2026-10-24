@@ -26,6 +26,9 @@ class LimpezaRestaurantesTesteIntegrationTest {
                 + "VALUES ('Plataforma','plataforma@teste.com','hash-preservado','PLATAFORMA',true,now(),0)");
             s.execute("INSERT INTO usuarios(restaurante_id,nome,email,senha,perfil,ativo,data_hora_criacao,version) "
                 + "VALUES (1,'Admin teste','admin@teste.com','hash','ADMIN',true,now(),0)");
+            s.execute("INSERT INTO confirmacoes_email(usuario_id,email,token_hash,expira_em,ativo,data_hora_criacao,version) "
+                + "VALUES (2,'admin@teste.com',repeat('a',64),now()+interval '1 day',true,now(),0),"
+                + "(1,'plataforma@teste.com',repeat('b',64),now()+interval '1 day',true,now(),0)");
             s.execute("INSERT INTO categorias(restaurante_id,nome,ativo,data_hora_criacao,version) "
                 + "VALUES (1,'Teste',true,now(),0)");
             s.execute("INSERT INTO produtos(restaurante_id,categoria_id,nome,unidade_medida,ativo,data_hora_criacao,version) "
@@ -61,6 +64,8 @@ class LimpezaRestaurantesTesteIntegrationTest {
                 assertEquals(1,contar(c,"SELECT count(*) FROM usuarios WHERE perfil='PLATAFORMA' AND senha='hash-preservado'"));
                 assertEquals(1,contar(c,"SELECT count(*) FROM auditoria_plataforma WHERE restaurante_id=2"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM auditoria_plataforma WHERE restaurante_id=1"));
+                assertEquals(0,contar(c,"SELECT count(*) FROM confirmacoes_email WHERE usuario_id=2"));
+                assertEquals(1,contar(c,"SELECT count(*) FROM confirmacoes_email WHERE usuario_id=1"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM produtos"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM entradas"));
                 assertEquals(0,contar(c,"SELECT count(*) FROM movimentacoes"));

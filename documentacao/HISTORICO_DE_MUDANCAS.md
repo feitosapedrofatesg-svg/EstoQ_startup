@@ -1,5 +1,18 @@
 # Histórico de mudanças do EstoQ
 
+## 24/10/2026 — confirmação de e-mail e reposição automática
+
+Média da reposição calculada em lote pelas movimentações do período do produto,
+com alternativa manual preservada. Tela e três formatos de exportação mostram
+origem e período. Prazo cadastrado ou sete dias, sem lotes vencidos.
+
+Confirmação por link para novas contas e troca de e-mail quando ativada. Legado
+preservado, tokens de uso único salvos como hash, prazo de 24 h, reenvio limitado
+e envio pós-commit pela Gmail API. Erros reutilizam o contrato do core. Código
+inclui autorização local do remetente em `apis/`, sem outro deploy ou SDK.
+A função nasce desligada até OAuth e entrega real serem validados pelo dono.
+Migração V11; ferramentas de limpeza consideram tokens vinculados ao usuário.
+
 ## 24/10/2026 — lote do fabricante
 
 Campo opcional na entrada manual e em cada item da NF-e. Código interno,

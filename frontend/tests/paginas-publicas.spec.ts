@@ -2,6 +2,33 @@ import { test, expect } from "@playwright/test";
 import { preparar } from "./fixtures";
 
 for (const largura of [320, 1440]) {
+  test(`home da raiz mostra funcionalidades e leva ao login em ${largura}px`, async ({ page }) => {
+    await preparar(page);
+    await page.route("**/api/auth/me", route => route.fulfill({ status: 401, json: {} }));
+    await page.setViewportSize({ width: largura, height: 900 });
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Menos desperdício");
+    await expect(page.getByRole("img", { name: /Painel do EstoQ/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Relatórios e CMV" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/estoq-home-${largura}.png`, fullPage: true, animations: "disabled" });
+    // linha do razão abre e fecha
+    const linha = page.getByRole("button", { name: /Balanço físico/ });
+    await expect(linha).toHaveAttribute("aria-expanded", "false");
+    await linha.click();
+    await expect(linha).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByText("Contagem por produto comparada")).toBeVisible();
+    await linha.click();
+    await expect(linha).toHaveAttribute("aria-expanded", "false");
+    // calculadora de CMV: faturamento × 1%
+    await page.getByLabel("Faturamento mensal").fill("200000");
+    await expect(page.getByText("R$ 2.000")).toBeVisible();
+    await page.getByRole("main").getByRole("link", { name: "Entrar", exact: true }).first().click();
+    await expect(page).toHaveURL(/\/login$/);
+  });
+}
+
+for (const largura of [320, 1440]) {
   test(`apresentação e privacidade abrem sem login e cabem em ${largura}px`, async ({ page }) => {
     await preparar(page);
     await page.route("**/api/auth/me", route => route.fulfill({ status: 401, json: {} }));

@@ -1318,6 +1318,7 @@ a:hover {
 .public-page__header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .public-page__header img { max-width: 100%; object-fit: contain; }
 .public-page__content { max-width: 72ch; padding: 48px 0; }
+.public-page__content--wide { max-width: 1000px; }
 .public-page__content h1 { font-size: clamp(1.8rem, 5vw, 2.75rem); line-height: 1.2; margin: 0 0 24px; }
 .public-page__content h2 { font-size: var(--t-4); line-height: 1.4; margin: 32px 0 12px; }
 .public-page__content p { margin: 0 0 16px; }
@@ -1325,9 +1326,98 @@ a:hover {
 .public-page__actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 36px; }
 .public-page__content a:not(.btn), .public-page__footer a, .public-links a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
 .public-page__footer { border-top: 1px solid var(--line); padding: 16px 0; overflow-wrap: anywhere; }
+
 .public-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; }
 .public-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--t-1); }
 .public-page__footer .public-links { justify-content: flex-start; }
+
+/* ---------- home ---------- */
+.home { --faixa: clamp(20px, 5vw, 48px); }
+.home__barra { max-width: 1160px; margin: 0 auto; padding: 0 var(--faixa); }
+.home__rodape { margin-top: 8px; }
+
+.home-hero { position: relative; overflow: hidden; background: var(--ink); color: #fff; }
+.home-hero__foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 62% 45%; }
+.home-hero__veu { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(39,41,50,.8) 0%, rgba(39,41,50,.92) 60%, var(--ink) 100%); }
+.home-hero__conteudo { position: relative; max-width: 1160px; margin: 0 auto; padding: clamp(52px, 8vw, 104px) var(--faixa) clamp(104px, 15vw, 176px); }
+.home-hero h1 { font-size: clamp(2.35rem, 6.4vw, 4.15rem); line-height: 1.02; letter-spacing: -0.025em; font-weight: 600; margin: 0 0 20px; max-width: 15ch; }
+.home-hero p { font-size: clamp(1.02rem, 1.6vw, 1.2rem); line-height: 1.55; color: rgba(255,255,255,.84); max-width: 46ch; margin: 0; }
+.home-hero__acoes { margin: 30px 0 16px; }
+.home-hero__nota { font-size: var(--t-2); color: rgba(255,255,255,.66) !important; }
+.home-hero .btn--outline, .home-fecho .btn--outline { background: transparent; border-color: rgba(255,255,255,.5); color: #fff; }
+.home-hero .btn--outline:hover, .home-fecho .btn--outline:hover { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.8); }
+
+.home__painel { max-width: 1160px; margin: -72px auto 0; padding: 0 var(--faixa); position: relative; }
+.home-painel { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 22px 46px rgb(39 41 50 / 22%); }
+.home-painel img { display: block; width: 100%; height: auto; }
+.home-painel figcaption { font-size: var(--t-2); color: var(--muted); padding: 12px 16px; border-top: 1px solid var(--line); }
+
+.home-razao, .home-cenarios { padding-top: clamp(52px, 8vw, 92px); }
+.home-razao h2, .home-cenarios h2 { font-size: clamp(1.5rem, 3.2vw, 2.05rem); line-height: 1.15; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 26px; max-width: 20ch; }
+
+.razao { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--line-strong); }
+.razao__linha { border-bottom: 1px solid var(--line); }
+.razao__titulo { margin: 0; font-size: inherit; font-weight: inherit; }
+.razao__botao { display: grid; grid-template-columns: auto minmax(0,1fr) auto; grid-template-areas: "icone nome sinal" ". resumo resumo"; align-items: baseline; gap: 6px 14px; width: 100%; padding: 17px 2px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.razao__icone { grid-area: icone; color: var(--accent-strong); align-self: center; display: flex; }
+.razao__nome { grid-area: nome; font-size: var(--t-4); font-weight: 600; letter-spacing: -0.01em; }
+.razao__resumo { grid-area: resumo; font-size: var(--t-3); color: var(--muted); }
+.razao__sinal { grid-area: sinal; font-size: 1.4rem; line-height: 1; color: var(--ink-3); align-self: center; }
+.razao__botao:hover .razao__nome, .razao__botao:focus-visible .razao__nome { color: var(--accent-strong); }
+.razao__detalhe { padding: 0 2px 20px; max-width: 74ch; }
+.razao__detalhe p { margin: 0; font-size: var(--t-3); line-height: 1.6; color: var(--muted); }
+
+.cenario { list-style: none; display: grid; gap: clamp(20px, 3vw, 28px); margin: 0; padding: 0; }
+.cenario__item img { display: block; width: 100%; height: auto; aspect-ratio: 9 / 7; object-fit: cover; }
+.cenario__texto { border-top: 2px solid var(--line-strong); margin-top: 14px; padding-top: 12px; }
+.cenario h3 { font-size: var(--t-4); font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; }
+.cenario p { font-size: var(--t-3); line-height: 1.55; color: var(--muted); margin: 0; }
+.home__creditos { font-size: var(--t-2); color: var(--ink-3); margin: 26px 0 0; }
+
+.home-ponto { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: clamp(56px, 8vw, 96px); padding: clamp(44px, 6vw, 76px) 0; }
+.home-ponto__grid { display: grid; gap: clamp(28px, 5vw, 56px); }
+.home-ponto h2 { font-size: clamp(1.5rem, 3.2vw, 2.05rem); line-height: 1.15; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 14px; max-width: 18ch; }
+.home-ponto__conta > p { font-size: var(--t-3); line-height: 1.6; color: var(--muted); max-width: 52ch; margin: 0 0 26px; }
+.home-ponto__rotulo { display: block; font-size: var(--t-2); color: var(--muted); margin: 0 0 8px; }
+.home-ponto__controle { display: block; width: 100%; max-width: 460px; accent-color: var(--accent-strong); }
+.home-ponto__faturamento { display: block; font-size: var(--t-4); font-weight: 600; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.home-ponto__resultado { border-top: 2px solid var(--line-strong); padding-top: 16px; }
+.home-ponto__numero { font-size: clamp(3rem, 8vw, 5.25rem); font-weight: 600; letter-spacing: -0.035em; line-height: 1; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
+.home-ponto__periodo { font-size: var(--t-3); color: var(--muted); margin: 0; font-variant-numeric: tabular-nums; }
+
+@media (min-width: 860px) {
+  .home-ponto__grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+  .home-ponto__resultado { text-align: right; }
+}
+
+.home-fecho { background: var(--ink); color: #fff; margin-top: clamp(56px, 8vw, 96px); padding: clamp(46px, 7vw, 84px) 0; }
+.home-fecho__conteudo { display: flex; flex-direction: column; align-items: flex-start; }
+.home-fecho__frase { font-size: clamp(1.65rem, 4vw, 2.5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.08; margin: 0; max-width: 16ch; }
+.home-fecho .public-page__actions { margin: 26px 0 18px; }
+.home-fecho__nota { font-size: var(--t-3); color: rgba(255,255,255,.7); margin: 0; }
+.home-fecho__nota a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+@media (min-width: 760px) {
+  .razao__botao { grid-template-columns: auto auto minmax(0,1fr) auto; grid-template-areas: "icone nome resumo sinal"; gap: 8px 20px; padding: 20px 2px; }
+  .razao__detalhe { padding-left: 44px; }
+  .cenario { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 860px) {
+  .home-hero__veu { background: linear-gradient(96deg, var(--ink) 0%, rgba(39,41,50,.95) 44%, rgba(39,41,50,.5) 76%, rgba(39,41,50,.24) 100%); }
+  .home__painel { margin-top: -142px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-hero__foto { animation: hero-foto 1.2s ease-out backwards; }
+  .home-hero__conteudo > * { animation: hero-surge .55s cubic-bezier(.2,.7,.3,1) backwards; }
+  .home-hero__conteudo > *:nth-child(2) { animation-delay: .07s; }
+  .home-hero__conteudo > *:nth-child(3) { animation-delay: .14s; }
+  .home-hero__conteudo > *:nth-child(4) { animation-delay: .21s; }
+  .razao__detalhe:not([hidden]) { animation: razao-abre .22s ease-out backwards; }
+}
+@keyframes hero-surge { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes hero-foto { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
+@keyframes razao-abre { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
 
 @font-face {
   font-family: "Google Sans";

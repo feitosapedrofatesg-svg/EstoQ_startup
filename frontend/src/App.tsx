@@ -8,6 +8,7 @@ import { Login } from "./pages/Login";
 import { ConfirmarEmail, VerificarEmail } from "./pages/ConfirmacaoEmail";
 import { Registro } from "./pages/Registro";
 import { RegistroGoogle } from "./pages/RegistroGoogle";
+import { Home } from "./pages/Home";
 import { Sobre } from "./pages/Sobre";
 import { Privacidade } from "./pages/Privacidade";
 import { Plataforma } from "./pages/Plataforma";
@@ -89,6 +90,7 @@ function AppRoutes() {
   if (!user) {
     return (
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
         <Route path="/registro/google" element={<RegistroGoogle />} />

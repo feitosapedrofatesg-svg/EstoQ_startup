@@ -8,6 +8,8 @@ import { Login } from "./pages/Login";
 import { ConfirmarEmail, VerificarEmail } from "./pages/ConfirmacaoEmail";
 import { Registro } from "./pages/Registro";
 import { RegistroGoogle } from "./pages/RegistroGoogle";
+import { Sobre } from "./pages/Sobre";
+import { Privacidade } from "./pages/Privacidade";
 import { Plataforma } from "./pages/Plataforma";
 import { Dashboard } from "./pages/Dashboard";
 import { Estoque } from "./pages/Estoque";
@@ -77,6 +79,8 @@ function AppRoutes() {
   } = useAuth();
 
   const location = useLocation();
+  if (location.pathname === "/sobre") return <Sobre />;
+  if (location.pathname === "/privacidade") return <Privacidade />;
   if (location.pathname === "/confirmar-email") return <ConfirmarEmail />;
   if (location.pathname === "/verificar-email") return <VerificarEmail />;
   if (!ready) return <Splash />;

@@ -98,7 +98,20 @@ Não registre códigos, tokens nem segredos nos logs para investigar.
 No Google Auth Platform, complete os dados reais de Branding e depois use
 **Público-alvo → Publicar app**. Publicar e concluir a verificação são etapas
 diferentes; siga as exigências que o console apresentar para os escopos usados.
-Não invente URLs de política de privacidade ou termos inexistentes.
+
+As páginas públicas do EstoQ podem ser abertas sem sessão:
+
+- Nome do aplicativo: **EstoQ**.
+- Página inicial: `https://estoq-oficial.vercel.app/sobre`.
+- Política de Privacidade: `https://estoq-oficial.vercel.app/privacidade`.
+- E-mail de suporte: `estoq.sistema@gmail.com`, se disponível no seletor do projeto.
+  O console exige uma conta elegível; não preencha um endereço que não controla.
+- Domínio autorizado: o domínio do ambiente, sem `https://` nem caminho.
+
+Use esses links de produção somente depois de publicar e conferir as páginas.
+Enquanto estiver validando a versão, as mesmas rotas existem na homologação.
+Se o Google exigir comprovação de domínio, siga o processo de verificação do
+proprietário; não use um domínio de terceiros ou termos de uso inexistentes.
 
 Somente `openid`, `email` e `profile` são pedidos no login. Esses escopos têm
 exceção ao prazo de sete dias do modo Testing. O escopo `gmail.send` não tem

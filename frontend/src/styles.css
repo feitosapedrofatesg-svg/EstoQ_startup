@@ -1314,6 +1314,21 @@ a:hover {
 
 /* -------------------------------------------------- login */
 
+.public-page { max-width: 1000px; margin: 0 auto; padding: 16px clamp(20px, 5vw, 48px); }
+.public-page__header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.public-page__header img { max-width: 100%; object-fit: contain; }
+.public-page__content { max-width: 72ch; padding: 48px 0; }
+.public-page__content h1 { font-size: clamp(1.8rem, 5vw, 2.75rem); line-height: 1.2; margin: 0 0 24px; }
+.public-page__content h2 { font-size: var(--t-4); line-height: 1.4; margin: 32px 0 12px; }
+.public-page__content p { margin: 0 0 16px; }
+.public-page__intro { font-size: var(--t-4); line-height: 1.6; }
+.public-page__actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 36px; }
+.public-page__content a:not(.btn), .public-page__footer a, .public-links a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
+.public-page__footer { border-top: 1px solid var(--line); padding: 16px 0; overflow-wrap: anywhere; }
+.public-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; }
+.public-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--t-1); }
+.public-page__footer .public-links { justify-content: flex-start; }
+
 @font-face {
   font-family: "Google Sans";
   font-style: normal;

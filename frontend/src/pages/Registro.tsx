@@ -5,6 +5,7 @@ import { api, ApiError } from "../lib/api";
 import { Icon } from "../components/Icon";
 import { useToast } from "../store/toast";
 import { GoogleButton } from "../components/GoogleButton";
+import { LinksPublicos } from "../components/PaginaPublica";
 
 /** Auto-cadastro aberto: qualquer cozinha cria a própria conta na plataforma. */
 export function Registro() {
@@ -154,6 +155,7 @@ export function Registro() {
         <p className="login__foot">
           Os dados da sua cozinha ficam isolados: só quem a sua equipe acessa é você.
         </p>
+        <LinksPublicos />
       </div>
     </div>
   );

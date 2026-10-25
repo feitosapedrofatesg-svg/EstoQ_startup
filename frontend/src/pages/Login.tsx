@@ -5,6 +5,7 @@ import { Field, Input, Button } from "../components/UI";
 import { ApiError } from "../lib/api";
 import { Icon } from "../components/Icon";
 import { GoogleButton } from "../components/GoogleButton";
+import { LinksPublicos } from "../components/PaginaPublica";
 
 export function Login() {
   const { login } = useAuth();
@@ -140,6 +141,7 @@ export function Login() {
         <p className="login__foot">
           Problemas para entrar? Fale com o administrador da cozinha.
         </p>
+        <LinksPublicos />
       </div>
     </div>
   );

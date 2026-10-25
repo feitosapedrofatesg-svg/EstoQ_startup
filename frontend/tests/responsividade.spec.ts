@@ -5,7 +5,7 @@ const NOME = "Ingrediente com descrição completa, embalagem e identificação 
 const cmv = { cmv: 123456.78, receitaBase: 350000, cmvPercentual: 35.27, percentualIdeal: 30,
   valorEstoqueInicial: 45000, valorCompras: 100000, valorEstoqueFinal: 21543.22,
   valorConsumoRegistrado: 115000, valorDesperdicio: 7000, percentualDesperdicioSobreCmv: 5.67,
-  valorPerdasNaoExplicadas: 1456.78, diferencaPercentualParaMeta: 5.27 };
+  valorPerdasNaoExplicadas: 1456.78, valorAjustesPositivosBalancos: 12345.67, diferencaPercentualParaMeta: 5.27 };
 
 async function prepararTelas(page: Page, perfil = "ADMIN") {
   await preparar(page, perfil);
@@ -49,7 +49,7 @@ async function prepararTelas(page: Page, perfil = "ADMIN") {
     if (path === "/api/dashboard/resumo") return json({ totalProdutosAtivos: 186, produtosEstoqueBaixo: 53,
       lotesProximosVencimento: 15, lotesVencidos: 4, produtosAbertosAtivos: 7, balancosPendentes: 1,
       cmvPeriodo: cmv.cmv, cmvPercentual: cmv.cmvPercentual, cmvIdeal: 30, valorDesperdicioPeriodo: 7000,
-      perdasNaoExplicadasPeriodo: 1456.78, diferencaCmvParaMeta: 5.27 });
+      perdasNaoExplicadasPeriodo: 1456.78, valorAjustesPositivosBalancos: 12345.67, diferencaCmvParaMeta: 5.27 });
     return route.fallback();
   });
 }

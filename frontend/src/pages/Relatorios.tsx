@@ -169,8 +169,8 @@ function CmvPeriodo({ inicio, fim, setInicio, setFim }: PeriodoRelatorios & { se
                   <td>{fmtPct(dataAtual.percentualDesperdicioSobreCmv)}</td>
                 </tr>
                 <tr>
-                  <td className="muted-cell">Perdas não explicadas</td>
-                  <td className="text-bad">{fmtMoney(dataAtual.valorPerdasNaoExplicadas)}</td>
+                  <td className="muted-cell">Ajustes positivos em balanços</td>
+                  <td className="text-good">{fmtMoney(dataAtual.valorAjustesPositivosBalancos)}</td>
                 </tr>
                 <tr>
                   <td className="muted-cell">Diferença para a meta</td>

@@ -157,7 +157,7 @@ public class PreparadorRelatorioService {
                 linhas.add(java.util.Arrays.asList("- Estoque no fim do período", moeda(cmv.valorEstoqueFinal())));
                 linhas.add(java.util.Arrays.asList("Consumo registrado", moeda(cmv.valorConsumoRegistrado())));
                 linhas.add(java.util.Arrays.asList("Desperdício", moeda(cmv.valorDesperdicio())));
-                linhas.add(java.util.Arrays.asList("Perdas não explicadas", moeda(cmv.valorPerdasNaoExplicadas())));
+                linhas.add(java.util.Arrays.asList("Ajustes positivos em balanços", moeda(cmv.valorAjustesPositivosBalancos())));
                 linhas.add(List.of("Percentual de CMV", percentual(cmv.cmvPercentual())));
                 linhas.add(List.of("Percentual de desperdício sobre o CMV", percentual(cmv.percentualDesperdicioSobreCmv())));
                 linhas.add(List.of("Percentual ideal de CMV", percentual(cmv.percentualIdeal())));

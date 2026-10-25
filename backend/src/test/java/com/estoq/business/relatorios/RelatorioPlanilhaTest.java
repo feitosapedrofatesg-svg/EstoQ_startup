@@ -14,6 +14,7 @@ class RelatorioPlanilhaTest {
         var receita = new java.math.BigDecimal("1500");
         var resumo = mock(CmvResumoDTO.class);
         when(resumo.receitaBase()).thenReturn(receita);
+        when(resumo.valorAjustesPositivosBalancos()).thenReturn(new java.math.BigDecimal("25.49"));
         when(relatorios.calcularCmv(horario.inicioUtc(dia), horario.inicioUtc(dia.plusDays(1)), receita)).thenReturn(resumo);
         var preparador = new PreparadorRelatorioService(horario, relatorios);
         var servico = new RelatorioExportacaoService(preparador, new RelatorioPdfService(preparador),
@@ -22,7 +23,14 @@ class RelatorioPlanilhaTest {
         String texto = new String(arquivo.conteudo(), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(texto.contains("Faturamento do período"));
         assertTrue(texto.contains("1.500,00"));
-        verify(relatorios).calcularCmv(horario.inicioUtc(dia), horario.inicioUtc(dia.plusDays(1)), receita);
+        assertTrue(texto.contains("Ajustes positivos em balanços"));
+        assertTrue(texto.contains("25,49"));
+        assertFalse(texto.contains("Perdas não explicadas"));
+        String xls = new String(servico.gerar("cmv", "xls", dia, dia, 1, receita).conteudo(), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(xls.contains("Ajustes positivos em balanços"));
+        assertTrue(xls.contains("25,49"));
+        assertFalse(xls.contains("Perdas não explicadas"));
+        verify(relatorios, times(2)).calcularCmv(horario.inicioUtc(dia), horario.inicioUtc(dia.plusDays(1)), receita);
     }
     @Test void formatosMantemDadosETotaisEProtegemTextos() {
         var dados = new DocumentoRelatorioPdf("Estoque", "Posição atual", List.of(new Coluna("Produto", 1, false)),

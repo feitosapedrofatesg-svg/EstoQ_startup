@@ -18,7 +18,7 @@ async function prepararDashboard(page: Page, perfil = "ADMIN", zero = false) {
     produtosAbertosAtivos: zero ? 0 : 4, balancosPendentes: zero ? 0 : 1,
     cmvPeriodo: 100, cmvPercentual: 10, cmvIdeal: 30, receitaBase: 1000,
     diasFaturamentoPendentes: 0, receitaPorPeriodo: false, valorDesperdicioPeriodo: 0,
-    perdasNaoExplicadasPeriodo: 0, diferencaCmvParaMeta: -20,
+    perdasNaoExplicadasPeriodo: 0, valorAjustesPositivosBalancos: 0, diferencaCmvParaMeta: -20,
   } }));
   await page.goto("/dashboard");
   return estado;

@@ -216,6 +216,7 @@ class BalancoCmvIntegrationTest {
         var perda = consultas.listar(oleoId, null, null, TipoMovimentacao.DESPERDICIO, inicio, fim).getFirst();
         assertEquals(ajuste.id(), perda.id());
         assertEquals(ajuste.valorAjuste(), relatorios.calcularCmv(inicio, fim, null).valorDesperdicio());
+        assertEquals(new BigDecimal("0.00"), relatorios.calcularCmv(inicio, fim, null).valorAjustesPositivosBalancos());
     }
 
     @Test
@@ -238,6 +239,9 @@ class BalancoCmvIntegrationTest {
         assertEquals(new BigDecimal("40.00"), ajuste.valorAjuste());
         assertNull(ajuste.valorPrejuizo());
         assertEquals(UnidadeMedida.KG, ajuste.unidadeMedida());
+        balancos.gerarAjustes(confirmado.id(), versao(confirmado.id()));
+        assertEquals(new BigDecimal("40.00"), relatorios.calcularCmv(fim.minusDays(30), fim, null).valorAjustesPositivosBalancos());
+        assertEquals(new BigDecimal("40.00"), dashboard.resumo(fim.minusDays(30), fim, null).valorAjustesPositivosBalancos());
     }
 
     @Test
@@ -405,6 +409,9 @@ class BalancoCmvIntegrationTest {
         assertEquals(1, mensal.size());
         assertEquals(0, BigDecimal.ZERO.compareTo(mensal.getFirst().valorCompras()));
         assertEquals(0, new BigDecimal("-40").compareTo(mensal.getFirst().cmv()));
+        assertEquals(new BigDecimal("40.00"), relatorios.calcularCmv(inicio, fim, null).valorAjustesPositivosBalancos());
+        assertEquals(new BigDecimal("0.00"), relatorios.calcularCmv(inicio, inicio.plusDays(1), null).valorAjustesPositivosBalancos());
+        assertEquals(new BigDecimal("0.00"), relatorios.calcularCmv(fim, fim.plusDays(1), null).valorAjustesPositivosBalancos());
         assertThrows(FieldValidationException.class, () -> relatorios.calcularCmv(fim, inicio, null));
     }
 

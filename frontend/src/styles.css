@@ -1266,6 +1266,10 @@ a:hover {
   color: var(--text);
 }
 
+.cmv-row strong.text-good {
+  color: var(--good);
+}
+
 .alert-list__body p:first-child {
   font-weight: 600;
 }

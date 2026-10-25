@@ -37,7 +37,7 @@ class RelatorioPdfFiltrosTest {
         when(relatorios.calcularCmv(inicio, fim, receita)).thenReturn(new CmvResumoDTO(inicio, fim,
                 new BigDecimal("12345.67"), new BigDecimal("5000"), new BigDecimal("9345.67"), new BigDecimal("8000"), receita,
                 new BigDecimal("32"), new BigDecimal("30"), new BigDecimal("2"), new BigDecimal("7500"), new BigDecimal("500"), new BigDecimal("6.25"), BigDecimal.ZERO,
-                BigDecimal.ZERO, 1, true));
+                BigDecimal.ZERO, 1, true, new BigDecimal("25.49")));
         var bytes = new RelatorioPdfService(new PreparadorRelatorioService(new com.estoq.core.helpers.HorarioOperacao(), relatorios)).gerar("cmv", dia, dia, 1, receita);
         verify(relatorios).calcularCmv(inicio, fim, receita);
         try (var pdf = Loader.loadPDF(bytes)) {
@@ -45,6 +45,8 @@ class RelatorioPdfFiltrosTest {
             assertTrue(texto.contains("R$ 8.000,00"));
             assertTrue(texto.contains("R$ 25.000,00"));
             assertTrue(texto.contains("32%"));
+            assertTrue(texto.replaceAll("\\s+", " ").contains("Ajustes positivos em balanços R$ 25,49"));
+            assertFalse(texto.contains("Perdas não explicadas"));
             assertTrue(texto.replaceAll("\\s+", " ").contains("Faturamento informado como total do período."));
             assertFalse(texto.contains("cadastro anterior"));
         }

@@ -35,7 +35,7 @@ async function prepararCmv(page: Page) {
       faturamentoInformado: p.totalInformado, diasFaturamentoPendentes: p.diasPendentes,
       receitaPorPeriodo: p.receitaPorPeriodo, percentualIdeal: 30, diferencaPercentualParaMeta: 0,
       valorEstoqueInicial: 0, valorCompras: custo, valorEstoqueFinal: 0, valorConsumoRegistrado: custo,
-      valorDesperdicio: 0, percentualDesperdicioSobreCmv: 0, valorPerdasNaoExplicadas: 0 };
+      valorDesperdicio: 0, percentualDesperdicioSobreCmv: 0, valorPerdasNaoExplicadas: 0, valorAjustesPositivosBalancos: 0 };
   }
   await page.route("**/api/relatorios/**", async route => {
     const url = new URL(route.request().url()); estado.consultas.push(url);

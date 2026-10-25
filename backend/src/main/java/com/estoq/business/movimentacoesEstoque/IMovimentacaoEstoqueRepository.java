@@ -1,6 +1,7 @@
 package com.estoq.business.movimentacoesEstoque;
 
 
+import com.estoq.business.ajustes.AjusteModel;
 import com.estoq.business.consumos.ConsumoModel;
 import com.estoq.business.entradas.EntradaModel;
 import com.estoq.core.repositories.IGenericRepository;
@@ -44,6 +45,12 @@ public interface IMovimentacaoEstoqueRepository extends IGenericRepository<Movim
                         + "and m.itemBalanco is not null and m.quantidadePosterior<m.quantidadeAnterior)) "
                         + "and m.dataHora >= :inicio and m.dataHora < :fim")
         List<MovimentacaoEstoqueModel> desperdiciosEntre(LocalDateTime inicio, LocalDateTime fim);
+
+        @EntityGraph(attributePaths = { "lote" })
+        @Query("select a from AjusteModel a where a.itemBalanco is not null "
+                        + "and a.quantidadePosterior>a.quantidadeAnterior "
+                        + "and a.dataHora >= :inicio and a.dataHora < :fim")
+        List<AjusteModel> ajustesPositivosEntre(LocalDateTime inicio, LocalDateTime fim);
 
         @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
         @Query("select m from MovimentacaoEstoqueModel m "

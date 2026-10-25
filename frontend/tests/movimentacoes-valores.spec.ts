@@ -9,6 +9,8 @@ async function prepararMovimentacoes(page: Page) {
       diferencaApurada: -500, valorAjuste: 13.19, valorPrejuizo: 13.19, motivo: "OUTRO" },
     { id: 74, tipo: "AJUSTE", produtoNome: "Molho barbecue", quantidade: 1.99, unidadeMedida: "KG",
       diferencaApurada: 1.99, valorAjuste: 19.51 },
+    { id: 77, tipo: "AJUSTE", produtoNome: "Alface", quantidade: 2, unidadeMedida: "UN",
+      diferencaApurada: 2, valorAjuste: 5.98 },
     { id: 73, tipo: "DESPERDICIO", produtoNome: "Acelga", quantidade: 1, unidadeMedida: "UN",
       valorPrejuizo: 3.95, motivo: "VENCIMENTO" },
     { id: 104, tipo: "DESPERDICIO", produtoNome: "Batata", quantidade: 1, unidadeMedida: "KG",
@@ -30,7 +32,16 @@ async function prepararMovimentacoes(page: Page) {
     diferencaPercentualParaMeta: -10.32, valorConsumoRegistrado: 81.43,
     valorDesperdicio: 23.59, percentualDesperdicioSobreCmv: 29.67,
     valorPerdasNaoExplicadas: -25.50, faturamentoInformado: 404,
+    valorAjustesPositivosBalancos: 25.49,
     diasFaturamentoPendentes: 0, receitaPorPeriodo: false,
+  } }));
+  await page.route("**/api/dashboard/resumo**", route => route.fulfill({ json: {
+    totalProdutosAtivos: 6, produtosEstoqueBaixo: 0, lotesProximosVencimento: 0,
+    lotesVencidos: 0, produtosAbertosAtivos: 0, balancosPendentes: 0,
+    cmvPeriodo: 79.52, cmvPercentual: 19.68, cmvIdeal: 30, receitaBase: 404,
+    faturamentoInformado: 404, diasFaturamentoPendentes: 0, receitaPorPeriodo: false,
+    valorDesperdicioPeriodo: 23.59, diferencaCmvParaMeta: -10.32,
+    perdasNaoExplicadasPeriodo: -25.50, valorAjustesPositivosBalancos: 25.49,
   } }));
 }
 
@@ -64,7 +75,19 @@ for (const width of [320, 1440]) {
     await page.goto("/relatorios?inicio=2026-09-26&fim=2026-10-25");
     const desperdicio = page.getByRole("row").filter({ has: page.getByText("Desperdício", { exact: true }) });
     await expect(desperdicio).toContainText(/R\$\s*23,59/);
+    const ajustes = page.getByRole("row").filter({ hasText: "Ajustes positivos em balanços" });
+    await expect(ajustes).toContainText(/R\$\s*25,49/);
+    await expect(ajustes.locator("td").last()).toHaveCSS("color", "rgb(79, 111, 5)");
+    await expect(page.getByText("Perdas não explicadas", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("row").filter({ hasText: "Diferença para a meta" })).toContainText("-10,3%");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+    await page.goto("/dashboard");
+    const ajustesPainel = page.locator(".cmv-row").filter({ hasText: "Ajustes positivos em balanços" });
+    await expect(ajustesPainel).toContainText(/R\$\s*25,49/);
+    await expect(ajustesPainel.locator("strong")).toHaveCSS("color", "rgb(79, 111, 5)");
+    await expect(page.getByText("Perdas não explicadas", { exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
 

@@ -44,6 +44,6 @@ public class DashboardService {
                 s(cmv.valorDesperdicio()), s(cmv.cmv()), cmv.cmvPercentual(), cmv.percentualIdeal(),
                 cmv.diferencaPercentualParaMeta(),
                 s(cmv.valorPerdasNaoExplicadas()), cmv.receitaBase(), cmv.faturamentoInformado(),
-                cmv.diasFaturamentoPendentes(), cmv.receitaPorPeriodo());
+                cmv.diasFaturamentoPendentes(), cmv.receitaPorPeriodo(), cmv.valorAjustesPositivosBalancos());
     }
 }

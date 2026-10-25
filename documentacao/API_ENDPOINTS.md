@@ -247,7 +247,11 @@ somar médias ou percentuais. Faturamento identifica dias pendentes e total parc
 Detalhes em [Relatórios em PDF](RELATORIOS_PDF.md).
 
 CMV = estoque inicial + compras − estoque final. Sem receita válida não calcula
-percentual. Perdas não explicadas = CMV − (consumo registrado + desperdício).
+percentual. Relatórios, Visão geral e exportações mostram “Ajustes positivos em
+balanços”: soma dos valores das sobras efetivamente aplicadas no período,
+retornada em `valorAjustesPositivosBalancos`. Déficits e descartes não entram
+nesse total. O campo anterior de perdas não explicadas permanece na API para
+compatibilidade: CMV − (consumo registrado + desperdício).
 A receita base por período não significa integração com vendas/PDV.
 
 O CMV resolve automaticamente o faturamento diário completo ou o total antigo do

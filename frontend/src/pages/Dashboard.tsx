@@ -135,9 +135,9 @@ export function Dashboard() {
                       <strong>{fmtMoney(data.valorDesperdicioPeriodo)}</strong>
                     </div>
                     <div className="cmv-row">
-                      <span>Perdas não explicadas</span>
-                      <strong className={data.perdasNaoExplicadasPeriodo > 0 ? "text-bad" : ""}>
-                        {fmtMoney(data.perdasNaoExplicadasPeriodo)}
+                      <span>Ajustes positivos em balanços</span>
+                      <strong className="text-good">
+                        {fmtMoney(data.valorAjustesPositivosBalancos)}
                       </strong>
                     </div>
                     <div className="cmv-row">

@@ -279,6 +279,37 @@ class TenantIsolamentoIntegrationTest {
         mvc.perform(get("/api/relatorios/cmv").session(a)).andExpect(status().isOk()).andExpect(jsonPath("$.valorCompras").value(20));
         mvc.perform(get("/api/relatorios/cmv").session(b)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.valorCompras").value(0)).andExpect(jsonPath("$.valorEstoqueFinal").value(0));
+
+        var resposta = mvc.perform(post("/api/balancos").session(a).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isCreated()).andReturn();
+        var balanco = json.readTree(resposta.getResponse().getContentAsString());
+        String rota = "/api/balancos/" + balanco.get("id").asLong();
+        resposta = mvc.perform(post(rota + "/iniciar").session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":" + balanco.get("version").asLong() + "}"))
+                .andExpect(status().isOk()).andReturn();
+        var item = json.readTree(resposta.getResponse().getContentAsString()).get("itens").get(0);
+        mvc.perform(put(rota + "/itens/" + item.get("id").asLong() + "/contagem").session(a).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"quantidadeFisica\":3,\"version\":" + item.get("version").asLong() + "}"))
+                .andExpect(status().isOk());
+        resposta = mvc.perform(get(rota).session(a)).andExpect(status().isOk()).andReturn();
+        balanco = json.readTree(resposta.getResponse().getContentAsString());
+        item = balanco.get("itens").get(0);
+        resposta = mvc.perform(post(rota + "/confirmar").session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":" + balanco.get("version").asLong() + ",\"itens\":[{\"id\":"
+                        + item.get("id").asLong() + ",\"version\":" + item.get("version").asLong() + "}]}"))
+                .andExpect(status().isOk()).andReturn();
+        balanco = json.readTree(resposta.getResponse().getContentAsString());
+        mvc.perform(post(rota + "/gerar-ajustes").session(a).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":" + balanco.get("version").asLong() + "}"))
+                .andExpect(status().isOk());
+        for (String relatorio : List.of("/api/relatorios/cmv", "/api/dashboard/resumo")) {
+            mvc.perform(get(relatorio).session(a)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.valorAjustesPositivosBalancos").value(10));
+            mvc.perform(get(relatorio).session(b)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.valorAjustesPositivosBalancos").value(0));
+        }
     }
 
     private com.estoq.business.notasFiscais.NotaFiscalDTO lerNota(MockHttpSession sessao, String xml) throws Exception {

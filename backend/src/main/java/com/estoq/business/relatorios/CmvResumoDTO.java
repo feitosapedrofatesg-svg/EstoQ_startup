@@ -8,5 +8,5 @@ public record CmvResumoDTO(LocalDateTime dataInicio, LocalDateTime dataFim, BigD
         BigDecimal cmvPercentual, BigDecimal percentualIdeal, BigDecimal diferencaPercentualParaMeta,
         BigDecimal valorConsumoRegistrado, BigDecimal valorDesperdicio, BigDecimal percentualDesperdicioSobreCmv,
         BigDecimal valorPerdasNaoExplicadas, BigDecimal faturamentoInformado, int diasFaturamentoPendentes,
-        boolean receitaPorPeriodo) {
+        boolean receitaPorPeriodo, BigDecimal valorAjustesPositivosBalancos) {
 }

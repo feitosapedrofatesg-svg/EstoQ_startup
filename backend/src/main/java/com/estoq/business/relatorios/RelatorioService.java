@@ -6,6 +6,7 @@ import com.estoq.core.exceptions.FieldValidationException;
 import com.estoq.core.helpers.HorarioOperacao;
 
 import com.estoq.business.consumos.ConsumoModel;
+import com.estoq.business.ajustes.AjusteModel;
 import com.estoq.business.desperdicios.DesperdicioModel;
 import com.estoq.business.desperdicios.DesperdicioClassificacao;
 import com.estoq.business.entradas.EntradaModel;
@@ -152,14 +153,15 @@ public class RelatorioService {
     }
 
     /**
-     * Entradas e consumos usam consultas por subtipo. A consulta de perdas inclui
-     * desperdícios e ajustes negativos de balanço, cada movimentação uma vez.
+     * As consultas separam compras, consumo, perdas e sobras de balanço,
+     * sem repetir movimentações entre os grupos.
      */
     private List<MovimentacaoEstoqueModel> movimentacoesEntre(LocalDateTime inicio, LocalDateTime fim) {
         var lista = new ArrayList<MovimentacaoEstoqueModel>();
         lista.addAll(movimentos.entradasEntre(inicio, fim));
         lista.addAll(movimentos.consumosEntre(inicio, fim));
         lista.addAll(movimentos.desperdiciosEntre(inicio, fim));
+        lista.addAll(movimentos.ajustesPositivosEntre(inicio, fim));
         return lista;
     }
 
@@ -172,6 +174,7 @@ public class RelatorioService {
         var compras = zero();
         var consumido = zero();
         var desperdicio = zero();
+        var ajustesPositivos = zero();
         for (var m : historico) {
             if (m instanceof EntradaModel e) {
                 compras = compras.add(money(e.getValorTotalPago()));
@@ -179,6 +182,8 @@ public class RelatorioService {
                 consumido = consumido.add(c.getCustoConsumo());
             } else if (m instanceof DesperdicioModel || DesperdicioClassificacao.perdaBalanco(m)) {
                 desperdicio = desperdicio.add(DesperdicioClassificacao.valor(m));
+            } else if (m instanceof AjusteModel a) {
+                ajustesPositivos = ajustesPositivos.add(a.getValorAjuste());
             }
         }
         compras = money(compras);
@@ -199,7 +204,8 @@ public class RelatorioService {
         var perdasNaoExplicadas = money(cmv.subtract(consumido.add(desperdicio)));
         return new CmvResumoDTO(inicio, fim, estoqueInicial, compras, estoqueFinal, cmv, receitaBase,
                 cmvPercentual == null ? null : cmvPercentual, ideal, diferenca, consumido, desperdicio,
-                desperdicioSobre, perdasNaoExplicadas, faturamento.totalInformado(), faturamento.diasPendentes(), receitaPorPeriodo);
+                desperdicioSobre, perdasNaoExplicadas, faturamento.totalInformado(), faturamento.diasPendentes(), receitaPorPeriodo,
+                money(ajustesPositivos));
     }
 
     public List<CmvMensalDTO> cmvPorMes(LocalDateTime inicio, LocalDateTime fim) {

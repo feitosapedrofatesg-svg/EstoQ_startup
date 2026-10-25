@@ -264,6 +264,7 @@ export interface CmvResumoDTO {
   valorDesperdicio: number;
   percentualDesperdicioSobreCmv: number;
   valorPerdasNaoExplicadas: number;
+  valorAjustesPositivosBalancos?: number;
 }
 
 export interface CmvReceitaBaseDTO {
@@ -292,6 +293,7 @@ export interface DashboardResumoDTO {
   cmvIdeal: number | null;
   diferencaCmvParaMeta: number | null;
   perdasNaoExplicadasPeriodo: number;
+  valorAjustesPositivosBalancos?: number;
   receitaBase: number | null;
   faturamentoInformado: number;
   diasFaturamentoPendentes: number;

@@ -187,6 +187,38 @@ class BalancoCmvIntegrationTest {
     }
 
     @Test
+    void ajusteDoOleoSeparaMililitrosDeReaisEEntraNoDesperdicio() {
+        var produto = new ProdutoDTO();
+        produto.setNome("Óleo composto de soja");
+        produto.setCategoriaId(categorias.findAll().getFirst().getId());
+        produto.setUnidadeMedida(UnidadeMedida.ML);
+        var oleoId = produtos.criar(produto).getId();
+        entradas.registrarEntrada(new EntradaRequestDTO(oleoId, new BigDecimal("1000"), new BigDecimal("26.38"),
+                UnidadeMedida.ML, null, null, false));
+
+        var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
+        var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
+        for (var item : iniciado.itens()) {
+            var quantidade = item.produtoId().equals(oleoId) ? new BigDecimal("500") : item.quantidadeSistema();
+            balancos.registrarContagem(iniciado.id(), item.id(), new ContagemRequestDTO(quantidade, item.version()));
+        }
+        balancos.confirmar(iniciado.id(), confirmacao(iniciado.id()));
+        balancos.gerarAjustes(iniciado.id(), versao(iniciado.id()));
+
+        var fim = LocalDateTime.now().plusDays(1);
+        var inicio = fim.minusDays(30);
+        var ajuste = consultas.listar(oleoId, null, null, TipoMovimentacao.AJUSTE, inicio, fim).getFirst();
+        assertEquals(UnidadeMedida.ML, ajuste.unidadeMedida());
+        assertEquals(0, new BigDecimal("-500").compareTo(ajuste.diferencaApurada()));
+        assertEquals(new BigDecimal("13.19"), ajuste.valorAjuste());
+        assertEquals(ajuste.valorAjuste(), ajuste.valorPrejuizo());
+        assertEquals(0, new BigDecimal("500").compareTo(lotes.saldo(oleoId)));
+        var perda = consultas.listar(oleoId, null, null, TipoMovimentacao.DESPERDICIO, inicio, fim).getFirst();
+        assertEquals(ajuste.id(), perda.id());
+        assertEquals(ajuste.valorAjuste(), relatorios.calcularCmv(inicio, fim, null).valorDesperdicio());
+    }
+
+    @Test
     void balancoSuperavitSomaNoLoteDisponivel() {
         var criado = balancos.criar(new CriarBalancoRequestDTO(TipoBalanco.GERAL));
         var iniciado = balancos.iniciar(criado.id(), versao(criado.id()));
@@ -202,6 +234,10 @@ class BalancoCmvIntegrationTest {
         var ajustes = movimentos.findAll().stream().filter(m -> m.getTipo() == TipoMovimentacao.AJUSTE).toList();
         assertEquals(1, ajustes.size());
         assertEquals(0, new BigDecimal("2").compareTo(ajustes.getFirst().getDelta().abs()));
+        var ajuste = consultas.listar(produtoId, null, null, TipoMovimentacao.AJUSTE, fim.minusDays(30), fim).getFirst();
+        assertEquals(new BigDecimal("40.00"), ajuste.valorAjuste());
+        assertNull(ajuste.valorPrejuizo());
+        assertEquals(UnidadeMedida.KG, ajuste.unidadeMedida());
     }
 
     @Test
@@ -496,6 +532,10 @@ class BalancoCmvIntegrationTest {
         var ajustes = movimentos.findAll().stream().filter(m -> m.getTipo() == TipoMovimentacao.AJUSTE).toList();
         assertEquals(1, ajustes.size());
         assertEquals(0, new BigDecimal("3").compareTo(ajustes.getFirst().getDelta().abs()));
+        var fim = LocalDateTime.now().plusDays(1);
+        var ajuste = consultas.listar(semEstoque, null, null, TipoMovimentacao.AJUSTE, fim.minusDays(30), fim).getFirst();
+        assertEquals(new BigDecimal("0.00"), ajuste.valorAjuste());
+        assertNull(ajuste.valorPrejuizo());
         consumos.registrarConsumo(new ConsumoRequestDTO(semEstoque, null, new BigDecimal("1"), null, null));
         assertEquals(0, new BigDecimal("2").compareTo(lotes.saldo(semEstoque)));
     }

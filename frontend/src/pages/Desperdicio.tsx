@@ -180,7 +180,7 @@ export function Desperdicio() {
                 <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
                 <td><strong>{m.produtoNome}</strong>{m.observacao && <span className="cell-sub">{m.observacao}</span>}</td>
                 <td>{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
-                <td className="text-bad">{fmtNum(Math.abs(m.quantidade))}</td>
+                <td className="text-bad">{fmtNum(Math.abs(m.quantidade))} {m.unidadeMedida?.toLowerCase()}</td>
                 <td>{m.tipo === "AJUSTE" ? "Diferença negativa de balanço" : (MOTIVO_LABEL[m.motivo as MotivoDesperdicio] ?? m.motivo ?? "—")}
                   {m.descricaoMotivo && m.tipo !== "AJUSTE" && <span className="cell-sub">{m.descricaoMotivo}</span>}
                 </td>

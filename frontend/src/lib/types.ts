@@ -165,6 +165,7 @@ export interface MovimentacaoDTO {
   custoConsumo: number | null;
   valorPrejuizo: number | null;
   valorTotalPago: number | null;
+  valorAjuste?: number | null;
   diferencaApurada: number | null;
   motivo: string | null;
   descricaoMotivo: string | null;

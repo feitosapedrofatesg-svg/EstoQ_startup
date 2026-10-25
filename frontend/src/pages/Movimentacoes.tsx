@@ -117,7 +117,7 @@ export function Movimentacoes() {
     return data!.reduce(
       (acc, m) => {
         if (m.tipo === "CONSUMO") acc.custoConsumo += m.custoConsumo ?? 0;
-        if (m.tipo === "DESPERDICIO") acc.prejuizo += m.valorPrejuizo ?? 0;
+        acc.prejuizo += m.valorPrejuizo ?? 0;
         if (m.tipo === "ENTRADA") acc.compras += m.valorTotalPago ?? 0;
         return acc;
       },
@@ -229,7 +229,7 @@ export function Movimentacoes() {
                 <td>
                   <span className={m.tipo === "DESPERDICIO" ? "text-bad" : ""}>
                     {m.tipo === "ENTRADA" ? "+" : m.tipo === "AJUSTE" && (m.diferencaApurada ?? 0) >= 0 ? "+" : "−"}
-                    {fmtNum(Math.abs(m.quantidade))}
+                    {fmtNum(Math.abs(m.quantidade))} {m.unidadeMedida?.toLowerCase()}
                   </span>
                 </td>
                 <td>
@@ -239,7 +239,7 @@ export function Movimentacoes() {
                       ? fmtMoney(m.custoConsumo ?? 0)
                       : m.tipo === "DESPERDICIO"
                         ? fmtMoney(m.valorPrejuizo ?? 0)
-                        : fmtMoney(m.diferencaApurada ?? 0)}
+                        : fmtMoney(m.valorAjuste ?? m.valorPrejuizo)}
                 </td>
                 <td className="muted-cell">
                   {m.motivo ? m.motivo.replaceAll("_", " ") : "—"}

@@ -1,5 +1,6 @@
 package com.estoq.business.movimentacoesEstoque;
 
+import com.estoq.business.ajustes.AjusteModel;
 import com.estoq.business.consumos.ConsumoModel;
 import com.estoq.business.desperdicios.DesperdicioModel;
 import com.estoq.business.desperdicios.DesperdicioClassificacao;
@@ -24,6 +25,7 @@ public class MovimentacaoAdapter {
                 m.getTipo() == TipoMovimentacao.AJUSTE ? m.getDelta() : null,
                 perda ? DesperdicioClassificacao.motivo(m).name() : null,
                 perda ? DesperdicioClassificacao.descricao(m) : null,
-                m.getObservacao(), m.getProduto().getUnidadeMedida(), l == null ? null : l.getLoteFabricante());
+                m.getObservacao(), m.getProduto().getUnidadeMedida(), l == null ? null : l.getLoteFabricante(),
+                m instanceof AjusteModel a && l != null ? a.getValorAjuste() : null);
     }
 }

@@ -27,8 +27,11 @@ public class UsuarioModel extends TenantEntity {
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String senha;
+
+    @Column(length = 255, unique = true)
+    private String googleSub;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

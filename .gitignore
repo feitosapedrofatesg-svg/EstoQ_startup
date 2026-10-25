@@ -16,6 +16,7 @@ dados/
 .env
 .env.*
 !.env.example
+client_secret*.json
 
 # Lock files do LibreOffice / editors
 ~$*

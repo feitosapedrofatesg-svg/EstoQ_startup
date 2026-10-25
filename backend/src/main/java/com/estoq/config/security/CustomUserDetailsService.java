@@ -24,7 +24,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) {
         var usuario = repository.findByEmailIgnoreCaseAndAtivoTrue(email)
                 .orElseThrow(() -> new UsernameNotFoundException("E-mail ou senha inválidos."));
-        if (!restauranteAtivo(usuario)) {
+        if (usuario.getSenha() == null || !restauranteAtivo(usuario)) {
             throw new UsernameNotFoundException("E-mail ou senha inválidos.");
         }
         return UsuarioPrincipal.of(usuario);

@@ -85,7 +85,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("12", flyway.info().current().getVersion().toString());
+            assertEquals("13", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -296,7 +296,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("novos_campos").locations("classpath:db/migration").load();
-        assertEquals(2, depois.migrate().migrationsExecuted);
+        assertEquals(3, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             try (var rs = st.executeQuery("select confirmacao_email_obrigatoria,email_confirmado_em,senha,version from novos_campos.usuarios")) {
                 assertTrue(rs.next()); assertTrue(!rs.getBoolean(1)); assertNull(rs.getObject(2));
@@ -311,6 +311,39 @@ class MigracaoProdValidacaoTest {
         assertEquals(0, depois.migrate().migrationsExecuted);
     }
 
+    @Test
+    void loginGooglePreservaHashEPermiteSomenteContasComUmaCredencial() throws Exception {
+        var antes = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
+                .schemas("login_google").locations("classpath:db/migration").target("12").load();
+        antes.migrate();
+        var encoder = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        var hash = encoder.encode("SenhaSomenteDoTeste123");
+        try (var conn = DriverManager.getConnection(jdbcUrl);
+                var inserir = conn.prepareStatement("insert into login_google.usuarios(nome,email,senha,perfil,ativo,data_hora_criacao,version) "
+                        + "values('Legado','legado@teste.com',?,'PLATAFORMA',true,now(),0)")) {
+            inserir.setString(1, hash); inserir.executeUpdate();
+        }
+        var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
+                .schemas("login_google").locations("classpath:db/migration").load();
+        assertEquals(1, depois.migrate().migrationsExecuted);
+        try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
+            st.execute("set search_path to login_google");
+            try (var rs = st.executeQuery("select senha,google_sub from usuarios where email='legado@teste.com'")) {
+                assertTrue(rs.next()); assertEquals(hash, rs.getString(1)); assertNull(rs.getString(2));
+                assertTrue(encoder.matches("SenhaSomenteDoTeste123", rs.getString(1)));
+            }
+            st.execute("insert into usuarios(nome,email,google_sub,perfil,ativo,data_hora_criacao,version) "
+                    + "values('Google','google@teste.com','sub-unico','PLATAFORMA',true,now(),0)");
+            org.junit.jupiter.api.Assertions.assertThrows(java.sql.SQLException.class, () -> st.execute(
+                    "insert into usuarios(nome,email,google_sub,perfil,ativo,data_hora_criacao,version) "
+                    + "values('Duplicado','outro@teste.com','sub-unico','PLATAFORMA',true,now(),0)"));
+            org.junit.jupiter.api.Assertions.assertThrows(java.sql.SQLException.class, () -> st.execute(
+                    "insert into usuarios(nome,email,perfil,ativo,data_hora_criacao,version) "
+                    + "values('Sem acesso','sem@teste.com','PLATAFORMA',true,now(),0)"));
+        }
+        assertEquals(0, depois.migrate().migrationsExecuted);
+    }
+
     private void rodarMigracoes(String schema) {
         var configuracao = Flyway.configure()
                 .dataSource(jdbcUrl, "postgres", "postgres")
@@ -321,7 +354,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(12, resultado.migrationsExecuted, "V1 até V12 devem executar no banco legado");
+        assertEquals(13, resultado.migrationsExecuted, "V1 até V13 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

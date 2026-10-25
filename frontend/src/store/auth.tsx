@@ -17,6 +17,7 @@ interface AuthCtx {
   user: AuthenticatedUserDTO | null;
   ready: boolean;
   login: (email: string, senha: string) => Promise<void>;
+  concluirLogin: (usuario: AuthenticatedUserDTO) => void;
   logout: () => Promise<void>;
   refetchMe: () => Promise<void>;
   isAdmin: boolean;
@@ -67,20 +68,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("estoq:unauthorized", onUnauthorized);
   }, [atualizarUsuario]);
 
+  const concluirLogin = useCallback((u: AuthenticatedUserDTO) => {
+    atualizarUsuario(u);
+    resetCsrf();
+    toast.success(`Bem-vindo(a), ${u.nome.split(" ")[0]}`);
+  }, [toast, atualizarUsuario]);
+
   const login = useCallback(
     async (email: string, senha: string) => {
       try {
         const u = await api.post<AuthenticatedUserDTO>("/api/auth/login", { email, senha });
-        atualizarUsuario(u);
-        resetCsrf();
-        toast.success(`Bem-vindo(a), ${u.nome.split(" ")[0]}`);
+        concluirLogin(u);
       } catch (e) {
         const err = e as { message?: string };
         toast.error("Não foi possível entrar", err.message);
         throw e;
       }
     },
-    [toast, atualizarUsuario]
+    [toast, concluirLogin]
   );
 
   const logout = useCallback(async () => {
@@ -99,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       ready,
       login,
+      concluirLogin,
       logout,
       refetchMe,
       isAdmin: perfil === "ADMIN",
@@ -110,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canSeeEstoque: perfil === "ADMIN" || perfil === "COZINHA",
       canSeeCatalogo: perfil === "ADMIN" || perfil === "COZINHA",
     };
-  }, [user, ready, login, logout, refetchMe]);
+  }, [user, ready, login, concluirLogin, logout, refetchMe]);
 
   return <Ctx.Provider value={value}><Fragment key={user ? `${user.id}|${user.restauranteId}|${user.perfil}` : "anonimo"}>{children}</Fragment></Ctx.Provider>;
 }

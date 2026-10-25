@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/auth/google/configuracao", route => route.fulfill({ json: { enabled: false } }));
+});
+
 for (const status of [401, 429, 502, 503, 504]) {
   test(`login distingue credenciais, limite e indisponibilidade: ${status}`, async ({ page }) => {
     await page.route("**/api/auth/me", route => route.fulfill({ status: 401, json: {} }));

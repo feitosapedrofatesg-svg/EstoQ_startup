@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
@@ -30,30 +30,43 @@ public class AuthService {
     private final IRestauranteRepository restaurantes;
 
     public AuthenticatedUserDTO autenticar(LoginRequestDTO dto, HttpServletRequest request, HttpServletResponse response) {
-        var ip = request.getRemoteAddr();
+        var auth = validarSenha(dto, request.getRemoteAddr());
+        return abrirSessao((UsuarioPrincipal) auth.getPrincipal(), request, response);
+    }
+
+    public Authentication validarSenha(LoginRequestDTO dto, String ip) {
         tentativas.reservar(dto.email(), ip);
-        var auth = autenticar(dto, ip);
-        if (auth.getPrincipal() instanceof UsuarioPrincipal p && p.emailPendente())
+        var auth = authenticationManager.authenticate(
+                UsernamePasswordAuthenticationToken.unauthenticated(dto.email().trim(), dto.senha()));
+        tentativas.registrarSucesso(dto.email(), ip);
+        return auth;
+    }
+
+    public void validarAcesso(UsuarioModel usuario) {
+        Long restauranteId = usuario.getRestauranteId();
+        if (!usuario.isAtivo() || (restauranteId != null && restauranteId > 0
+                && !restaurantes.findById(restauranteId).map(RestauranteModel::isAtivo).orElse(false))) {
+            throw new BadCredentialsException("Usuário ou restaurante indisponível.");
+        }
+    }
+
+    public AuthenticatedUserDTO abrirSessao(UsuarioModel usuario, HttpServletRequest request, HttpServletResponse response) {
+        validarAcesso(usuario);
+        return abrirSessao(UsuarioPrincipal.of(usuario), request, response);
+    }
+
+    private AuthenticatedUserDTO abrirSessao(UsuarioPrincipal principal, HttpServletRequest request, HttpServletResponse response) {
+        if (principal.emailPendente())
             throw new com.estoq.business.confirmacaoEmail.EmailNaoConfirmadoException();
         if (request.getSession(false) != null) {
             request.changeSessionId();
         }
         var context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(auth);
+        context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities()));
         SecurityContextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
         csrfRepository.saveToken(null, request, response);
         return montar();
-    }
-
-    private Authentication autenticar(LoginRequestDTO dto, String ip) {
-        try {
-            var auth = authenticationManager.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(dto.email().trim(), dto.senha()));
-            tentativas.registrarSucesso(dto.email(), ip);
-            return auth;
-        } catch (AuthenticationException e) {
-            throw e;
-        }
     }
 
     public AuthenticatedUserDTO me() {

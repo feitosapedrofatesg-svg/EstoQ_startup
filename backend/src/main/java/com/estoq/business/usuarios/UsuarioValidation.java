@@ -17,7 +17,7 @@ public class UsuarioValidation extends GenericValidation<UsuarioModel> implement
     public void validate(UsuarioModel u) {
         obrigatorio(u.getNome(), "nome");
         obrigatorio(u.getEmail(), "email");
-        obrigatorio(u.getSenha(), "senha");
+        if (u.getGoogleSub() == null) obrigatorio(u.getSenha(), "senha");
         obrigatorio(u.getPerfil(), "perfil");
         boolean duplicado = u.getId() == null ? repository.existsByEmailIgnoreCase(u.getEmail())
                 : repository.existsByEmailIgnoreCaseAndIdNot(u.getEmail(), u.getId());

@@ -126,7 +126,7 @@ export function Usuarios() {
                   <strong>{u.nome}</strong>
                   {u.id === user?.id && <span className="cell-sub">é você</span>}
                 </td>
-                <td className="muted-cell">{u.email}{u.confirmacaoEmailPendente && <small className="muted" style={{ display: "block" }}>Confirmação de e-mail pendente</small>}</td>
+                <td className="muted-cell">{u.email}{u.googleVinculado && <span className="cell-sub">Acesso com Google</span>}{u.confirmacaoEmailPendente && <small className="muted" style={{ display: "block" }}>Confirmação de e-mail pendente</small>}</td>
                 <td>
                   <StatusBadge tone={PERFIL_TONE[u.perfil]}>{PERFIL_LABEL[u.perfil]}</StatusBadge>
                 </td>
@@ -212,6 +212,8 @@ function UsuarioForm({
     if (!u && senha.length < 8) return setError("A senha precisa ter ao menos 8 caracteres.");
     if (u && senha && senha.length < 8) return setError("A senha precisa ter ao menos 8 caracteres.");
     if (senha !== confirmarSenha) return setError("As senhas não conferem.");
+    if (u?.googleVinculado && u.possuiSenha === false && email.trim().toLowerCase() !== u.email.toLowerCase() && !senha)
+      return setError("Defina uma senha para alterar o e-mail de uma conta que entra somente com Google.");
     setSubmitting(true);
     setError(null);
     try {
@@ -266,7 +268,7 @@ function UsuarioForm({
       <Field label="Nome" required>
         <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome e sobrenome" />
       </Field>
-      <Field label="E-mail" required>
+      <Field label="E-mail" required hint={u?.googleVinculado ? "Alterar o e-mail desvincula o Google. Se o acesso for somente pelo Google, defina também uma senha." : undefined}>
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@restaurante.com" />
       </Field>
       <Field label="Perfil" required>

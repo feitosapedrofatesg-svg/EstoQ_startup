@@ -1314,6 +1314,36 @@ a:hover {
 
 /* -------------------------------------------------- login */
 
+@font-face {
+  font-family: "Google Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/google-sans-button.ttf") format("truetype");
+}
+
+.google-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px;
+  border: 1px solid #747775;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f1f1f;
+  font: 500 14px/20px "Google Sans", Arial, sans-serif;
+  text-decoration: none;
+}
+
+.google-button img { flex: none; }
+.google-button:hover { background: #f2f2f2; }
+.google-button:focus-visible { outline: 3px solid var(--accent-strong); outline-offset: 3px; }
+.login__divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: var(--t-1); }
+.login__divider::before, .login__divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
 .login__side {
   background: var(--paper);
   border-right: 1px solid var(--line);

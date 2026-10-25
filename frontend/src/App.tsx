@@ -7,6 +7,7 @@ import { Icon } from "./components/Icon";
 import { Login } from "./pages/Login";
 import { ConfirmarEmail, VerificarEmail } from "./pages/ConfirmacaoEmail";
 import { Registro } from "./pages/Registro";
+import { RegistroGoogle } from "./pages/RegistroGoogle";
 import { Plataforma } from "./pages/Plataforma";
 import { Dashboard } from "./pages/Dashboard";
 import { Estoque } from "./pages/Estoque";
@@ -86,6 +87,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
+        <Route path="/registro/google" element={<RegistroGoogle />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

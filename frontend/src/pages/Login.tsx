@@ -4,6 +4,7 @@ import { useAuth } from "../store/auth";
 import { Field, Input, Button } from "../components/UI";
 import { ApiError } from "../lib/api";
 import { Icon } from "../components/Icon";
+import { GoogleButton } from "../components/GoogleButton";
 
 export function Login() {
   const { login } = useAuth();
@@ -12,7 +13,12 @@ export function Login() {
   const [email, setEmail] = useState(prefilled);
   const [senha, setSenha] = useState("");
   const [senhaVisivel, setSenhaVisivel] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const resultado = new URLSearchParams(location.search).get("google");
+    if (resultado === "cancelado") return "Acesso com Google cancelado. Você pode tentar novamente.";
+    if (resultado === "erro") return "Não foi possível concluir o acesso com Google. Tente novamente ou entre com e-mail e senha.";
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [emailPendente, setEmailPendente] = useState(false);
 
@@ -81,6 +87,8 @@ export function Login() {
               {error}
             </div>
           )}
+
+          <GoogleButton />
 
           <Field label="E-mail" htmlFor="login-email" required>
             <Input

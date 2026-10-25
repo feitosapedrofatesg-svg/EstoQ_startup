@@ -72,6 +72,8 @@ export interface RestauranteDTO {
 }
 
 export interface UsuarioResponseDTO {
+  googleVinculado?: boolean;
+  possuiSenha?: boolean;
   confirmacaoEmailPendente?: boolean;
   emailConfirmadoEm?: string | null;
   id: number;

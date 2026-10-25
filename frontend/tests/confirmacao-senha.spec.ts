@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { preparar } from "./fixtures";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/auth/google/configuracao", route => route.fulfill({ json: { enabled: false } }));
+});
+
 for (const senha of ["Teste@12345", "Teste@12345 "]) {
   test(`cadastro só envia senhas iguais, preservando espaços: ${senha.length}`, async ({ page }) => {
     const envios: Record<string, unknown>[] = [];

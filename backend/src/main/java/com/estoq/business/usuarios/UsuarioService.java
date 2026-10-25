@@ -8,6 +8,7 @@ import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.core.exceptions.BusinessException;
 import com.estoq.core.exceptions.ConflictException;
+import com.estoq.core.exceptions.FieldValidationException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -78,9 +79,16 @@ public class UsuarioService {
         }
         var novoEmail = dto.email().trim().toLowerCase(Locale.ROOT);
         boolean mudouEmail = !novoEmail.equalsIgnoreCase(u.getEmail());
+        if (mudouEmail && u.getGoogleSub() != null && u.getSenha() == null && dto.senha() == null) {
+            throw new FieldValidationException("senha", "Defina uma senha para alterar o e-mail de uma conta que entra somente com Google.");
+        }
+        if (mudouEmail && u.getGoogleSub() != null) confirmacaoEmail.exigirEnvioDisponivel();
         u.setNome(dto.nome().trim());
         u.setEmail(novoEmail);
-        if (mudouEmail) confirmacaoEmail.preparar(u);
+        if (mudouEmail) {
+            u.setGoogleSub(null);
+            confirmacaoEmail.preparar(u);
+        }
         u.setPerfil(dto.perfil());
         u.setAtivo(dto.ativo());
         if (dto.senha() != null) {

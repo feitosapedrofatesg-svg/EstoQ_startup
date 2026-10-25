@@ -53,8 +53,12 @@ public class ConfirmacaoEmailService {
     }
 
     public void reenviar(String email) {
-        if (!config.isEnabled()) throw new BusinessException("Envio de e-mail temporariamente indisponível.", HttpStatus.SERVICE_UNAVAILABLE);
+        exigirEnvioDisponivel();
         usuarios.bloquearPorEmail(email.trim()).ifPresent(this::solicitar);
+    }
+
+    public void exigirEnvioDisponivel() {
+        if (!config.isEnabled()) throw new BusinessException("Envio de e-mail temporariamente indisponível.", HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     public void confirmar(String original) {

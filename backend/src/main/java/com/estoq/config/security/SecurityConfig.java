@@ -2,6 +2,7 @@ package com.estoq.config.security;
 
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,6 +25,8 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 
 import java.util.Arrays;
 import java.util.List;
@@ -69,8 +72,11 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain security(HttpSecurity http, SecurityExceptionHandlers errors,
                         SecurityContextRepository context, CsrfTokenRepository csrf, CorsConfigurationSource cors,
-                        SessaoValidaService sessoes) throws Exception {
-                return http
+                        SessaoValidaService sessoes, ObjectProvider<GoogleOAuthConfig> google,
+                        ObjectProvider<ClientRegistrationRepository> clientesGoogle,
+                        ObjectProvider<OAuth2AuthorizedClientRepository> autorizacoesGoogle,
+                        @Value("${server.servlet.session.cookie.name:ESTOQSESSION}") String cookieSessao) throws Exception {
+                http
                                 // Identifica o protocolo publicado para conferir o backend antes do frontend.
                                 .headers(h -> h.addHeaderWriter(new StaticHeadersWriter("X-Estoq-Sincronizacao", "3")))
                                 .cors(c -> c.configurationSource(cors))
@@ -85,6 +91,9 @@ public class SecurityConfig {
                                                 .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                                                 .requestMatchers("/api/saude/vivo", "/api/saude/pronto", "/api/auth/csrf", "/api/auth/login", "/api/registro",
                                                                 "/api/auth/email/confirmar", "/api/auth/email/reenviar",
+                                                                "/api/auth/google/configuracao", "/api/auth/google/pendente",
+                                                                "/api/auth/google/vincular", "/api/auth/google/cancelar", "/api/registro/google",
+                                                                "/api/oauth2/authorization/google", "/api/login/oauth2/code/google",
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()
@@ -130,8 +139,10 @@ public class SecurityConfig {
                                                                                 ? "Token CSRF inválido ou expirado."
                                                                                 : "Seu perfil não possui permissão para esta operação.")))
                                 .logout(l -> l.logoutUrl("/api/auth/logout").invalidateHttpSession(true)
-                                                .deleteCookies("ESTOQSESSION")
-                                                .logoutSuccessHandler((req, res, auth) -> res.setStatus(204)))
-                                .build();
+                                                .deleteCookies(cookieSessao)
+                                                .logoutSuccessHandler((req, res, auth) -> res.setStatus(204)));
+                var loginGoogle = google.getIfAvailable();
+                if (loginGoogle != null) loginGoogle.configurar(http, clientesGoogle.getObject(), autorizacoesGoogle.getObject());
+                return http.build();
         }
 }

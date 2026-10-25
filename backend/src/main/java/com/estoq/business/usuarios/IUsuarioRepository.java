@@ -22,6 +22,8 @@ public interface IUsuarioRepository extends IGenericRepository<UsuarioModel> {
     Page<UsuarioModel> pesquisar(String q, Pageable pageable);
 
     Optional<UsuarioModel> findByEmailIgnoreCaseAndAtivoTrue(String email);
+    Optional<UsuarioModel> findByEmailIgnoreCase(String email);
+    Optional<UsuarioModel> findByGoogleSub(String googleSub);
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
     long countByPerfilAndAtivoTrue(Perfil perfil);

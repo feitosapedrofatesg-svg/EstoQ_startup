@@ -37,7 +37,7 @@ export function ConfirmarEmail() {
   }
 
   return <PaginaEmail titulo={confirmado ? "E-mail confirmado" : "Confirmar e-mail"}>
-    {confirmado ? <p role="status">Seu e-mail foi confirmado. Agora você pode entrar com sua senha.</p> : <>
+    {confirmado ? <p role="status">Seu e-mail foi confirmado. Agora você pode entrar na sua conta.</p> : <>
       <p className="login__subtitle">Pressione o botão para confirmar este endereço. O link vale por 24 horas e pode ser usado uma vez.</p>
       {erro && <div className="login__error" role="alert">{erro}</div>}
       {token ? <Button block onClick={confirmar} loading={loading}>Confirmar e-mail</Button>

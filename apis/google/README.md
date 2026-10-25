@@ -2,6 +2,8 @@
 
 Remetente escolhido: **estoq.sistema@gmail.com**. Só essa conta autoriza o envio.
 Os usuários do EstoQ confirmam qualquer e-mail válido; não precisam de Gmail.
+O [login com Google](login.md) usa clientes Web separados e não pede acesso à
+caixa postal. As variáveis `GOOGLE_LOGIN_*` não substituem as deste remetente.
 
 O backend renova o access token e envia mensagens MIME pela Gmail API. Usa
 Java HttpClient e o Jackson já existente, sem SDK ou servidor adicional.
@@ -32,6 +34,8 @@ Clientes externos em status **Testing** podem ter refresh tokens com duração
 de 7 dias com esse escopo. Antes de ativar para clientes, ajuste o status e as
 exigências de verificação OAuth indicadas pelo Google. Revogar a autorização
 ou mudar configurações da conta também pode exigir nova autorização.
+Depois de publicar, refaça a autorização para obter um novo refresh token;
+não presuma que o token emitido em Testing passou a ser permanente.
 
 ## Ativar após verificar o remetente
 

@@ -14,6 +14,7 @@ import com.estoq.business.usuarios.IUsuarioRepository;
 import com.estoq.business.usuarios.Perfil;
 import com.estoq.business.usuarios.UsuarioModel;
 import com.estoq.core.exceptions.ConflictException;
+import com.estoq.business.loginGoogle.GoogleIdentidade;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,27 +47,43 @@ public class RegistroService {
 
     @Transactional
     public boolean registrar(RegistroRequestDTO dto) {
-        if (usuarios.existsByEmailIgnoreCase(dto.email())) {
+        return criar(dto.nomeLoja(), dto.nomeResponsavel(), dto.email(), encoder.encode(dto.senha()), null, false).emailPendente();
+    }
+
+    @Transactional
+    public UsuarioModel registrarGoogle(String nomeLoja, String nomeResponsavel, GoogleIdentidade identidade) {
+        return criar(nomeLoja, nomeResponsavel, identidade.email(), null, identidade.sub(), identidade.emailConfiavel());
+    }
+
+    private UsuarioModel criar(String nomeLoja, String nomeResponsavel, String email, String senha,
+            String googleSub, boolean emailConfiavel) {
+        email = email.trim().toLowerCase(Locale.ROOT);
+        if (usuarios.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("E-mail já cadastrado. Faça o login ou use outro e-mail.");
         }
         var restaurante = new RestauranteModel();
-        restaurante.setNome(dto.nomeLoja().trim());
+        restaurante.setNome(nomeLoja.trim());
         restaurantes.saveAndFlush(restaurante);
 
         var admin = new UsuarioModel();
-        admin.setNome(dto.nomeResponsavel().trim());
-        admin.setEmail(dto.email().trim().toLowerCase(Locale.ROOT));
-        admin.setSenha(encoder.encode(dto.senha()));
+        admin.setNome(nomeResponsavel.trim());
+        admin.setEmail(email);
+        admin.setSenha(senha);
+        admin.setGoogleSub(googleSub);
         admin.setPerfil(Perfil.ADMIN);
         admin.setRestauranteId(restaurante.getId());
         confirmacaoEmail.preparar(admin);
+        if (googleSub != null) {
+            admin.setConfirmacaoEmailObrigatoria(true);
+            if (emailConfiavel) admin.setEmailConfirmadoEm(horario.agoraUtc());
+        }
         usuarios.saveAndFlush(admin);
 
         criarParametroCmv(restaurante.getId());
         criarConfiguracaoBalanco(restaurante.getId());
         categoriasPadrao.inicializar(restaurante.getId());
         confirmacaoEmail.solicitar(admin);
-        return admin.emailPendente();
+        return admin;
     }
 
     private void criarParametroCmv(Long restauranteId) {

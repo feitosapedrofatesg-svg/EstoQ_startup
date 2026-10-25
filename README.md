@@ -99,6 +99,10 @@ java -jar target/estoq-startup.jar --spring.profiles.active=dev
   (configurável via env `LOGIN_MAX_TENTATIVAS` e `LOGIN_JANELA_MINUTOS`)
 - Lock otimista em `@Version` para concorrência em lote
 - Trilha de movimentações com coluna discriminadora (JOINED)
+- Login e cadastro com Google opcionais, preservando o acesso com senha:
+  [configuração dos clientes Web](apis/google/login.md).
+- Confirmação por link usa autorização separada do remetente:
+  [Gmail e confirmação de e-mail](apis/google/README.md).
 
 ### Fluxo de login
 

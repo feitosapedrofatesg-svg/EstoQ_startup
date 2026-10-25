@@ -125,7 +125,7 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    if (sessao === sessaoAtual() && res.status === 401 && !path.startsWith("/api/auth/login")) {
+    if (sessao === sessaoAtual() && res.status === 401 && !["/api/auth/login", "/api/auth/google/vincular"].includes(path)) {
       window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
     }
     throw await parseError(res);

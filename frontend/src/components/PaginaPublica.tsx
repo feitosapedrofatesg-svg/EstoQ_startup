@@ -18,7 +18,6 @@ export function CabecalhoPublico() {
 export function RodapePublico() {
   return <footer className="public-page__footer">
     <LinksPublicos />
-    <a href="mailto:estoq.sistema@gmail.com">estoq.sistema@gmail.com</a>
   </footer>;
 }
 

@@ -1382,7 +1382,7 @@ a:hover {
 .carrossel__seta--depois { right: 12px; }
 .carrossel__seta span { display: block; translate: 0 -3px; }
 
-.carrossel__pontos { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; }
+.carrossel__pontos { display: flex; justify-content: center; }
 .carrossel__ponto { display: grid; place-items: center; width: 40px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
 .carrossel__ponto::before {
   content: "";
@@ -1451,8 +1451,6 @@ a:hover {
 .home-fecho__conteudo { display: flex; flex-direction: column; align-items: flex-start; }
 .home-fecho__frase { font-size: clamp(1.65rem, 4vw, 2.5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.08; margin: 0; max-width: 16ch; }
 .home-fecho .public-page__actions { margin: 26px 0 18px; }
-.home-fecho__nota { font-size: var(--t-3); color: rgba(255,255,255,.7); margin: 0; }
-.home-fecho__nota a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 
 @media (min-width: 760px) {
   .razao__botao { grid-template-columns: auto auto minmax(0,1fr) auto; grid-template-areas: "icone nome resumo sinal"; gap: 8px 20px; padding: 20px 2px; }

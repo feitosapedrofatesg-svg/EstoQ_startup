@@ -84,32 +84,33 @@ export function Carrossel({ slides, rotulo, intervalo = 5000 }: Props) {
             </div>
           );
         })}
+        {total > 1 && (
+          <>
+            <button type="button" className="carrossel__seta carrossel__seta--antes"
+                    aria-label="Tela anterior" onClick={() => irPara(ativo - 1)}>
+              <span aria-hidden="true">‹</span>
+            </button>
+            <button type="button" className="carrossel__seta carrossel__seta--depois"
+                    aria-label="Próxima tela" onClick={() => irPara(ativo + 1)}>
+              <span aria-hidden="true">›</span>
+            </button>
+          </>
+        )}
       </div>
 
       {total > 1 && (
-        <>
-          <button type="button" className="carrossel__seta carrossel__seta--antes"
-                  aria-label="Tela anterior" onClick={() => irPara(ativo - 1)}>
-            <span aria-hidden="true">‹</span>
-          </button>
-          <button type="button" className="carrossel__seta carrossel__seta--depois"
-                  aria-label="Próxima tela" onClick={() => irPara(ativo + 1)}>
-            <span aria-hidden="true">›</span>
-          </button>
-
-          <div className="carrossel__pontos">
-            {slides.map((slide, indice) => (
-              <button
-                type="button"
-                key={slide.src}
-                className="carrossel__ponto"
-                aria-label={`Tela ${indice + 1} de ${total}: ${slide.titulo}`}
-                aria-current={indice === ativo ? "true" : undefined}
-                onClick={() => irPara(indice)}
-              />
-            ))}
-          </div>
-        </>
+        <div className="carrossel__pontos">
+          {slides.map((slide, indice) => (
+            <button
+              type="button"
+              key={slide.src}
+              className="carrossel__ponto"
+              aria-label={`Tela ${indice + 1} de ${total}: ${slide.titulo}`}
+              aria-current={indice === ativo ? "true" : undefined}
+              onClick={() => irPara(indice)}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

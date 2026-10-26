@@ -199,7 +199,7 @@ export function Home() {
             <h2 id="titulo-ponto">Quanto vale um ponto de CMV</h2>
             <p>
               CMV é o custo da mercadoria vendida. Cada ponto percentual que você
-              reduz equivale a 1% do faturamento do mês.
+              reduz equivale a aproximadamente 1% do faturamento do mês.
             </p>
             <label className="home-ponto__rotulo" htmlFor="faturamento">Faturamento mensal</label>
             <input
@@ -242,9 +242,6 @@ export function Home() {
             <Link className="btn btn--accent btn--lg" to="/login">Entrar</Link>
             <Link className="btn btn--outline btn--lg" to="/registro">Cadastrar minha cozinha</Link>
           </div>
-          <p className="home-fecho__nota">
-            Dúvidas fale com <a href="mailto:estoq.sistema@gmail.com">estoq.sistema@gmail.com</a>.
-          </p>
         </div>
       </section>
       </main>

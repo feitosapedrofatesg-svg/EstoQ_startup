@@ -1,0 +1,19 @@
+# EstoQ - instrucoes para robos de busca
+# Nao indexa as areas da aplicacao (exigem autenticacao e nao tem valor de conteudo)
+User-agent: *
+Disallow: /login
+Disallow: /registro
+Disallow: /plataforma
+Disallow: /backup
+Disallow: /dashboard
+Disallow: /estoque
+Disallow: /movimentacoes
+Disallow: /notas-fiscais
+Disallow: /consumo
+Disallow: /desperdicio
+Disallow: /balanco
+Disallow: /relatorios
+Disallow: /catalogo
+Disallow: /usuarios
+
+Sitemap: https://estoq.site/sitemap.xml

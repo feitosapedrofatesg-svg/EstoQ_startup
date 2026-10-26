@@ -12,8 +12,8 @@ for (const largura of [320, 1440]) {
     await expect(page.getByRole("heading", { name: "Relatórios e CMV" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `/tmp/estoq-home-${largura}.png`, fullPage: true, animations: "disabled" });
-    // linha do razão abre e fecha
-    const linha = page.getByRole("button", { name: /Balanço físico/ });
+    // linha do razão abre e fecha (âncora: o carrossel também nomeia um ponto "Balanço físico")
+    const linha = page.getByRole("button", { name: /^Balanço físico/ });
     await expect(linha).toHaveAttribute("aria-expanded", "false");
     await linha.click();
     await expect(linha).toHaveAttribute("aria-expanded", "true");

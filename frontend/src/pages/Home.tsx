@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CabecalhoPublico, RodapePublico } from "../components/PaginaPublica";
+import { Carrossel, type CarrosselSlide } from "../components/Carrossel";
 import { Icon } from "../components/Icon";
 
 const RAZAO = [
@@ -60,6 +61,46 @@ const CENARIOS = [
   },
 ];
 
+/** Telas reais do sistema, na ordem do carrossel do topo. */
+const TELAS: CarrosselSlide[] = [
+  {
+    src: "/print/catalogo.jpg",
+    titulo: "Catálogo",
+    alt: "Catálogo do EstoQ com produtos, categorias, unidade de medida e saldo de cada item.",
+    width: 1600, height: 775,
+  },
+  {
+    src: "/print/movimentacoes.jpg",
+    titulo: "Movimentações",
+    alt: "Movimentações do EstoQ com compras, consumo e desperdício registrados no período.",
+    width: 1600, height: 774,
+  },
+  {
+    src: "/print/desperdicio.jpg",
+    titulo: "Desperdício",
+    alt: "Histórico de desperdício do EstoQ com motivo da perda, quantidade e prejuízo.",
+    width: 1600, height: 768,
+  },
+  {
+    src: "/print/balanco.jpg",
+    titulo: "Balanço físico",
+    alt: "Balanço físico do EstoQ com agendamento semanal e contagem já concluída.",
+    width: 1600, height: 770,
+  },
+  {
+    src: "/print/relatorios-cmv.jpg",
+    titulo: "Relatórios e CMV",
+    alt: "Relatórios e CMV do EstoQ com custo do período, meta e faturamento por dia.",
+    width: 1600, height: 770,
+  },
+  {
+    src: "/print/alertas.jpg",
+    titulo: "Central de alertas",
+    alt: "Central de alertas do EstoQ aberta sobre o painel, com balanço pendente e estoque baixo.",
+    width: 1600, height: 772,
+  },
+];
+
 export function Home() {
   const [aberta, setAberta] = useState<string | null>(null);
   const [faturamento, setFaturamento] = useState(100000);
@@ -94,9 +135,8 @@ export function Home() {
 
       <div className="home__painel">
         <figure className="home-painel">
-          <img src="/print/painel.jpg" width={1200} height={750}
-            alt="Painel do EstoQ com o próximo balanço, o CMV do período e os alertas do dia" loading="eager" />
-          <figcaption>Painel do EstoQ: balanço, CMV e o que precisa de atenção.</figcaption>
+          <Carrossel slides={TELAS} rotulo="Telas do EstoQ" intervalo={5000} />
+          <figcaption>Telas do EstoQ: catálogo, movimentações, desperdício, balanço, relatórios de CMV e alertas.</figcaption>
         </figure>
       </div>
 
@@ -179,6 +219,13 @@ export function Home() {
             <p className="home-ponto__numero">{moeda(ponto)}</p>
             <p className="home-ponto__periodo">por mês · {moeda(ponto * 12)} por ano</p>
           </div>
+        </div>
+        <div className="home__barra">
+          <figure className="home-ponto__print">
+            <img src="/print/cmv-painel.jpg" width={1600} height={772}
+              alt="Painel do EstoQ com o CMV do período, a comparação com a meta e os alertas do dia"
+              loading="lazy" decoding="async" />
+          </figure>
         </div>
         <div className="home__barra">
           <p className="home__creditos">

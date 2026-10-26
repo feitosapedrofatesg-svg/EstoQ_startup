@@ -1352,6 +1352,57 @@ a:hover {
 .home-painel img { display: block; width: 100%; height: auto; }
 .home-painel figcaption { font-size: var(--t-2); color: var(--muted); padding: 12px 16px; border-top: 1px solid var(--line); }
 
+/* Carrossel de telas do sistema dentro do mesmo quadro do painel. */
+.carrossel { position: relative; }
+.carrossel__pistas { position: relative; aspect-ratio: 1600 / 772; background: var(--surface-subtle); }
+.carrossel__pista { position: absolute; inset: 0; opacity: 0; transition: opacity 0.45s ease; }
+.carrossel__pista[data-ativo] { opacity: 1; }
+.carrossel__pista img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+
+.carrossel__seta {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(39 41 50 / 74%);
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.carrossel__seta:hover { background: rgb(39 41 50 / 92%); }
+.carrossel__seta--antes { left: 12px; }
+.carrossel__seta--depois { right: 12px; }
+.carrossel__seta span { display: block; translate: 0 -3px; }
+
+.carrossel__pontos { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; }
+.carrossel__ponto { display: grid; place-items: center; width: 40px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
+.carrossel__ponto::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(39 41 50 / 34%);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.carrossel__ponto[aria-current="true"]::before { background: var(--orange); transform: scale(1.4); }
+
+/* Tela estreita com mouse: controles menores para caber sem dominar a imagem.
+   Em ponteiro de toque os 44px acima são mantidos. */
+@media (max-width: 560px) and (any-pointer: fine) {
+  .carrossel__seta { width: 36px; height: 36px; font-size: 1.4rem; }
+  .carrossel__seta--antes { left: 8px; }
+  .carrossel__seta--depois { right: 8px; }
+  .carrossel__ponto { width: 32px; height: 36px; }
+}
+
 .home-razao, .home-cenarios { padding-top: clamp(52px, 8vw, 92px); }
 .home-razao h2, .home-cenarios h2 { font-size: clamp(1.5rem, 3.2vw, 2.05rem); line-height: 1.15; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 26px; max-width: 20ch; }
 
@@ -1373,6 +1424,8 @@ a:hover {
 .cenario h3 { font-size: var(--t-4); font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; }
 .cenario p { font-size: var(--t-3); line-height: 1.55; color: var(--muted); margin: 0; }
 .home__creditos { font-size: var(--t-2); color: var(--ink-3); margin: 26px 0 0; }
+/* Só o crédito de onde as fotos vieram fica menor que os demais textos. */
+.home-cenarios .home__creditos { font-size: var(--t-1); }
 
 .home-ponto { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: clamp(56px, 8vw, 96px); padding: clamp(44px, 6vw, 76px) 0; }
 .home-ponto__grid { display: grid; gap: clamp(28px, 5vw, 56px); }
@@ -1384,6 +1437,10 @@ a:hover {
 .home-ponto__resultado { border-top: 2px solid var(--line-strong); padding-top: 16px; }
 .home-ponto__numero { font-size: clamp(3rem, 8vw, 5.25rem); font-weight: 600; letter-spacing: -0.035em; line-height: 1; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
 .home-ponto__periodo { font-size: var(--t-3); color: var(--muted); margin: 0; font-variant-numeric: tabular-nums; }
+
+/* Print real do CMV ao lado da explicação do ponto percentual. */
+.home-ponto__print { margin: clamp(28px, 5vw, 56px) 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 22px 46px rgb(39 41 50 / 22%); }
+.home-ponto__print img { display: block; width: 100%; height: auto; }
 
 @media (min-width: 860px) {
   .home-ponto__grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }

@@ -78,7 +78,7 @@ produção e está publicado:
 | Recurso | Endereço |
 | --- | --- |
 | Frontend | https://estoq-homologacao.vercel.app |
-| Backend | https://estoq-backend-homologacao.onrender.com |
+| Backend | https://estoq-backend-homologacao-va.onrender.com |
 | Banco | Supabase exclusivo de homologação |
 
 A configuração Vercel de homologação usa `ESTOQ_API_ORIGIN` para o backend de

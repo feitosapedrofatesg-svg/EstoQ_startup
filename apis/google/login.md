@@ -37,7 +37,7 @@ o Google orienta separar também os projetos de teste e produção.
 | Ambiente | Origem JavaScript | URI de redirecionamento autorizada |
 | --- | --- | --- |
 | Homologação | `https://estoq-homologacao.vercel.app` | `https://estoq-homologacao.vercel.app/api/login/oauth2/code/google` |
-| Produção | `https://estoq-oficial.vercel.app` | `https://estoq-oficial.vercel.app/api/login/oauth2/code/google` |
+| Produção | `https://estoq.site` | `https://estoq.site/api/login/oauth2/code/google` |
 | Local, se usado | `http://localhost:5174` | `http://localhost:5174/api/login/oauth2/code/google` |
 
 **Origem não recebe caminho nem barra final.** O caminho `/api/login/...` entra
@@ -102,8 +102,8 @@ diferentes; siga as exigências que o console apresentar para os escopos usados.
 As páginas públicas do EstoQ podem ser abertas sem sessão:
 
 - Nome do aplicativo: **EstoQ**.
-- Página inicial: `https://estoq-oficial.vercel.app/sobre`.
-- Política de Privacidade: `https://estoq-oficial.vercel.app/privacidade`.
+- Página inicial: `https://estoq.site/sobre`.
+- Política de Privacidade: `https://estoq.site/privacidade`.
 - E-mail de suporte: `estoq.sistema@gmail.com`, se disponível no seletor do projeto.
   O console exige uma conta elegível; não preencha um endereço que não controla.
 - Domínio autorizado: o domínio do ambiente, sem `https://` nem caminho.

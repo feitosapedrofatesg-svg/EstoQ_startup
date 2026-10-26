@@ -1,6 +1,6 @@
 # Publicação — Vercel, Render e Neon
 
-Revisão: **12/10/2026**, conforme os arquivos de configuração do repositório.
+Revisão: **26/10/2026**, conforme os arquivos de configuração do repositório.
 Valores de planos/preços não são requisitos da aplicação; confira-os no provedor
 quando contratar. Este documento descreve a topologia e os contratos usados.
 
@@ -8,8 +8,8 @@ quando contratar. Este documento descreve a topologia e os contratos usados.
 
 | Parte | Ambiente conhecido |
 | --- | --- |
-| Frontend | https://estoq-oficial.vercel.app |
-| Backend | https://estoq-backend-jv04.onrender.com |
+| Frontend | https://estoq.site |
+| Backend | https://estoq-backend-va.onrender.com |
 | Banco | PostgreSQL no Neon; schema de negócio atual `public`. |
 | Local | Vite com proxy `/api`; backend 8083; PostgreSQL Docker 5434. |
 

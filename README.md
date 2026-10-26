@@ -11,7 +11,17 @@ Projeto Integrador · SENAI FATESG · ADS · 2026
 
 As correções de segurança, horários e estoque de 18/10/2026 estão descritas em
 [Revisão de segurança](documentacao/REVISAO_SEGURANCA_2026_10_18.md).
-Site: https://estoq-ph-feit0sa.vercel.app
+
+## Ambientes
+
+| Ambiente | Branch | Frontend | Backend |
+| --- | --- | --- | --- |
+| **Produção** | `main` | **https://estoq.site** | https://estoq-backend-va.onrender.com |
+| Homologação | `homologacao` | https://estoq-homologacao.vercel.app | https://estoq-backend-homologacao-va.onrender.com |
+
+Domínios legados, sem uso, apenas referência histórica:
+`https://estoq-oficial.vercel.app`, `https://estoq-ph-feit0sa.vercel.app`,
+`https://estoq-backend-jv04.onrender.com`.
 
 ## O que resolve
 
@@ -62,6 +72,10 @@ EstoQ_Startup/
 │       │   ├── parametrosCmv/ relatorios/ dashboard/
 │       │   └── backup/            # pg_dump integrado
 │       └── patterns/              # singleton para concorrência
+├── frontend/                      # React + Vite, build publicado no Vercel
+├── apis/                          # Google e Gmail (login e e-mail)
+├── keepalive/                     # Cloudflare Worker que mantém o Render acordado
+├── scripts/                       # carga, medição e utilitários
 ├── dados/                         # backups locais (gitignored)
 └── documentacao/                  # constituição, contrato, resumo
 ```

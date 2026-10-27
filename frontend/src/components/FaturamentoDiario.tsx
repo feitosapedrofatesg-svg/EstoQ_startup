@@ -1,5 +1,5 @@
 import { mensagemErro } from "../lib/api";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useFetch } from "../lib/hooks";
 import { fmtDate, fmtMoney, hojeISO, parseDecimal } from "../lib/format";
@@ -31,6 +31,7 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
   const toast = useToast();
   const salvo = data?.dias?.find(d => d.data === dia);
   const [versao, setVersao] = useState<number | null>(null);
+  const formulario = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     // Uma atualização em segundo plano não substitui o rascunho nem sua versão.
@@ -43,6 +44,17 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
   const selecionar = (novaData: string) => {
     if (!novaData || novaData < inicio || novaData > fim) return;
     setDia(novaData); setAlterado(false); setFalha(null);
+  };
+  const editar = (novaData: string) => {
+    selecionar(novaData);
+    const campo = formulario.current?.querySelector<HTMLInputElement>("#faturamento-valor");
+    if (!campo) return;
+    const reduzirMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    campo.focus({ preventScroll: true });
+    // Centraliza depois que a seleção do dia e o foco atualizarem a tela.
+    window.requestAnimationFrame(() => {
+      campo.scrollIntoView({ behavior: reduzirMovimento ? "instant" : "smooth", block: "center" });
+    });
   };
   const salvar = async (evento: FormEvent) => {
     evento.preventDefault();
@@ -66,7 +78,7 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
     <p className="muted">Informe o total de vendas de cada dia. R$ 0 significa dia sem vendas; vazio significa não informado.</p>
     {error && <p className="alertbanner alertbanner--bad" role="alert">Não foi possível carregar o faturamento. {error}</p>}
     {loading && <p className="muted">Carregando faturamento…</p>}
-    <form className="form-grid" onSubmit={evento => void salvar(evento)}>
+    <form ref={formulario} className="form-grid" onSubmit={evento => void salvar(evento)}>
       <Field label="Dia do faturamento" htmlFor="faturamento-dia">
         <Input id="faturamento-dia" type="date" min={inicio} max={fim} value={dia}
           disabled={salvando} onChange={e => selecionar(e.target.value)} />
@@ -91,7 +103,7 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
         <DataTable caption="Faturamento por data" headers={["Data", "Faturamento", ""]}>
           {data.dias.map(d => <tr key={d.data}><td>{fmtDate(d.data)}</td>
             <td>{d.valor == null ? "Não informado" : fmtMoney(d.valor)}</td>
-            <td><Button size="sm" variant="ghost" onClick={() => selecionar(d.data)} disabled={salvando}
+            <td><Button size="sm" variant="ghost" onClick={() => editar(d.data)} disabled={salvando}
               aria-label={`Editar faturamento de ${fmtDate(d.data)}`}>Editar</Button></td></tr>)}
         </DataTable>
       </ListaComRolagem>}

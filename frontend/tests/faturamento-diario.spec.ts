@@ -139,6 +139,45 @@ for (const largura of [320, 1440]) {
   });
 }
 
+for (const largura of [320, 1440]) {
+  for (const movimento of ["reduce", "no-preference"] as const) {
+    test(`editar faturamento centraliza e foca o valor em ${largura}px com movimento ${movimento}`, async ({ page }) => {
+      await page.setViewportSize({ width: largura, height: 900 });
+      await page.emulateMedia({ reducedMotion: movimento });
+      const estado = await prepararCmv(page);
+      estado.dias.set("2026-10-03", { valor: 320.5, version: 4 });
+      await page.goto("/relatorios?inicio=2026-09-20&fim=2026-10-19");
+      const valor = page.getByRole("textbox", { name: "Faturamento do dia (R$)", exact: true });
+      await expect(valor).toHaveValue("100");
+      await page.evaluate(() => document.fonts.ready);
+      await page.getByRole("button", { name: "Ver dias do período", exact: true }).click();
+      const editar = page.getByRole("button", { name: "Editar faturamento de 03/10/2026", exact: true });
+      await editar.click();
+      await expect(page.getByLabel("Dia do faturamento", { exact: true })).toHaveValue("2026-10-03");
+      await expect(valor).toHaveValue("320,5");
+      await expect(valor).toBeFocused();
+      await expect.poll(() => valor.evaluate(el => {
+        const caixa = el.getBoundingClientRect();
+        return Math.abs(caixa.top + caixa.height / 2 - innerHeight / 2);
+      })).toBeLessThanOrEqual(2);
+      expect(estado.envios).toHaveLength(0);
+
+      // Funciona também ao editar novamente o mesmo dia, sem depender de mudar a data.
+      await editar.press("Enter");
+      await expect(valor).toBeFocused();
+      await expect.poll(() => valor.evaluate(el => {
+        const caixa = el.getBoundingClientRect();
+        return Math.abs(caixa.top + caixa.height / 2 - innerHeight / 2);
+      })).toBeLessThanOrEqual(2);
+      await page.screenshot({ path: `/tmp/opencode/faturamento-editar-${largura}-${movimento}.png` });
+
+      await valor.fill("333,25");
+      await page.getByRole("button", { name: "Salvar faturamento", exact: true }).click();
+      await expect.poll(() => estado.envios).toEqual([{ data: "2026-10-03", valor: 333.25, version: 4 }]);
+    });
+  }
+}
+
 test("atualização em segundo plano preserva rascunho e versão para detectar conflito", async ({ page }) => {
   const estado = await prepararCmv(page);
   await page.goto("/relatorios");

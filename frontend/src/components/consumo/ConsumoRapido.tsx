@@ -5,7 +5,7 @@ import { api, ApiError } from "../../lib/api";
 import { fmtNum, hojeISO } from "../../lib/format";
 import type { ConsumoLoteResultadoDTO, EstoqueDTO, LoteDTO } from "../../lib/types";
 import { useAuth } from "../../store/auth";
-import { Button, Checkbox, DataTable, EmptyState, Field, Modal, Select } from "../UI";
+import { Badge, Button, Checkbox, DataTable, EmptyState, Field, Modal, Select } from "../UI";
 import { PainelQuantidade } from "./PainelQuantidade";
 import { imprimirConsumo } from "./ImprimirConsumo";
 import { TextoPorToque } from "./TextoPorToque";
@@ -106,11 +106,19 @@ export function ConsumoRapido({ produtoInicial, onDone }: { produtoInicial: stri
         const atalhos = passos(produto.unidadeMedida);
         const passo = produto.unidadeMedida === "G" || produto.unidadeMedida === "ML" ? 10 : atalhos[0];
         const indisponivel = produto.saldoDisponivelConsumo <= 0;
-        return <section key={produto.produtoId} className="consumo-produto" aria-label={produto.produtoNome}>
-          <div><strong>{produto.produtoNome}</strong><p className="muted">{produto.categoriaNome} · Disponível: {fmtNum(produto.saldoDisponivelConsumo)} {produto.unidadeMedida.toLowerCase()}</p></div>
+        const selecionado = escolha.quantidade > 0;
+        return <section key={produto.produtoId}
+          className={`consumo-produto${indisponivel ? "" : " consumo-produto--disponivel"}${selecionado ? " consumo-produto--selecionado" : ""}`}
+          aria-label={produto.produtoNome}>
+          <div><strong>{produto.produtoNome}</strong><p className="consumo-produto__meta">
+            <span className="muted">{produto.categoriaNome}</span>
+            <Badge tone={indisponivel ? "bad" : "good"}>
+              {indisponivel ? "Sem saldo" : `Disponível: ${fmtNum(produto.saldoDisponivelConsumo)} ${produto.unidadeMedida.toLowerCase()}`}
+            </Badge>
+          </p></div>
           <div className="consumo-controles">
             <Button variant="outline" disabled={incerto || enviando || escolha.quantidade <= 0} aria-label={`Diminuir ${produto.produtoNome}`} onClick={() => ajustar(produto, -passo)}>−</Button>
-            <Button variant="outline" className="consumo-quantidade" disabled={incerto || enviando || indisponivel} aria-label={`Quantidade de ${produto.produtoNome}`} onClick={() => setPainel(produto)}>{fmtNum(escolha.quantidade)} {produto.unidadeMedida.toLowerCase()}</Button>
+            <Button variant={selecionado ? "accent" : "outline"} className="consumo-quantidade" disabled={incerto || enviando || indisponivel} aria-label={`Quantidade de ${produto.produtoNome}`} onClick={() => setPainel(produto)}>{fmtNum(escolha.quantidade)} {produto.unidadeMedida.toLowerCase()}</Button>
             <Button variant="outline" disabled={incerto || enviando || indisponivel} aria-label={`Aumentar ${produto.produtoNome}`} onClick={() => ajustar(produto, passo)}>+</Button>
           </div>
           <div className="consumo-atalhos">{atalhos.map(qtd => <Button key={qtd} size="sm" variant="ghost" disabled={incerto || enviando || indisponivel} onClick={() => ajustar(produto, qtd)}>+{fmtNum(qtd)} {produto.unidadeMedida.toLowerCase()}</Button>)}</div>

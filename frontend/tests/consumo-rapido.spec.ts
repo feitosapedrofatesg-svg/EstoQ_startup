@@ -57,6 +57,50 @@ test("categorias e atalhos selecionam vários itens sem digitar", async ({ page 
   expect(estado.pedidos[0].itens.map((item: any) => [item.produtoId, item.quantidade])).toEqual([[1, 0.1], [2, 1]]);
 });
 
+for (const largura of [320, 1440]) {
+  test(`cores distinguem saldo, seleção e item indisponível em ${largura}px`, async ({ page }) => {
+    await page.setViewportSize({ width: largura, height: 1000 });
+    const estado = await abrir(page);
+    await page.route("**/api/estoque", route => route.fulfill({ json: [
+      ...stocks, { ...stocks[0], produtoId: 3, produtoNome: "Farinha", saldoAtual: 0, saldoDisponivelConsumo: 0, valorEstoque: 0 },
+    ] }));
+    await page.reload();
+    const arroz = page.getByRole("region", { name: "Arroz", exact: true });
+    const ovos = page.getByRole("region", { name: "Ovos", exact: true });
+    const farinha = page.getByRole("region", { name: "Farinha", exact: true });
+    const quantidade = arroz.getByRole("button", { name: "Quantidade de Arroz", exact: true });
+    await expect(arroz.locator(".badge--good")).toHaveText("Disponível: 10 kg");
+    await expect(quantidade).toHaveText("0 kg");
+    await expect(quantidade).toBeEnabled();
+    await expect(quantidade).toHaveCSS("color", "rgb(82, 84, 91)");
+    const fundoDisponivel = await arroz.evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(fundoDisponivel).not.toBe("rgb(255, 255, 255)");
+    await expect(arroz.getByRole("button", { name: "+0,1 kg", exact: true })).toHaveClass(/btn--ghost/);
+    await expect(farinha.locator(".badge--bad")).toHaveText("Sem saldo");
+    await expect(farinha).toHaveCSS("background-color", "rgb(246, 246, 247)");
+    await expect(farinha.getByRole("button", { name: "Quantidade de Farinha", exact: true })).toBeDisabled();
+    await expect(farinha.getByRole("button", { name: "Aumentar Farinha", exact: true })).toBeDisabled();
+
+    await arroz.getByRole("button", { name: "Aumentar Arroz", exact: true }).click();
+    await expect(arroz).toHaveClass(/consumo-produto--selecionado/);
+    await expect(arroz).toHaveCSS("border-top-color", "rgb(79, 111, 5)");
+    await expect(quantidade).toHaveText("0,1 kg");
+    await expect(quantidade).toHaveCSS("background-color", "rgb(194, 230, 110)");
+    expect(await arroz.evaluate(el => getComputedStyle(el).backgroundColor)).not.toBe(fundoDisponivel);
+    await expect(ovos).not.toHaveClass(/consumo-produto--selecionado/);
+    await expect(ovos.getByRole("button", { name: "Quantidade de Ovos", exact: true })).toHaveText("0 un");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    await page.locator(".consumo-card").screenshot({ path: `/tmp/opencode/consumo-estados-${largura}.png` });
+
+    await arroz.getByRole("button", { name: "Remover", exact: true }).click();
+    await expect(arroz).not.toHaveClass(/consumo-produto--selecionado/);
+    await expect(quantidade).toHaveText("0 kg");
+    await expect(quantidade).toHaveCSS("color", "rgb(82, 84, 91)");
+    expect(await arroz.evaluate(el => getComputedStyle(el).backgroundColor)).toBe(fundoDisponivel);
+    expect(estado.pedidos).toHaveLength(0);
+  });
+}
+
 test("busca só habilita teclado após dois toques e volta a bloquear ao sair", async ({ page }) => {
   await abrir(page);
   const busca = page.getByLabel("Buscar produto", { exact: true });

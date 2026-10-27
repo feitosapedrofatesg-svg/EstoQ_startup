@@ -215,6 +215,12 @@ a:hover {
   color: var(--on-accent);
 }
 
+.navitem--active-danger,
+.navitem--active-danger:hover {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
 .sidebar__user {
   border-top: 1px solid var(--line);
 }
@@ -1256,6 +1262,10 @@ a:hover {
   gap: .75rem;
   min-width: 0;
 }
+
+.faturamento-diario .faturamento-diario__toggle { justify-self: start; min-height: 44px; max-width: 100%; }
+.faturamento-diario__toggle svg { transition: transform 140ms ease; }
+.faturamento-diario__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 
 .cmv-row {
   font-size: var(--t-2);

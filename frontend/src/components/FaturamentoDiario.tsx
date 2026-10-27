@@ -83,7 +83,8 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
     </form>
     {data?.dias && <p className="muted">{data.diasInformados} de {data.dias.length} dias informados. Total diário informado: {fmtMoney(data.totalInformado)}.</p>}
     {historico && data?.dias && <>
-      <Button variant="ghost" size="sm" aria-expanded={mostrarDias} onClick={() => setMostrarDias(!mostrarDias)}>
+      <Button variant="outline" size="sm" icon="chevron-down" className="faturamento-diario__toggle"
+        aria-expanded={mostrarDias} onClick={() => setMostrarDias(!mostrarDias)}>
         {mostrarDias ? "Ocultar dias do período" : "Ver dias do período"}
       </Button>
       {mostrarDias && <ListaComRolagem quantidade={data.dias.length}>

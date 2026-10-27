@@ -107,6 +107,38 @@ test("relatórios iniciam em hoje, distinguem zero de pendência e permitem corr
   expect(estado.dias.size).toBe(30);
 });
 
+for (const largura of [320, 1440]) {
+  test(`ver dias do período tem borda visível e abre pelo teclado em ${largura}px`, async ({ page }) => {
+    await page.setViewportSize({ width: largura, height: 1000 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const estado = await prepararCmv(page);
+    await page.goto("/relatorios");
+    const botao = page.getByRole("button", { name: "Ver dias do período", exact: true });
+    await expect(botao).toBeVisible();
+    await expect(botao).toHaveClass(/btn--outline/);
+    await expect(botao).toHaveCSS("border-top-color", "rgb(117, 125, 131)");
+    await expect(botao).toHaveCSS("color", "rgb(39, 41, 50)");
+    await expect(botao).toHaveAttribute("aria-expanded", "false");
+    expect((await botao.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expect(botao.locator("svg")).toHaveAttribute("aria-hidden", "true");
+    await page.getByRole("region", { name: "Faturamento diário", exact: true }).screenshot({
+      path: `/tmp/opencode/faturamento-botao-${largura}.png`,
+    });
+
+    await botao.focus();
+    await botao.press("Enter");
+    const ocultar = page.getByRole("button", { name: "Ocultar dias do período", exact: true });
+    await expect(ocultar).toHaveAttribute("aria-expanded", "true");
+    await expect(ocultar.locator("svg")).toHaveCSS("transform", "matrix(-1, 0, 0, -1, 0, 0)");
+    await expect(page.getByRole("table", { name: "Faturamento por data", exact: true })).toBeVisible();
+    await ocultar.press("Space");
+    await expect(botao).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("table", { name: "Faturamento por data", exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    expect(estado.envios).toHaveLength(0);
+  });
+}
+
 test("atualização em segundo plano preserva rascunho e versão para detectar conflito", async ({ page }) => {
   const estado = await prepararCmv(page);
   await page.goto("/relatorios");

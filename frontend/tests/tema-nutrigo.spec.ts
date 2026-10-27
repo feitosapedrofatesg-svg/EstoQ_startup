@@ -66,6 +66,37 @@ test("cores de texto, botões e estados mantêm contraste AA", async ({ page }) 
   expect(new Set(status.map(a => a.fundo)).size).toBe(3);
 });
 
+for (const perfil of ["ADMIN", "COZINHA"]) {
+  for (const largura of [320, 1440]) {
+    test(`menu de desperdício ativo usa vermelho suave para ${perfil} em ${largura}px`, async ({ page }) => {
+      await page.setViewportSize({ width: largura, height: 900 });
+      await preparar(page, perfil);
+      await page.goto("/desperdicio");
+      await expect(page.locator("h1")).toBeVisible();
+      await abrirMenu(page);
+      const ativo = page.getByRole("navigation", { name: "Navegação principal" })
+        .getByRole("link", { name: "Desperdício", exact: true });
+      await expect(ativo).toHaveAttribute("aria-current", "page");
+      await expect(ativo).toHaveCSS("background-color", "rgb(255, 240, 242)");
+      await expect(ativo).toHaveCSS("color", "rgb(190, 19, 40)");
+      const cores = await ativo.evaluate(el => {
+        const estilo = getComputedStyle(el);
+        return { frente: estilo.color, fundo: estilo.backgroundColor };
+      });
+      expect(contraste(cores.frente, cores.fundo)).toBeGreaterThanOrEqual(4.5);
+      await ativo.hover();
+      await expect(ativo).toHaveCSS("background-color", "rgb(255, 240, 242)");
+      await expect(ativo).toHaveCSS("color", "rgb(190, 19, 40)");
+
+      await page.goto("/consumo");
+      await expect(page.locator("h1")).toBeVisible();
+      await abrirMenu(page);
+      await expect(page.locator(".navitem--active-danger")).toHaveCount(0);
+      await expect(page.locator(".navitem--active")).toHaveCSS("background-color", "rgb(194, 230, 110)");
+    });
+  }
+}
+
 test("hover, foco e seleção usam os tokens sem depender do laranja antigo", async ({ page }) => {
   await preparar(page);
   await page.goto("/catalogo");

@@ -236,7 +236,7 @@ export function Layout({ children }: { children: ReactNode }) {
                       end={it.end}
                       onClick={() => setNavOpen(false)}
                       className={({ isActive }) =>
-                        `navitem ${isActive ? "navitem--active" : ""}`
+                        `navitem ${isActive ? "navitem--active" : ""} ${isActive && it.to === "/desperdicio" ? "navitem--active-danger" : ""}`
                       }
                     >
                       <Icon name={it.icon} size={18} />

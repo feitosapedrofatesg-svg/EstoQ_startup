@@ -49,13 +49,17 @@ test("novo cadastro Google envia somente os nomes e abre a cozinha sem pedir sen
 
 test("vincular conta existente exige a senha do EstoQ e permite corrigir uma tentativa", async ({ page }) => {
   await pendencia(page, "VINCULAR");
+  let conectado = false;
+  await page.route("**/api/auth/me", route => conectado
+    ? route.fulfill({ json: { id: 2, nome: "Pessoa Google", email: "pessoa@gmail.com", perfil: "COZINHA", restauranteId: 2, restauranteNome: "Cozinha existente" } })
+    : route.fulfill({ status: 401, json: {} }));
   let chamadas = 0;
   await page.route("**/api/auth/google/vincular", route => {
     chamadas++;
     expect(route.request().postDataJSON()).toEqual({ senha: chamadas === 1 ? "errada" : "Senha@12345" });
     return chamadas === 1 ? route.fulfill({ status: 401, json: { message: "E-mail ou senha inválidos." } })
-      : route.fulfill({ json: { confirmacaoEmailPendente: false, email: "pessoa@gmail.com",
-        usuario: { id: 2, nome: "Pessoa Google", email: "pessoa@gmail.com", perfil: "COZINHA", restauranteId: 2, restauranteNome: "Cozinha existente" } } });
+      : (conectado = true, route.fulfill({ json: { confirmacaoEmailPendente: false, email: "pessoa@gmail.com",
+        usuario: { id: 2, nome: "Pessoa Google", email: "pessoa@gmail.com", perfil: "COZINHA", restauranteId: 2, restauranteNome: "Cozinha existente" } } }));
   });
   await page.goto("/registro/google");
   await expect(page.getByRole("heading", { name: "Vincular conta Google" })).toBeVisible();

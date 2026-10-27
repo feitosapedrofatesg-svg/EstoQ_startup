@@ -13,7 +13,7 @@ for (const largura of [320, 1440]) {
     await expect(page.getByRole("heading", { name: "Relatórios e CMV" })).toBeVisible();
     await expect(page.getByText("reduz equivale a aproximadamente 1% do faturamento do mês.", { exact: false })).toBeVisible();
     await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
-    await expect(page.getByRole("contentinfo").getByRole("link")).toHaveCount(2);
+    await expect(page.getByRole("contentinfo").getByRole("link")).toHaveCount(1);
     // Pontos abaixo da imagem; setas continuam centralizadas só sobre a foto.
     const pista = (await page.locator(".carrossel__pistas").boundingBox())!;
     const pontos = page.locator(".carrossel__pontos");
@@ -53,11 +53,11 @@ for (const largura of [320, 1440]) {
     await page.goto("/sobre");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Estoque e CMV");
     await expect(page.getByRole("link", { name: "Cadastrar minha cozinha" })).toHaveAttribute("href", "/registro");
-    await expect(page.getByRole("link", { name: "Política de Privacidade", exact: true })).toHaveAttribute("href", "/privacidade");
+    await expect(page.getByRole("link", { name: "Política de Privacidade", exact: true })).toHaveCount(0);
     await expect(page.getByRole("contentinfo").locator('a[href^="mailto:"]')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `/tmp/estoq-sobre-${largura}.png`, fullPage: true });
-    await page.getByRole("link", { name: "Política de Privacidade", exact: true }).click();
+    await page.goto("/privacidade");
     await expect(page).toHaveURL(/\/privacidade$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Política de Privacidade");
     await expect(page.getByRole("heading", { name: "Quando você entra com Google" })).toBeVisible();
@@ -71,7 +71,7 @@ for (const largura of [320, 1440]) {
 test("página de privacidade também fica disponível durante uma sessão", async ({ page }) => {
   await preparar(page);
   await page.goto("/dashboard");
-  await page.getByRole("link", { name: "Privacidade", exact: true }).click();
+  await page.goto("/privacidade");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Política de Privacidade");
   await page.getByRole("link", { name: "Entrar", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);

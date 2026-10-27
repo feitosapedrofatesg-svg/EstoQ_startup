@@ -34,6 +34,7 @@ import type {
   UsuarioResponseDTO,
 } from "../lib/types";
 import { useToast } from "../store/toast";
+import { ITENS_POR_PAGINA, Paginacao } from "../components/Paginacao";
 
 const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
 
@@ -62,6 +63,9 @@ export function Movimentacoes() {
   const [inicio, setInicio] = useState(diasAtrasISO(30));
   const [fim, setFim] = useState(hojeISO());
   const [showRegister, setShowRegister] = useState(false);
+  const [pagina, setPagina] = useState(0);
+
+  useEffect(() => { setPagina(0); }, [tipo, produtoId, usuarioId, inicio, fim]);
 
   const setTipo = (v: string) => {
     const next = new URLSearchParams(params);
@@ -87,6 +91,15 @@ export function Movimentacoes() {
   const { data, loading, error, refresh } = useFetch<MovimentacaoDTO[]>(
     `/api/movimentacoes?${qs.toString()}`
   );
+  const movimentacoesVisiveis = useMemo(
+    () => (data ?? []).slice(pagina * ITENS_POR_PAGINA, (pagina + 1) * ITENS_POR_PAGINA),
+    [data, pagina]
+  );
+
+  useEffect(() => {
+    const totalPaginas = Math.ceil((data?.length ?? 0) / ITENS_POR_PAGINA);
+    if (pagina >= totalPaginas && pagina > 0) setPagina(Math.max(0, totalPaginas - 1));
+  }, [data, pagina]);
 
   const { data: produtos } = useFetch<EstoqueDTO[]>("/api/estoque");
   const { data: usuarios, loading: loadingUsuarios, error: erroUsuarios, refresh: refreshUsuarios } =
@@ -211,43 +224,46 @@ export function Movimentacoes() {
             icon="clipboard-list"
           />
         ) : (
-          <DataTable
-            caption="Movimentações do estoque"
-            headers={["Quando", "Tipo", "Produto", "Lote", "Quantidade", "Valor", "Motivo", "Usuário"]}
-          >
-            {data?.map((m) => (
-              <tr key={m.id}>
-                <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
-                <td>
-                  <Badge tone={TIPO_TONE[m.tipo]}>{TIPO_LABEL[m.tipo]}</Badge>
-                </td>
-                <td>
-                  <strong>{m.produtoNome}</strong>
-                  {m.observacao && <span className="cell-sub">{m.observacao}</span>}
-                </td>
-                <td className="muted-cell">{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
-                <td>
-                  <span className={m.tipo === "DESPERDICIO" ? "text-bad" : ""}>
-                    {m.tipo === "ENTRADA" ? "+" : m.tipo === "AJUSTE" && (m.diferencaApurada ?? 0) >= 0 ? "+" : "−"}
-                    {fmtNum(Math.abs(m.quantidade))} {m.unidadeMedida?.toLowerCase()}
-                  </span>
-                </td>
-                <td>
-                  {m.tipo === "ENTRADA"
-                    ? fmtMoney(m.valorTotalPago ?? 0)
-                    : m.tipo === "CONSUMO"
-                      ? fmtMoney(m.custoConsumo ?? 0)
-                      : m.tipo === "DESPERDICIO"
-                        ? fmtMoney(m.valorPrejuizo ?? 0)
-                        : fmtMoney(m.valorAjuste ?? m.valorPrejuizo)}
-                </td>
-                <td className="muted-cell">
-                  {m.motivo ? m.motivo.replaceAll("_", " ") : "—"}
-                </td>
-                <td className="muted-cell">{m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}</td>
-              </tr>
-            ))}
-          </DataTable>
+          <>
+            <DataTable
+              caption="Movimentações do estoque"
+              headers={["Quando", "Tipo", "Produto", "Lote", "Quantidade", "Valor", "Motivo", "Usuário"]}
+            >
+              {movimentacoesVisiveis.map((m) => (
+                <tr key={m.id}>
+                  <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
+                  <td>
+                    <Badge tone={TIPO_TONE[m.tipo]}>{TIPO_LABEL[m.tipo]}</Badge>
+                  </td>
+                  <td>
+                    <strong>{m.produtoNome}</strong>
+                    {m.observacao && <span className="cell-sub">{m.observacao}</span>}
+                  </td>
+                  <td className="muted-cell">{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
+                  <td>
+                    <span className={m.tipo === "DESPERDICIO" ? "text-bad" : ""}>
+                      {m.tipo === "ENTRADA" ? "+" : m.tipo === "AJUSTE" && (m.diferencaApurada ?? 0) >= 0 ? "+" : "−"}
+                      {fmtNum(Math.abs(m.quantidade))} {m.unidadeMedida?.toLowerCase()}
+                    </span>
+                  </td>
+                  <td>
+                    {m.tipo === "ENTRADA"
+                      ? fmtMoney(m.valorTotalPago ?? 0)
+                      : m.tipo === "CONSUMO"
+                        ? fmtMoney(m.custoConsumo ?? 0)
+                        : m.tipo === "DESPERDICIO"
+                          ? fmtMoney(m.valorPrejuizo ?? 0)
+                          : fmtMoney(m.valorAjuste ?? m.valorPrejuizo)}
+                  </td>
+                  <td className="muted-cell">
+                    {m.motivo ? m.motivo.replaceAll("_", " ") : "—"}
+                  </td>
+                  <td className="muted-cell">{m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}</td>
+                </tr>
+              ))}
+            </DataTable>
+            <Paginacao dados={null} totalItens={data?.length ?? 0} itensPorPagina={ITENS_POR_PAGINA} pagina={pagina} alterar={setPagina} />
+          </>
         )}
       </Card>
 

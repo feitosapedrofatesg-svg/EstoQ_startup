@@ -295,7 +295,6 @@ export function Layout({ children }: { children: ReactNode }) {
               <Button size="sm" variant="ghost" onClick={tentarNovamenteCache}>Tentar novamente</Button>
             </div>}
             {children}
-            <footer className="public-links"><Link to="/privacidade">Privacidade</Link></footer>
           </div>
         </main>
       </div>

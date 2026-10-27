@@ -1,6 +1,6 @@
 import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFetch } from "../lib/hooks";
 import {
@@ -21,6 +21,7 @@ import { imprimirConsumo } from "../components/consumo/ImprimirConsumo";
 import { useAuth } from "../store/auth";
 import { useToast } from "../store/toast";
 import { AbrirEmbalagemModal, AcaoProdutoAbertoModal } from "../components/ProdutoAbertoModals";
+import { ITENS_POR_PAGINA, Paginacao } from "../components/Paginacao";
 
 /** Consumo do estoque: abertura de embalagem, baixa do que foi usado e histórico do dia. */
 export function Consumo() {
@@ -32,6 +33,7 @@ export function Consumo() {
   const produtoParam = params.get("produto") ?? "";
   const [showOpen, setShowOpen] = useState(false);
   const [alvo, setAlvo] = useState<ProdutoAbertoDTO | null>(null);
+  const [pagina, setPagina] = useState(0);
 
   const {
     data: abertos,
@@ -50,6 +52,15 @@ export function Consumo() {
     () => (registros ?? []).reduce((acc, m) => acc + (m.custoConsumo ?? 0), 0),
     [registros]
   );
+  const registrosVisiveis = useMemo(
+    () => (registros ?? []).slice(pagina * ITENS_POR_PAGINA, (pagina + 1) * ITENS_POR_PAGINA),
+    [registros, pagina]
+  );
+
+  useEffect(() => {
+    const totalPaginas = Math.ceil((registros?.length ?? 0) / ITENS_POR_PAGINA);
+    if (pagina >= totalPaginas && pagina > 0) setPagina(Math.max(0, totalPaginas - 1));
+  }, [registros, pagina]);
 
   const recarregar = () => {
     void refreshAbertos();
@@ -72,6 +83,7 @@ export function Consumo() {
         <ConsumoRapido
           produtoInicial={produtoParam}
           onDone={(resultado) => {
+            setPagina(0);
             setRegistros(atuais => [...resultado.movimentacoes, ...(atuais ?? []).filter(m => !resultado.movimentacoes.some(novo => novo.id === m.id))]
               .sort((a, b) => b.dataHora.localeCompare(a.dataHora) || b.id - a.id));
             recarregar();
@@ -167,20 +179,23 @@ export function Consumo() {
             icon="clipboard-list"
           />
         ) : (
-          <DataTable caption="Consumos registrados hoje" headers={["Quando", "Produto", "Lote", "Quantidade", "Custo"]}>
-            {registros?.map((m) => (
-              <tr key={m.id}>
-                <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
-                <td>
-                  <strong>{m.produtoNome}</strong>
-                  {m.observacao && <span className="cell-sub">{m.observacao}</span>}
-                </td>
-                <td className="muted-cell">{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
-                <td>{fmtNum(m.quantidade)} {m.unidadeMedida?.toLowerCase()}</td>
-                <td>{fmtMoney(m.custoConsumo ?? 0)}</td>
-              </tr>
-            ))}
-          </DataTable>
+          <>
+            <DataTable caption="Consumos registrados hoje" headers={["Quando", "Produto", "Lote", "Quantidade", "Custo"]}>
+              {registrosVisiveis.map((m) => (
+                <tr key={m.id}>
+                  <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
+                  <td>
+                    <strong>{m.produtoNome}</strong>
+                    {m.observacao && <span className="cell-sub">{m.observacao}</span>}
+                  </td>
+                  <td className="muted-cell">{fmtLote(m.loteCodigo, m.loteFabricante)}</td>
+                  <td>{fmtNum(m.quantidade)} {m.unidadeMedida?.toLowerCase()}</td>
+                  <td>{fmtMoney(m.custoConsumo ?? 0)}</td>
+                </tr>
+              ))}
+            </DataTable>
+            <Paginacao dados={null} totalItens={registros?.length ?? 0} itensPorPagina={ITENS_POR_PAGINA} pagina={pagina} alterar={setPagina} />
+          </>
         )}
       </Card>
 

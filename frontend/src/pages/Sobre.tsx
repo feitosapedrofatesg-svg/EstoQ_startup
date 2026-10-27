@@ -25,8 +25,7 @@ export function Sobre() {
       <p>Administrador, Operacional e Nutricionista têm permissões próprias.
         Os dados são separados por restaurante. Você pode entrar com e-mail e senha ou,
         quando disponível, com sua conta Google.</p>
-      <p>Saiba como os dados são utilizados na <Link to="/privacidade">Política de Privacidade</Link>.
-        Para falar com o responsável pelo EstoQ, escreva para <a href="mailto:estoq.sistema@gmail.com">estoq.sistema@gmail.com</a>.</p>
+      <p>Para falar com o responsável pelo EstoQ, escreva para <a href="mailto:estoq.sistema@gmail.com">estoq.sistema@gmail.com</a>.</p>
     </section>
   </PaginaPublica>;
 }

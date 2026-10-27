@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 export function LinksPublicos() {
   return <nav className="public-links" aria-label="Informações do EstoQ">
     <Link to="/sobre">Sobre o EstoQ</Link>
-    <Link to="/privacidade">Privacidade</Link>
   </nav>;
 }
 

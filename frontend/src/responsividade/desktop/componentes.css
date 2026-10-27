@@ -866,6 +866,10 @@ code {
   gap: 22px;
 }
 
+.grid-2--single {
+  grid-template-columns: 1fr;
+}
+
 .cmv-block {
   display: flex;
   flex-direction: column;

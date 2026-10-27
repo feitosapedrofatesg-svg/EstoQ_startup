@@ -115,7 +115,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="grid-2">
+          <div className={canSeeAlerts ? "grid-2" : "grid-2 grid-2--single"}>
             <Card title="CMV — custo da mercadoria vendida">
               {canReport ? (
                 <div className="cmv-block">

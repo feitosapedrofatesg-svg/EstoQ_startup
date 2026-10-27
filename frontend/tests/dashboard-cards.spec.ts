@@ -30,6 +30,11 @@ for (const width of [320, 1440]) {
     await prepararDashboard(page);
     const cards = page.locator(".stat-grid");
     await expect(cards.getByRole("link")).toHaveCount(6);
+    const resumo = page.locator(".grid-2");
+    await expect(resumo.locator(":scope > .card")).toHaveCount(2);
+    await expect(page.getByRole("heading", { name: "Precisa de atenção", exact: true })).toBeVisible();
+    expect(await resumo.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length))
+      .toBe(width <= 960 ? 1 : 2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     for (const destino of DESTINOS) {
       const link = cards.getByRole("link", { name: new RegExp(`^${destino.label}`) });
@@ -63,17 +68,32 @@ test("cards aceitam Tab e Enter, preservando cores e indicadores zerados", async
   await expect(page).toHaveURL(/\/estoque$/);
 });
 
-test("NUTRICIONISTA vê os valores sem links para áreas operacionais restritas", async ({ page }) => {
-  const estado = await prepararDashboard(page, "NUTRICIONISTA");
-  const cards = page.locator(".stat-grid");
-  await expect(cards.locator(".stat")).toHaveCount(6);
-  await expect(cards.getByRole("link")).toHaveCount(0);
-  await expect(cards.locator("[tabindex]")).toHaveCount(0);
-  for (const destino of DESTINOS) await expect(cards.getByText(destino.label, { exact: true })).toBeVisible();
-  expect(estado.consultas.some(path => /^\/api\/(estoque|produtos|balancos$|produtos-abertos)/.test(path))).toBe(false);
-  await page.getByRole("link", { name: "Relatórios", exact: true }).click();
-  await expect(page).toHaveURL(/\/relatorios$/);
-});
+for (const width of [320, 1440]) {
+  test(`NUTRICIONISTA vê CMV em largura total sem áreas operacionais restritas em ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const estado = await prepararDashboard(page, "NUTRICIONISTA");
+    const cards = page.locator(".stat-grid");
+    await expect(cards.locator(".stat")).toHaveCount(6);
+    await expect(cards.getByRole("link")).toHaveCount(0);
+    await expect(cards.locator("[tabindex]")).toHaveCount(0);
+    for (const destino of DESTINOS) await expect(cards.getByText(destino.label, { exact: true })).toBeVisible();
+    const resumo = page.locator(".grid-2");
+    await expect(resumo.locator(":scope > .card")).toHaveCount(1);
+    expect(await resumo.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)).toBe(1);
+    const larguraCmv = await resumo.locator(":scope > .card").evaluate(el => el.getBoundingClientRect().width);
+    const larguraDisponivel = await cards.evaluate(el => el.getBoundingClientRect().width);
+    expect(Math.abs(larguraCmv - larguraDisponivel)).toBeLessThanOrEqual(1);
+    await expect(page.getByRole("heading", { name: "Precisa de atenção", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Alertas/ })).toHaveCount(0);
+    await expect(page.getByRole("textbox", { name: "Faturamento do dia (R$)", exact: true })).toBeVisible();
+    expect(estado.consultas.some(path => /^\/api\/(estoque|produtos|balancos$|produtos-abertos|alertas)/.test(path))).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: test.info().outputPath(`dashboard-nutricionista-${width}.png`), fullPage: true });
+    await page.getByRole("link", { name: "Relatórios", exact: true }).click();
+    await expect(page).toHaveURL(/\/relatorios$/);
+  });
+}
 
 async function deslocamento(control: Locator) {
   return control.evaluate(el => {

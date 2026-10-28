@@ -224,8 +224,8 @@ test("impressão trata nomes como texto e conserva linhas entre páginas", async
   estado.registros = Array.from({ length: 80 }, (_, i) => ({ ...movimento(i + 1, 1), produtoId: i + 1,
     produtoNome: i === 0 ? '<img src=x onerror="window.injetado=true">' : `Produto com nome longo para impressão ${i + 1}` }));
   await page.getByRole("button", { name: "Atualizar", exact: true }).click();
-  await expect(page.getByText("Página 1 de 8 · 80 registros", { exact: true })).toBeVisible();
-  for (let i = 0; i < 7; i++) await page.getByRole("button", { name: "Próxima", exact: true }).click();
+  await expect(page.getByText("Página 1 de 3 · 80 registros", { exact: true })).toBeVisible();
+  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: "Próxima", exact: true }).click();
   await expect(page.getByText("Produto com nome longo para impressão 80", { exact: true })).toBeVisible();
   const popupPromise = page.waitForEvent("popup");
   await page.getByRole("button", { name: "Imprimir lista do dia", exact: true }).click();

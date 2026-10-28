@@ -1,7 +1,7 @@
 import { Button } from "./UI";
 import type { Page } from "../lib/types";
 
-export const ITENS_POR_PAGINA = 10;
+export const ITENS_POR_PAGINA = 30;
 
 export function Paginacao({ dados, pagina, alterar, totalItens, itensPorPagina = ITENS_POR_PAGINA }: {
   dados: Pick<Page<unknown>, "totalPages" | "totalElements"> | null;

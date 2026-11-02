@@ -1,10 +1,10 @@
 # estoQ keep-alive (Cloudflare Workers)
 
-Worker de cron que mantém o backend do Render (plano free) acordado e o
-banco Supabase free ativo. O Render free dorme após ~15 min sem tráfego e
-projetos Supabase free pausam após 7 dias sem atividade; chamar o
-`/api/saude/pronto` (verificação de prontidão, pública, sem criar sessão)
-a cada 10 minutos mantém os dois despertos.
+Worker Cloudflare que pode consultar a prontidão do backend de produção pelo
+endpoint `/api/saude/pronto` (público e sem criar sessão). O agendamento
+automático está desativado na configuração versionada em `wrangler.toml`
+(`crons = []`). Para aplicar a mudança ao Worker já publicado, faça deploy da
+configuração com `wrangler deploy`; o estado publicado não foi verificado aqui.
 
 ## Deploy (uma vez)
 
@@ -15,5 +15,5 @@ wrangler login
 wrangler deploy
 ```
 
-O cron dispara sozinho após o deploy. Para testar manualmente, abra a URL
-do worker no navegador (deve responder `ok`).
+Para fazer uma consulta manual, abra a URL do worker no navegador. Ele tenta
+consultar o backend e responde `ok`. Essa chamada manual não configura um cron.

@@ -71,16 +71,21 @@ completo** (Vercel → backend novo → Supabase) continuaram funcionando — pr
 de que tudo roda no backend novo. Amostras isoladas variam por causa da CPU
 dividida do plano Free; o ganho aparece acumulado nas telas.
 
-## Keep-alive (Cloudflare) — agora com papel duplo
+## Keep-alive (Cloudflare) — agendamento desativado
 
-`keepalive/src/index.js` passou a chamar **`/api/saude/pronto`** (em vez de
-`/api/saude/vivo`) a cada 10 minutos:
+Na configuração inicial da migração, `keepalive/src/index.js` passou a chamar
+**`/api/saude/pronto`** (em vez de `/api/saude/vivo`) a cada 10 minutos:
 
 - mantém o **Render free** acordado (ele dorme após ~15 min sem tráfego);
 - e mantém o **Supabase free ativo** — projetos free do Supabase **pausam após
   7 dias sem atividade**, e `/pronto` faz uma consulta real ao banco.
 
-O worker continua sendo publicado manualmente: `cd keepalive && wrangler deploy`.
+Em 02/11/2026, o cron foi removido da configuração versionada em
+`keepalive/wrangler.toml` (`crons = []`). Para aplicar a mudança ao Worker já
+publicado, é necessário executar `wrangler deploy`; o estado publicado não foi
+verificado nesta atualização. O endpoint do Worker ainda pode ser chamado
+manualmente. A configuração atual está descrita em
+[`keepalive/README.md`](../keepalive/README.md).
 
 ## Serviço antigo (Oregon)
 

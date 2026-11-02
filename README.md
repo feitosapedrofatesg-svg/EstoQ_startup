@@ -1,16 +1,19 @@
 # EstoQ — Controle de Estoque e CMV para Restaurantes
 
-Operação com banco serverless: [consumo do Neon e falhas de acesso](documentacao/NEON_E_CONSUMO.md).
-
-Novo destino preparado: [Supabase com banco vazio](documentacao/DEPLOY_SUPABASE.md).
-
 Aplicação web **EstoQ**, um sistema para gestão de estoque, lotes/validade, consumo,
 desperdício, balanço físico e custo da mercadoria vendida (CMV) em restaurantes.
 
 Projeto Integrador · SENAI FATESG · ADS · 2026
 
-As correções de segurança, horários e estoque de 18/10/2026 estão descritas em
-[Revisão de segurança](documentacao/REVISAO_SEGURANCA_2026_10_18.md).
+Produção está configurada no Render, na Virgínia, com PostgreSQL gerenciado no
+Supabase. A homologação usa serviços separados. O banco local de desenvolvimento
+é PostgreSQL 16 via Docker. O backend conecta ao PostgreSQL por JDBC; não depende
+da API REST do Supabase. Consulte [infraestrutura de produção](documentacao/MIGRACAO_REGIAO_VIRGINIA.md),
+[configuração do banco](documentacao/DEPLOY_SUPABASE.md) e
+[guia de homologação](documentacao/HOMOLOGACAO.md).
+
+O Neon aparece em registros históricos de incidentes e operação; não é o destino
+de produção descrito atualmente.
 
 ## Ambientes
 
@@ -19,19 +22,25 @@ As correções de segurança, horários e estoque de 18/10/2026 estão descritas
 | **Produção** | `main` | **https://estoq.site** | https://estoq-backend-va.onrender.com |
 | Homologação | `homologacao` | https://estoq-homologacao.vercel.app | https://estoq-backend-homologacao-va.onrender.com |
 
-Domínios legados, sem uso, apenas referência histórica:
+Domínios antigos que não são os endereços oficiais atuais:
 `https://estoq-oficial.vercel.app`, `https://estoq-ph-feit0sa.vercel.app`,
 `https://estoq-backend-jv04.onrender.com`.
 
 ## O que resolve
 
-O app controla o ciclo de vida completo de ingredientes: entrada no estoque,
-consumo em preparações, abertura de embalagens, desperdício, balanço físico e
-o custo de cada item que sai do cardápio. É voltado para restaurantes pequenos
-que precisam de CMV real — sem módulo de vendas, sem approximação.
+O app registra entradas, lotes e validade, consumo, abertura de embalagens,
+desperdício e balanços. Calcula o CMV a partir das posições históricas do estoque
+e das compras; o faturamento pode ser informado por período ou por dia para
+calcular o percentual. Não é um PDV e não importa vendas automaticamente.
 
-Os perfis dos restaurantes operam simultaneamente: ADMIN (gestão), COZINHA (movimentações) e
-NUTRICIONISTA (CMV e relatórios). O perfil PLATAFORMA administra restaurantes e tem acesso exclusivo ao backup completo.
+Também permite importar notas fiscais em XML, PDF ou imagem, sugere categorias
+para conferência, acompanha reposição sugerida e exporta relatórios. A sugestão
+de categoria deve ser revisada antes de confirmar a entrada.
+
+Cada restaurante tem os perfis ADMIN (gestão), OPERACIONAL (operações diárias;
+identificador interno `COZINHA`) e NUTRICIONISTA (CMV e relatórios). O perfil
+PLATAFORMA é separado: administra restaurantes, não pertence a uma loja e tem
+acesso exclusivo ao backup completo.
 
 ## Stack
 
@@ -39,7 +48,8 @@ NUTRICIONISTA (CMV e relatórios). O perfil PLATAFORMA administra restaurantes e
 |---|---|
 | Linguagem | Java 21 |
 | Framework | Spring Boot 4.0.8, Spring Security, Spring Data JPA |
-| Banco | PostgreSQL 16 (Docker) |
+| Banco local | PostgreSQL 16 no Docker |
+| Banco hospedado | PostgreSQL gerenciado no Supabase |
 | Padrão arquitetônico | PIAds3 (core genérico + módulos business autocontidos) |
 | Frontend | React 18, TypeScript, Vite 7 e React Router 7 |
 | PDF | PDFBox 3.0.4 |
@@ -70,11 +80,11 @@ EstoQ_Startup/
 │       │   ├── produtosAbertos/ balancos/ itensBalanco/
 │       │   ├── configuracoesBalanco/ alertas/
 │       │   ├── parametrosCmv/ relatorios/ dashboard/
-│       │   └── backup/            # pg_dump integrado
-│       └── patterns/              # singleton para concorrência
-├── frontend/                      # React + Vite, build publicado no Vercel
-├── apis/                          # Google e Gmail (login e e-mail)
-├── keepalive/                     # Cloudflare Worker que mantém o Render acordado
+│       ├── patterns/              # componentes compartilhados
+│       └── backup/                # backup completo via pg_dump
+├── frontend/                      # React + Vite, publicado no Vercel
+├── apis/                          # configuração e ferramentas Google/Gmail
+├── keepalive/                     # Worker Cloudflare; cron vazio no código atual
 ├── scripts/                       # carga, medição e utilitários
 ├── dados/                         # backups locais (gitignored)
 └── documentacao/                  # constituição, contrato, resumo
@@ -97,20 +107,31 @@ java -jar target/estoq-startup.jar --spring.profiles.active=dev
 
 **Swagger UI:** `http://localhost:8083/swagger-ui.html` (somente dev)
 
-## Usuários iniciais (seed, dev apenas)
+## Contas de desenvolvimento e conta PLATAFORMA
 
-| Perfil | E-mail | Senha |
-|---|---|---|
-| ADMIN | admin@estoq.com | Admin@12345 |
-| COZINHA | cozinha@estoq.com | Cozinha@12345 |
-| NUTRICIONISTA | nutricionista@estoq.com | Nutricao@12345 |
+O seed opcional do perfil local `dev` cria contas de demonstração para um
+restaurante local: ADMIN, OPERACIONAL (identificador interno `COZINHA`) e
+NUTRICIONISTA. As credenciais de demonstração ficam no código de seed
+`backend/src/main/java/com/estoq/config/seed/SeedDataConfig.java`; não são
+credenciais de produção e não devem ser usadas em um serviço publicado.
+
+A conta PLATAFORMA é outra conta, sem restaurante, criada separadamente no banco
+de produção pelo procedimento de bootstrap. Ela não é criada pelo seed local,
+não herda a senha do ADMIN de demonstração e não tem senha padrão publicada. A
+senha escolhida no bootstrap é independente; consulte
+[configuração do Supabase e criação da PLATAFORMA](documentacao/DEPLOY_SUPABASE.md).
+O e-mail `admin@estoq.com` pode existir nos dois ambientes, mas as contas vivem
+em bancos diferentes e não compartilham senha. Caso uma senha antiga de
+demonstração tenha sido usada na conta PLATAFORMA, troque-a no ambiente de
+produção; apagar uma senha do README não invalida uma credencial já usada.
 
 ## Autenticação e segurança
 
 - Sessão HTTP via cookie `ESTOQSESSION` (HttpOnly, Secure, SameSite=Lax)
 - CSRF obrigatório via header `X-CSRF-TOKEN` (obtido em `GET /api/auth/csrf`)
-- Limite de tentativas de login: 5 falhas em 15 minutos → `429 Too Many Requests`
-  (configurável via env `LOGIN_MAX_TENTATIVAS` e `LOGIN_JANELA_MINUTOS`)
+- Limite de tentativas de login: por padrão, 5 falhas em 15 minutos → `429 Too Many Requests`
+  (configurável via `LOGIN_MAX_TENTATIVAS` e `LOGIN_JANELA_MINUTOS`). A contagem
+  fica em memória por instância e não é compartilhada entre réplicas.
 - Lock otimista em `@Version` para concorrência em lote
 - Trilha de movimentações com coluna discriminadora (JOINED)
 - Login e cadastro com Google opcionais, preservando o acesso com senha:
@@ -135,11 +156,15 @@ POST /api/auth/logout      → 204, sessão invalidada
 | Lotes | `GET/POST /api/lotes` · `GET /api/lotes/vencidos` · `GET /api/lotes/proximos-vencimento` |
 | Estoque e movimentações | `GET /api/estoque` · `GET /api/movimentacoes` · `GET/POST /api/entradas` |
 | Consumo e desperdício | `POST /api/consumos` · `POST /api/desperdicios` · `POST /api/produtos-abertos/abrir` |
+| Notas fiscais | `/api/notas-fiscais/analisar` · `/api/notas-fiscais/{id}/confirmar` |
 | Balanço | `POST /api/balancos` · `/{id}/iniciar` · `/{id}/itens/{itemId}/contagem` · `/{id}/confirmar` · `/{id}/gerar-ajustes` |
 | Alertas | `GET /api/alertas` · `PUT /api/alertas/{id}/visualizado` |
-| CMV e relatórios | `GET/PUT /api/parametros-cmv` · `GET /api/relatorios/*` · `GET /api/relatorios/pdf/{tipo}` |
+| CMV, faturamento e relatórios | `GET/PUT /api/parametros-cmv` · `/api/relatorios/*` · `/api/relatorios/pdf/{tipo}` · `/api/relatorios/exportar` |
 | Dashboard | `GET /api/dashboard/resumo` |
 | Backup | `GET/POST /api/backups` · `GET /api/backups/{nome}` |
+
+Os endpoints de notas e relatórios incluem rotas auxiliares; em desenvolvimento,
+consulte os controllers ou a documentação OpenAPI.
 
 ## Backup
 
@@ -184,7 +209,15 @@ pg_restore --dbname estoq_restore --schema estoq_v2 --no-owner --no-privileges \
 | `ESTOQ_BACKUP_PORTA` (opcional) | herda `DATABASE_URL` | Porta PostgreSQL para backup |
 | `SEED_ENABLED` | false | Habilitar seed (dev: true) |
 
-O cadastro público permite dez tentativas por origem a cada hora (`estoq.cadastro.max-tentativas`). O limite de login também restringe conta e origem separadamente; as estruturas têm expiração e teto de memória.
+As integrações externas são opcionais e ficam desligadas por padrão. As variáveis
+`GOOGLE_LOGIN_ENABLED`, `GOOGLE_LOGIN_CLIENT_ID` e `GOOGLE_LOGIN_CLIENT_SECRET`
+configuram o login Google. `EMAIL_CONFIRMACAO_ENABLED`, `EMAIL_FROM`,
+`APP_PUBLIC_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e
+`GOOGLE_REFRESH_TOKEN` configuram o envio de confirmação pelo Gmail; esse cliente
+de envio é distinto do cliente OAuth de login. Consulte `.env.example` e
+`apis/google/README.md`. Não coloque credenciais reais no Git.
+
+O cadastro público permite dez tentativas por origem a cada hora (`estoq.cadastro.max-tentativas`). Login e cadastro aplicam limites em memória, com expiração e teto de chaves por instância; os dados não são compartilhados entre réplicas e reiniciam com o processo.
 
 As variáveis `ESTOQ_BACKUP_*` são opcionais: quando ausentes, o backup usa os valores de
 `DATABASE_URL` (e `localhost`/`estoq`/`estoq_startup` como último recurso).
@@ -194,13 +227,15 @@ Nunca committar o arquivo `.env`. Use `.env.example` como referência.
 ## Banco novo e atualização do banco legado
 
 O Flyway aplica `B4__schema_completo.sql` em um schema vazio. Esse baseline cria
-as tabelas, índices e relacionamentos na versão 4, sem dados de demonstração.
+as tabelas, índices e relacionamentos sem dados de demonstração; em seguida são
+aplicadas as migrações incrementais existentes (atualmente V1–V13).
 O cadastro público cria o restaurante e seu ADMIN. O perfil dev pode criar os
 usuários de demonstração pelo seed.
 
-Em bancos existentes, o Flyway preserva o histórico e aplica V1–V4 quando pendentes.
-Não editar migrações já aplicadas nem limpar o banco de produção. A versão B4 é
-ignorada quando já há histórico de migrações. Alterações futuras usam V5 em diante.
+Em bancos existentes, o Flyway preserva o histórico e aplica as migrações
+pendentes. Não editar migrações já aplicadas nem limpar o banco de produção. A
+versão B4 é ignorada quando já há histórico de migrações. Novas alterações de
+schema devem usar uma versão V acima da última já aplicada.
 
 O estoque informa saldo físico (inclui lotes vencidos) e saldo disponível para
 consumo (lotes ativos com quantidade positiva, sem vencimento ou ainda válidos).
@@ -252,12 +287,12 @@ que define a arquitetura, regras de negócio e escopo. As principais decisões:
 - Abertura de embalagem: o restante fica no lote, apenas o usado vira consumo
 - Balanço com ajuste automático em FIFO (déficit ou superávit)
 - CMV calculado por movimentações, não por fórmula estática
-- Sem módulo de vendas — receita base é manual e opcional
+- Sem módulo de vendas — o faturamento é informado por dia; o CMV vem das movimentações de estoque e o percentual usa a receita do período
 - Multi-tenant: cada restaurante é uma loja isolada (`@TenantId` + `restaurante_id`),
   com auto-cadastro aberto e perfil PLATAFORMA para governar as lojas (suspender,
   reativar, redefinir senha do admin)
 
-O cache do navegador é separado por restaurante, usuário e perfil e invalidado nas mudanças de sessão. Respostas antigas não atualizam uma nova sessão. Catálogo, categorias e usuários têm paginação de 50 registros e busca no servidor por `q`; seletores percorrem todas as páginas de categorias. Parâmetros de estoque são consultados por `GET /api/parametros-estoque/por-produto/{produtoId}` (ADMIN).
+O cache do navegador é separado por restaurante, usuário e perfil e invalidado nas mudanças de sessão. Respostas antigas não atualizam uma nova sessão. Catálogo, categorias e usuários têm paginação no servidor de 50 registros e busca por `q`; seletores percorrem todas as páginas de categorias. Parâmetros de estoque são consultados por `GET /api/parametros-estoque/por-produto/{produtoId}` (ADMIN).
 
 Novos produtos começam com estoque mínimo **3**, na unidade de cadastro. Médio
 e máximo também iniciam em 3 para manter a ordem dos níveis e podem ser editados.
@@ -271,9 +306,10 @@ O fluxo de entrega é `dev → homologacao → main`. O GitHub Actions valida pu
 e pull requests nas três branches. Veja o [guia de homologação](documentacao/HOMOLOGACAO.md)
 para aprovar uma versão antes de publicar.
 
-Para preparar um site de testes com banco próprio e medir latência, consulte
-[homologação online](documentacao/DEPLOY_HOMOLOGACAO.md). O provisionamento nos
-provedores precisa ser concluído antes de usar esse ambiente.
+Para o ambiente separado de testes e medição, consulte
+[homologação online](documentacao/DEPLOY_HOMOLOGACAO.md). Use somente dados de
+teste e confirme que frontend, backend e banco são os de homologação antes de
+validar uma versão.
 
 Para testar a interface com APIs fictícias:
 

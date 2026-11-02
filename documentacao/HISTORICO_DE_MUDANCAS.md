@@ -1,5 +1,21 @@
 # Histórico de mudanças do EstoQ
 
+## 02/11/2026 — bebidas por unidade
+
+Cadastro e importação de bebidas usam UN. O volume continua no nome/descrição;
+30 garrafas de 500 ml entram como 30 UN e cada consumo baixa uma unidade.
+Caixas usam a quantidade de garrafas/latas por item da nota, preservada no vínculo
+do fornecedor. A API rejeita novos cadastros de bebidas em medidas de volume.
+
+A V14 converte bebidas antigas de L/ML quando existe fator avulso consistente
+nas notas confirmadas ou volume explícito no nome. Ajusta lotes, movimentações,
+balanços, embalagens abertas, parâmetros, notas e vínculos, multiplicando o preço
+unitário pelo mesmo fator para preservar os custos. Fatores conflitantes,
+embalagens desconhecidas e conversões inexatas são preservados para conferência,
+com aviso no log. Não altera valores pagos, quantidades fiscais ou outras categorias.
+
+Entrega limitada a dev e homologacao.
+
 ## 24/10/2026 — confirmação de e-mail e reposição automática
 
 Média da reposição calculada em lote pelas movimentações do período do produto,

@@ -650,13 +650,13 @@ class BalancoCmvIntegrationTest {
 
     @Test
     void custoSemanalSomaReaisMesmoComProdutosEmUnidadesDiferentes() {
-        var bebida = new ProdutoDTO(); bebida.setNome("Suco"); bebida.setUnidadeMedida(UnidadeMedida.L);
+        var bebida = new ProdutoDTO(); bebida.setNome("Suco 500ml"); bebida.setUnidadeMedida(UnidadeMedida.UN);
         bebida.setCategoriaId(produtos.encontrar(produtoId).getCategoria().getId());
         var bebidaId = produtos.criar(bebida).getId();
-        entradas.registrarEntrada(new EntradaRequestDTO(bebidaId, BigDecimal.ONE, new BigDecimal("20"),
-                UnidadeMedida.L, LocalDate.now(FUSO).plusDays(30), null, false));
+        entradas.registrarEntrada(new EntradaRequestDTO(bebidaId, new BigDecimal("2"), new BigDecimal("20"),
+                UnidadeMedida.UN, LocalDate.now(FUSO).plusDays(30), null, false));
         consumos.registrarConsumo(new ConsumoRequestDTO(produtoId, null, new BigDecimal("2"), null, null));
-        consumos.registrarConsumo(new ConsumoRequestDTO(bebidaId, null, new BigDecimal("0.5"), null, null));
+        consumos.registrarConsumo(new ConsumoRequestDTO(bebidaId, null, BigDecimal.ONE, null, null));
         movimentos.findAll().stream().filter(m -> m instanceof com.estoq.business.consumos.ConsumoModel)
                 .forEach(m -> m.setDataHora(LocalDateTime.of(2026, 10, 18, 1, 0)));
         movimentos.flush();

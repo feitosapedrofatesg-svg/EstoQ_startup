@@ -44,6 +44,44 @@ class NotaFiscalIntegrationTest {
     }
     @AfterEach void limpar() { SecurityContextHolder.clearContext(); }
 
+    @Test void trintaGarrafasDe500mlEntramComoTrintaUnidadesEConsumoBaixaUma() {
+        var arquivo = new MockMultipartFile("arquivos", "nota.xml", "application/xml",
+                NotaFiscalExemplo.xml(NotaFiscalExemplo.CHAVE, "BEB GAISE H2O LIMAO 500ML", "H2O", "PC1", "30", "90.00").getBytes());
+        var nota = notas.analisar(List.of(arquivo));
+        var item = nota.itens().getFirst();
+        assertEquals(UnidadeMedida.UN, item.unidadeEstoque());
+        assertEquals(0, BigDecimal.ONE.compareTo(item.fator()));
+        var confirmada = notas.confirmar(nota.id(), confirmar(nota, null, categoriaId, BigDecimal.ONE));
+        var produto = produtos.buscar(confirmada.itens().getFirst().produtoId());
+        assertEquals(UnidadeMedida.UN, produto.getUnidadeMedida());
+        assertEquals(0, new BigDecimal("30").compareTo(produto.getSaldoAtual()));
+        consumo.registrarConsumo(new com.estoq.business.consumos.ConsumoRequestDTO(produto.getId(), null, BigDecimal.ONE, null, null));
+        assertEquals(0, new BigDecimal("29").compareTo(produtos.buscar(produto.getId()).getSaldoAtual()));
+        assertEquals(0, new BigDecimal("90").compareTo(confirmada.itens().getFirst().valorEntrada()));
+    }
+
+    @Autowired com.estoq.business.consumos.ConsumoService consumo;
+
+    @Test void caixaDeBebidasUsaQuantidadeDeGarrafasEAprendeFatorEmUnidades() {
+        var nota = analisar(NotaFiscalExemplo.CHAVE, "REFRIGERANTE 350ML", "CX");
+        assertEquals(UnidadeMedida.UN, nota.itens().getFirst().unidadeEstoque());
+        assertFalse(nota.itens().getFirst().embalagemConfirmada());
+        var confirmada = notas.confirmar(nota.id(), confirmar(nota, null, categoriaId, new BigDecimal("12")));
+        assertEquals(0, new BigDecimal("24").compareTo(produtos.buscar(confirmada.itens().getFirst().produtoId()).getSaldoAtual()));
+        var proxima = analisar(NotaFiscalExemplo.CHAVE.replace("000000011", "000000021"), "REFRIGERANTE 350ML", "CX");
+        assertEquals(UnidadeMedida.UN, proxima.itens().getFirst().unidadeEstoque());
+        assertEquals(0, new BigDecimal("12").compareTo(proxima.itens().getFirst().fator()));
+    }
+
+    @Test void cadastroManualRejeitaBebidaEmVolumeInclusivePelaCategoria() {
+        var bebidas = new CategoriaModel(); bebidas.setNome("Bebidas"); categorias.saveAndFlush(bebidas);
+        var produto = new ProdutoDTO(); produto.setNome("Marca especial 500ml");
+        produto.setCategoriaId(bebidas.getId()); produto.setUnidadeMedida(UnidadeMedida.ML);
+        assertThrows(FieldValidationException.class, () -> produtos.criar(produto));
+        produto.setNome("H2O 500ml"); produto.setCategoriaId(categoriaId);
+        assertThrows(FieldValidationException.class, () -> produtos.criar(produto));
+    }
+
     @Test void loteDoFabricanteEntraNaRevisaoENaoDuplicaNaRepeticao() {
         var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ","KG");
         var i=nota.itens().getFirst();
@@ -165,7 +203,7 @@ class NotaFiscalIntegrationTest {
     ConfirmarNotaDTO confirmar(NotaFiscalDTO nota, Long produtoId, Long categoria, BigDecimal fator) {
         var item=nota.itens().getFirst();
         return new ConfirmarNotaDTO(nota.version(),List.of(new ConfirmarNotaDTO.Item(item.id(),true,produtoId,item.nomeProduto(),categoria,
-                UnidadeMedida.KG,item.quantidadeNota(),fator,item.valorEntrada(),null,true,true)),true);
+                item.unidadeEstoque(),item.quantidadeNota(),fator,item.valorEntrada(),null,true,true)),true);
     }
 
     @Test void criaProdutoEEntradaSemDuplicarNaRepeticao() {

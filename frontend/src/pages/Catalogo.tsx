@@ -1,4 +1,5 @@
 import { mensagemErro } from "../lib/api";
+import { bebidaPorUnidade } from "../lib/estoqueBebida";
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
 import { useFetch, useTodasPaginas, useDebounced } from "../lib/hooks";
@@ -323,8 +324,10 @@ function ProdutoForm({
 }) {
   const toast = useToast();
   const [nome, setNome] = useState(prod?.nome ?? "");
-  const [unidadeMedida, setUnidadeMedida] = useState<UnidadeMedida>(prod?.unidadeMedida ?? "KG");
+  const [unidadeEscolhida, setUnidadeMedida] = useState<UnidadeMedida>(prod?.unidadeMedida ?? "KG");
   const [categoriaId, setCategoriaId] = useState(prod ? String(prod.categoriaId) : "");
+  const bebida = bebidaPorUnidade(nome, cats.find(c => String(c.id) === categoriaId)?.nome);
+  const unidadeMedida = bebida ? "UN" : unidadeEscolhida;
   const [codigoBarras, setCodigoBarras] = useState(prod?.codigoBarras ?? "");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -403,7 +406,7 @@ function ProdutoForm({
           <Input id="produto-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Tomate italiano" />
         </Field>
         <Field label="Unidade de medida" required>
-          <Select value={unidadeMedida} onChange={(e) => setUnidadeMedida(e.target.value as UnidadeMedida)}>
+          <Select value={unidadeMedida} disabled={bebida} onChange={(e) => setUnidadeMedida(e.target.value as UnidadeMedida)}>
             {UNIDADES.map((u) => (
               <option key={u} value={u}>{u === "UN" ? "Unidade (UN)" : u}</option>
             ))}
@@ -411,6 +414,7 @@ function ProdutoForm({
         </Field>
       </div>
       <SearchSelect label="Categoria" options={catOpts} value={categoriaId} onValue={setCategoriaId} placeholder="Escolha a categoria…" required />
+      {bebida && <p className="muted">Bebidas são contadas em unidades. Ex.: 30 garrafas de 500 ml = 30 UN. Informe o volume no nome do produto.</p>}
       <Field label="Código de barras (opcional)">
         <Input value={codigoBarras} onChange={(e) => setCodigoBarras(e.target.value)} placeholder="Ex.: 7891234567890" />
       </Field>

@@ -58,6 +58,103 @@ class MigracaoProdValidacaoTest {
     }
 
     @Test
+    void bebidasConvertemHistoricoECustosSemAdivinharFatoresAmbiguos() throws Exception {
+        Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("bebidas")
+                .locations("classpath:db/migration").target("13").load().migrate();
+        try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
+            st.execute("set search_path to bebidas");
+            st.execute("""
+                    insert into restaurantes(id,nome,ativo,data_hora_criacao,version)
+                    values (1,'Cozinha 1',true,now(),0),(2,'Cozinha 2',true,now(),0);
+                    insert into categorias(id,restaurante_id,nome,ativo,data_hora_criacao,version)
+                    values (1,1,'Bebidas',true,now(),0),(2,2,'Bebidas',true,now(),0),(3,1,'Óleos',true,now(),0);
+                    insert into usuarios(id,restaurante_id,nome,email,senha,perfil,ativo,data_hora_criacao,version)
+                    values (1,1,'Admin','a@teste.com','hash','ADMIN',true,now(),0);
+                    insert into produtos(id,restaurante_id,categoria_id,nome,unidade_medida,ativo,data_hora_criacao,version) values
+                    (1,1,1,'H2O 500ML','ML',true,now(),0),
+                    (2,1,1,'Refrigerante 2L','L',true,now(),0),
+                    (3,1,1,'Bebida com fatores divergentes','ML',true,now(),0),
+                    (4,1,1,'Bebida sem embalagem conhecida','ML',true,now(),0),
+                    (5,1,1,'Suco 500ML','ML',true,now(),0),
+                    (6,2,2,'H2O 500ML','ML',true,now(),0),
+                    (7,1,3,'Azeite 500ML','ML',true,now(),0);
+                    insert into lotes(id,produto_id,restaurante_id,codigo,quantidade_inicial,quantidade_atual,preco_unitario,ativo,data_hora_criacao,version) values
+                    (1,1,1,'L1',6000,5800,0.015,true,now(),0),
+                    (2,2,1,'L2',60,58,1.5,true,now(),0),
+                    (3,3,1,'L3',6000,6000,0.015,true,now(),0),
+                    (4,4,1,'L4',6000,6000,0.015,true,now(),0),
+                    (5,5,1,'L5',333.333,333.333,0.015,true,now(),0),
+                    (6,6,2,'L6',15000,14500,0.006,true,now(),0),
+                    (7,7,1,'L7',15000,15000,0.006,true,now(),0);
+                    insert into movimentacoes(id,tipo,produto_id,lote_id,usuario_id,restaurante_id,data_hora,quantidade,quantidade_anterior,quantidade_posterior,ativo,data_hora_criacao,version) values
+                    (1,'ENTRADA',1,1,1,1,now(),6000,0,6000,true,now(),0),
+                    (2,'CONSUMO',1,1,1,1,now(),200,6000,5800,true,now(),0);
+                    insert into entradas(id,restaurante_id,valor_total_pago,unidade_compra) values (1,1,90,'ML');
+                    insert into consumos(id,restaurante_id) values (2,1);
+                    insert into balancos(id,restaurante_id,usuario_id,data_hora,status,tipo,ativo,data_hora_criacao,version)
+                    values (1,1,1,now(),'CONCLUIDO','GERAL',true,now(),0);
+                    insert into itens_balanco(id,restaurante_id,balanco_id,produto_id,quantidade_sistema,quantidade_fisica,ajuste_aplicado,ativo,data_hora_criacao,version)
+                    values (1,1,1,1,6000,5800,true,true,now(),0);
+                    insert into produtos_abertos(id,restaurante_id,lote_id,usuario_id,data_abertura,quantidade_aberta,quantidade_utilizada,finalizado,ativo,data_hora_criacao,version)
+                    values (1,1,1,1,now(),1000,200,false,true,now(),0);
+                    insert into parametros_estoque(id,restaurante_id,produto_id,tempo_reposicao_dias,periodo_analise_dias,consumo_medio_diario,estoque_minimo,estoque_medio,estoque_maximo,dias_alerta_vencimento,ativo,data_hora_criacao,version)
+                    values (1,1,1,0,30,200,3,3,3,0,true,now(),0),(2,1,2,0,30,2,6,8,10,0,true,now(),0);
+                    insert into notas_fiscais(id,restaurante_id,chave,fornecedor,documento_fornecedor,numero,serie,valor_total,confirmada,ativo,data_hora_criacao,version)
+                    values (1,1,repeat('1',44),'Fornecedor','123','1','1',90,true,true,now(),0);
+                    insert into itens_nota_fiscal(id,nota_id,restaurante_id,numero,codigo,descricao,unidade_nota,quantidade_nota,valor_bruto,desconto,valor_rateado,valor_entrada,produto_id,unidade_estoque,fator,quantidade_entrada,ativo,data_hora_criacao,version) values
+                    (1,1,1,1,'H2O','H2O 500ML','UN',30,90,0,0,90,1,'ML',200,6000,true,now(),0),
+                    (2,1,1,2,'AMB1','Bebida','UN',1,0,0,0,0,3,'ML',100,100,true,now(),0),
+                    (3,1,1,3,'AMB2','Bebida','UN',1,0,0,0,0,3,'ML',200,200,true,now(),0);
+                    insert into vinculos_fornecedor(id,restaurante_id,documento_fornecedor,codigo,descricao,unidade_nota,produto_id,unidade_estoque,fator,ativo,data_hora_criacao,version)
+                    values (1,1,'123','H2O','H2O 500ML','UN',1,'ML',200,true,now(),0),
+                    (2,1,'123','CX','H2O 500ML','CX',1,'ML',2400,true,now(),0);
+                    """);
+        }
+        var flyway = Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("bebidas")
+                .locations("classpath:db/migration").load();
+        assertEquals(1, flyway.migrate().migrationsExecuted);
+        assertEquals(0, flyway.migrate().migrationsExecuted);
+        try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
+            st.execute("set search_path to bebidas");
+            try (var rs = st.executeQuery("select unidade_medida from produtos order by id")) {
+                assertEquals(List.of("UN","UN","ML","ML","ML","UN","ML"), coletar(rs));
+            }
+            try (var rs = st.executeQuery("select quantidade_inicial,quantidade_atual,preco_unitario,quantidade_atual*preco_unitario from lotes where id in (1,2,6) order by id")) {
+                while (rs.next()) {
+                    assertEquals(0,new java.math.BigDecimal("30").compareTo(rs.getBigDecimal(1)));
+                    assertEquals(0,new java.math.BigDecimal("29").compareTo(rs.getBigDecimal(2)));
+                    assertEquals(0,new java.math.BigDecimal("3").compareTo(rs.getBigDecimal(3)));
+                    assertEquals(0,new java.math.BigDecimal("87").compareTo(rs.getBigDecimal(4)));
+                }
+            }
+            try (var rs = st.executeQuery("select quantidade,quantidade_anterior,quantidade_posterior from movimentacoes where id=2")) {
+                rs.next(); assertEquals(1,rs.getInt(1)); assertEquals(30,rs.getInt(2)); assertEquals(29,rs.getInt(3));
+            }
+            try (var rs = st.executeQuery("select quantidade_sistema,quantidade_fisica from itens_balanco where id=1")) {
+                rs.next(); assertEquals(30,rs.getInt(1)); assertEquals(29,rs.getInt(2));
+            }
+            try (var rs = st.executeQuery("select quantidade_aberta,quantidade_utilizada from produtos_abertos where id=1")) {
+                rs.next(); assertEquals(5,rs.getInt(1)); assertEquals(1,rs.getInt(2));
+            }
+            try (var rs = st.executeQuery("select unidade_estoque,fator,quantidade_entrada,quantidade_nota,valor_entrada from itens_nota_fiscal where id=1")) {
+                rs.next(); assertEquals("UN",rs.getString(1)); assertEquals(1,rs.getInt(2)); assertEquals(30,rs.getInt(3));
+                assertEquals(30,rs.getInt(4)); assertEquals(90,rs.getInt(5));
+            }
+            try (var rs = st.executeQuery("select unidade_estoque,fator from vinculos_fornecedor order by id")) {
+                rs.next(); assertEquals("UN",rs.getString(1)); assertEquals(1,rs.getInt(2));
+                rs.next(); assertEquals("UN",rs.getString(1)); assertEquals(12,rs.getInt(2));
+            }
+            try (var rs = st.executeQuery("select consumo_medio_diario,estoque_minimo,estoque_medio,estoque_maximo from parametros_estoque order by id")) {
+                rs.next(); assertEquals(1,rs.getInt(1)); assertEquals(3,rs.getInt(2)); assertEquals(3,rs.getInt(3)); assertEquals(3,rs.getInt(4));
+                rs.next(); assertEquals(1,rs.getInt(1)); assertEquals(3,rs.getInt(2)); assertEquals(4,rs.getInt(3)); assertEquals(5,rs.getInt(4));
+            }
+            try (var rs = st.executeQuery("select unidade_compra,valor_total_pago from entradas where id=1")) {
+                rs.next(); assertEquals("UN",rs.getString(1)); assertEquals(90,rs.getInt(2));
+            }
+        }
+    }
+
+    @Test
     void migracoesAplicamNumBancoLegado() throws Exception {
         criarLegado(null, List.of());
         rodarMigracoes(null);
@@ -85,7 +182,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("13", flyway.info().current().getVersion().toString());
+            assertEquals("14", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -170,6 +267,9 @@ class MigracaoProdValidacaoTest {
                         + "data_hora_criacao timestamp(6) not null, version bigint not null default 0)");
                 } else if ("lotes".equals(t)) {
                     st.execute("create table " + prefixo + "lotes (id bigint generated by default as identity primary key, codigo varchar(60) not null)");
+                } else if ("produtos".equals(t)) {
+                    st.execute("create table " + prefixo + "produtos (id bigint generated by default as identity primary key, "
+                            + "nome varchar(120), unidade_medida varchar(20), categoria_id bigint)");
                 } else if ("parametros_estoque".equals(t)) {
                     st.execute("create table " + prefixo + "parametros_estoque (id bigint generated by default as identity primary key, produto_id bigint, "
                             + "estoque_minimo numeric(18,3) not null default 0, estoque_medio numeric(18,3) not null default 0, "
@@ -296,7 +396,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("novos_campos").locations("classpath:db/migration").load();
-        assertEquals(3, depois.migrate().migrationsExecuted);
+        assertEquals(4, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             try (var rs = st.executeQuery("select confirmacao_email_obrigatoria,email_confirmado_em,senha,version from novos_campos.usuarios")) {
                 assertTrue(rs.next()); assertTrue(!rs.getBoolean(1)); assertNull(rs.getObject(2));
@@ -325,7 +425,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("login_google").locations("classpath:db/migration").load();
-        assertEquals(1, depois.migrate().migrationsExecuted);
+        assertEquals(2, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             st.execute("set search_path to login_google");
             try (var rs = st.executeQuery("select senha,google_sub from usuarios where email='legado@teste.com'")) {
@@ -354,7 +454,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(13, resultado.migrationsExecuted, "V1 até V13 devem executar no banco legado");
+        assertEquals(14, resultado.migrationsExecuted, "V1 até V14 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

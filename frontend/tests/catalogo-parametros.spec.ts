@@ -47,6 +47,18 @@ test("novo produto preenche os níveis em três e salva parâmetros válidos", a
     estoqueMaximo: 3, consumoMedioDiario: 0, version: 0 })]);
 });
 
+test("bebida no catálogo usa UN e mantém 500 ml somente no nome", async ({ page }) => {
+  await prepararParametros(page);
+  const modal = await novoProduto(page);
+  await modal.getByRole("textbox", { name: "Nome", exact: true }).fill("H2O 500ml");
+  await expect(modal.getByRole("combobox")).toHaveValue("UN");
+  await expect(modal.getByRole("combobox")).toBeDisabled();
+  const envio = page.waitForRequest(req => req.url().endsWith("/api/produtos") && req.method() === "POST");
+  await modal.getByRole("button", { name: "Salvar produto", exact: true }).click();
+  expect((await envio).postDataJSON()).toMatchObject({ nome: "H2O 500ml", unidadeMedida: "UN" });
+  await expect(modal).not.toBeVisible();
+});
+
 for (const niveis of [[7, 8, 9], [0, 0, 0]]) {
   test(`editar nome preserva níveis existentes ${niveis.join("/")}`, async ({ page }) => {
     const envios = await prepararParametros(page, niveis);

@@ -1,10 +1,40 @@
 # Entrada de mercadorias por nota fiscal
 
-Revisão: **22/10/2026**.
+Revisão: **02/11/2026**.
 
 A opção **Importar nota fiscal** fica em **Catálogo** e **Movimentações**, para o administrador.
 Enviar o documento gera uma revisão; somente **Confirmar entrada no estoque**
 cria produtos, lotes e movimentações.
+
+## Bebidas em unidades
+
+Bebidas são cadastradas em UN, inclusive quando a descrição fiscal informa
+500 ml, 350 ml ou 2 L. O volume identifica a embalagem no nome; não multiplica
+o saldo. Ex.: 30 H2O de 500 ml → 30 UN; consumir uma garrafa → saldo 29 UN.
+
+Na revisão, **Unidades por item da nota** recebe 1 para garrafa/lata avulsa ou
+o número de garrafas/latas de cada caixa. Ex.: duas caixas com 12 → 24 UN.
+Caixas e notas em medida de volume exigem conferência dessa quantidade; não se
+deduz o número de garrafas apenas do volume. O histórico compatível do fornecedor
+preserva fatores já conferidos em UN.
+
+A V14 converte cadastros antigos em L/ML usando primeiro o fator de notas
+confirmadas de unidades avulsas; sem esse histórico, usa o volume explícito no
+nome. Todas as quantidades históricas e o custo unitário são convertidos juntos,
+sem criar movimentações. Os níveis padrão permanecem 3 UN; níveis personalizados
+são divididos pelo fator e arredondados para cima. O consumo médio usa três casas.
+
+Produtos sem fator confiável, fatores avulsos divergentes ou quantidades que
+perderiam precisão não são convertidos automaticamente. O log identifica produto
+e restaurante para conferência antes de corrigir o histórico. Não basta trocar
+o rótulo ML por UN. A migração não modifica a quantidade fiscal original nem os
+valores pagos. Pode-se consultar os casos restantes em homologação por:
+
+```sql
+select p.id, p.restaurante_id, p.nome, p.unidade_medida, c.nome as categoria
+from produtos p join categorias c on c.id = p.categoria_id
+where p.unidade_medida in ('L', 'ML') and c.nome ilike '%bebida%';
+```
 
 ## Categorias desde o cadastro
 

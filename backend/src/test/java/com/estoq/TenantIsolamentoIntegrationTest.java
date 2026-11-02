@@ -321,7 +321,7 @@ class TenantIsolamentoIntegrationTest {
 
     private String confirmarNota(com.estoq.business.notasFiscais.NotaFiscalDTO nota, Long categoriaId) throws Exception {
         var decisoes = nota.itens().stream().map(i -> new com.estoq.business.notasFiscais.ConfirmarNotaDTO.Item(i.id(), true, null,
-                i.nomeProduto(), categoriaId, com.estoq.business.produtos.UnidadeMedida.KG, i.quantidadeNota(), java.math.BigDecimal.ONE,
+                i.nomeProduto(), categoriaId, i.unidadeEstoque(), i.quantidadeNota(), java.math.BigDecimal.ONE,
                 i.valorEntrada(), null, true, true)).toList();
         return json.writeValueAsString(new com.estoq.business.notasFiscais.ConfirmarNotaDTO(nota.version(), decisoes, true));
     }

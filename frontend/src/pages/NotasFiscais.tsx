@@ -1,4 +1,5 @@
 import { mensagemErro } from "../lib/api";
+import { bebidaPorUnidade } from "../lib/estoqueBebida";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
@@ -36,6 +37,13 @@ function atualizarItem(item: ItemNotaFiscalDTO, campos: Partial<ItemNotaFiscalDT
     atualizado.motivoCategoria = "O nome foi alterado. Confira a categoria antes de confirmar.";
   }
   return atualizado;
+}
+
+function ajustarUnidade(item: ItemNotaFiscalDTO, categorias?: CategoriaDTO[] | null): ItemNotaFiscalDTO {
+  if (!item.produtoId && bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)) {
+    return { ...item, unidadeEstoque: "UN", fator: item.unidadeEstoque === "UN" ? item.fator : 1 };
+  }
+  return item;
 }
 
 export function NotasFiscais() {
@@ -79,7 +87,7 @@ export function NotasFiscais() {
 
   const mostrar = (resultado: NotaFiscalDTO) => {
     setNota(resultado);
-    setItens(resultado.itens);
+    setItens(resultado.confirmada ? resultado.itens : resultado.itens.map(i => ajustarUnidade(i, categorias)));
     setCustosConferidos(false);
   };
   useEffect(() => {
@@ -92,8 +100,15 @@ export function NotasFiscais() {
     return () => { ativo = false; };
   }, [notaId]);
 
+  useEffect(() => {
+    if (nota && !nota.confirmada) setItens(anteriores => anteriores.map(i => ajustarUnidade(i, categorias)));
+  }, [categorias, nota?.id, nota?.confirmada]);
+
+  const revisarUnidade = (item: ItemNotaFiscalDTO, campos: Partial<ItemNotaFiscalDTO>) => {
+    return ajustarUnidade(atualizarItem(item, campos), categorias);
+  };
   const alterar = (id: number, campos: Partial<ItemNotaFiscalDTO>) => {
-    setItens(anteriores => anteriores.map(i => i.id === id ? atualizarItem(i, campos) : i));
+    setItens(anteriores => anteriores.map(i => i.id === id ? revisarUnidade(i, campos) : i));
     setCustosConferidos(false);
   };
   const analisar = async () => {
@@ -187,7 +202,7 @@ export function NotasFiscais() {
           <Field label="Categoria para todos os produtos novos" htmlFor="nota-categoria-geral">
             <Select id="nota-categoria-geral" defaultValue="" onChange={e => {
               const categoriaId = Number(e.target.value) || null;
-              setItens(prev => prev.map(i => !i.produtoId ? atualizarItem(i, { categoriaId }) : i)); setCustosConferidos(false);
+              setItens(prev => prev.map(i => !i.produtoId ? revisarUnidade(i, { categoriaId }) : i)); setCustosConferidos(false);
             }}><option value="">Usar classificação automática</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
@@ -205,6 +220,7 @@ export function NotasFiscais() {
               const produto = produtos.find(p => String(p.id) === valor);
               alterar(item.id, { produtoId: produto?.id ?? null, nomeProduto: produto?.nome ?? item.descricao.slice(0, 120),
                 categoriaId: produto?.categoriaId ?? null, unidadeEstoque: produto?.unidadeMedida ?? item.unidadeEstoque,
+                fator: produto?.unidadeMedida === "UN" && item.unidadeEstoque !== "UN" ? 1 : item.fator,
                 embalagemConfirmada: false });
             }} />
           {!item.produtoId && <div className="form-grid-2">
@@ -224,14 +240,15 @@ export function NotasFiscais() {
           </AlertBanner>}
           <div className="form-grid-2">
             <CampoDecimal label="Quantidade na nota" id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota })} />
-            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, embalagemConfirmada: false })}>
+            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, embalagemConfirmada: false })}>
               {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
             </Select></Field>
-            <CampoDecimal label="Conteúdo de cada unidade da nota" id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
+            <CampoDecimal label={item.unidadeEstoque === "UN" ? "Unidades por item da nota" : "Conteúdo de cada unidade da nota"} id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
             <CampoDecimal label="Custo total deste item (R$)" id={`nota-custo-${item.id}`} value={item.valorEntrada} onValue={valorEntrada => alterar(item.id, { valorEntrada })} />
             <Field label="Lote do fabricante (opcional)" htmlFor={`nota-lote-${item.id}`}><Input id={`nota-lote-${item.id}`} maxLength={50} value={item.loteFabricante ?? ""} onChange={e => alterar(item.id, { loteFabricante: e.target.value })} /></Field>
             <Field label="Validade (opcional)" htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
           </div>
+          {item.unidadeEstoque === "UN" && <p className="muted">Informe 1 para uma garrafa/lata avulsa ou a quantidade de unidades por caixa. O volume em ml não multiplica o estoque.</p>}
           <p><strong>Entrada: {fmtNum(item.quantidadeNota * item.fator)} {item.unidadeEstoque}</strong> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</p>
         </fieldset>}
       </Card>)}

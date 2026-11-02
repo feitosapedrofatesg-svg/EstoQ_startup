@@ -92,6 +92,13 @@ public class NotaFiscalService {
                 item.getProdutoId()==null ? ativos : List.of(), disponiveis);
             if (item.getProdutoId()==null) {
                 item.setCategoriaId(sugestao.categoriaId());
+                var categoria = disponiveis.stream().filter(c -> c.getId().equals(item.getCategoriaId()))
+                    .findFirst().orElse(null);
+                if (EstoqueBebida.porUnidade(item.getDescricao(), categoria == null ? null : categoria.getNome())) {
+                    item.setUnidadeEstoque(UnidadeMedida.UN);
+                    item.setFator(BigDecimal.ONE);
+                    item.setEmbalagemConfirmada(AssociadorProdutoNota.unidadeAvulsa(item.getUnidadeNota()));
+                }
                 item.setOrigemCategoria(sugestao.origem());
                 item.setMotivoCategoria(item.getMotivoCategoria()==null ? sugestao.motivo()
                     : item.getMotivoCategoria() + " " + sugestao.motivo());

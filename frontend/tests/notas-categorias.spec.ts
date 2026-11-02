@@ -33,6 +33,39 @@ test("bebida mostra motivo da sugestão e mantém a conferência final", async (
   expect(estado.confirmacoes[0].itens[0].loteFabricante).toBe("FAB-123");
 });
 
+test("trinta garrafas de 500 ml mantêm trinta unidades na entrada", async ({ page }) => {
+  const estado = await prepararNota(page, { descricao: "H2O 500ML", nomeProduto: "H2O 500ML", quantidadeNota: 30,
+    unidadeEstoque: "ML", fator: 500 }); // Rascunho gerado antes da correção.
+  await expect(page.locator("#nota-unidade-1")).toHaveValue("UN");
+  await expect(page.locator("#nota-unidade-1")).toBeDisabled();
+  await expect(page.getByLabel("Unidades por item da nota", { exact: true })).toHaveValue("1");
+  await expect(page.getByText("Entrada: 30 UN", { exact: true })).toBeVisible();
+  await page.getByLabel("Conferi os itens, os descontos e os custos rateados").check();
+  await page.getByRole("button", { name: "Confirmar entrada no estoque" }).click();
+  await expect(page.getByText(/Esta nota já foi importada/)).toBeVisible();
+  expect(estado.confirmacoes[0].itens[0]).toMatchObject({ unidadeEstoque: "UN", quantidadeNota: 30, fator: 1 });
+});
+
+test("categoria Bebidas troca volume por unidades e permite doze garrafas por caixa", async ({ page }) => {
+  const estado = await prepararNota(page, { descricao: "Marca especial 500ML", nomeProduto: "Marca especial 500ML",
+    categoriaId: null, unidadeEstoque: "ML", fator: 500, unidadeNota: "CX", quantidadeNota: 2 });
+  // O nome da categoria vem do catálogo real carregado pela página.
+  await page.route("**/api/categorias?**", route => route.fulfill({ json: {
+    content: [{ id: 125, nome: "Bebidas", ativo: true, version: 0 }], totalElements: 1, totalPages: 1, number: 0, size: 30,
+  } }));
+  await page.reload();
+  await page.locator("#nota-categoria-1").selectOption("125");
+  await expect(page.locator("#nota-unidade-1")).toHaveValue("UN");
+  await expect(page.getByLabel("Unidades por item da nota", { exact: true })).toHaveValue("1");
+  await page.getByLabel("Unidades por item da nota", { exact: true }).fill("12");
+  await page.getByLabel("Unidades por item da nota", { exact: true }).blur();
+  await expect(page.getByText("Entrada: 24 UN", { exact: true })).toBeVisible();
+  await page.getByLabel("Conferi os itens, os descontos e os custos rateados").check();
+  await page.getByRole("button", { name: "Confirmar entrada no estoque" }).click();
+  await expect(page.getByText(/Esta nota já foi importada/)).toBeVisible();
+  expect(estado.confirmacoes[0].itens[0]).toMatchObject({ unidadeEstoque: "UN", fator: 12 });
+});
+
 test("aviso de categoria permite confirmar item desconhecido sem escolha obrigatória", async ({ page }) => {
   const estado = await prepararNota(page, { categoriaId: null, origemCategoria: "NAO_IDENTIFICADA",
     revisarCategoria: true, motivoCategoria: "O nome tem mais de um sentido. Confira o produto." });

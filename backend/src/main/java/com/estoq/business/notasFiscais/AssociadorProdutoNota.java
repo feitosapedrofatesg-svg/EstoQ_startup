@@ -53,6 +53,14 @@ public class AssociadorProdutoNota {
             item.setFator(vinculo.getFator()); item.setEmbalagemConfirmada(true);
             return;
         }
+        if ((produto == null && EstoqueBebida.porUnidade(item.getDescricao(), null))
+                || (produto != null && produto.getUnidadeMedida() == UnidadeMedida.UN
+                    && EstoqueBebida.porUnidade(produto.getNome(), produto.getCategoria().getNome()))) {
+            item.setUnidadeEstoque(UnidadeMedida.UN);
+            item.setFator(BigDecimal.ONE);
+            item.setEmbalagemConfirmada(unidadeAvulsa(item.getUnidadeNota()));
+            return;
+        }
         var unidadeDireta = unidade(item.getUnidadeNota());
         var embalagem = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(KG|ML|G|L)\\b", Pattern.CASE_INSENSITIVE).matcher(item.getDescricao());
         BigDecimal conteudo = BigDecimal.ONE;
@@ -68,6 +76,10 @@ public class AssociadorProdutoNota {
         } catch (FieldValidationException e) {
             item.setFator(BigDecimal.ONE); item.setEmbalagemConfirmada(false);
         }
+    }
+
+    public static boolean unidadeAvulsa(String valor) {
+        return normalizar(valor).matches("UN|UN1|UND|UNID|UNIDADE|UNIDADES|PC|PC1|PÇ|PCA");
     }
 
     public static UnidadeMedida unidade(String valor) {

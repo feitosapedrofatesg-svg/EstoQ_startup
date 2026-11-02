@@ -22,25 +22,25 @@ public class AssociadorCategoriaNota {
         }
     }
     private static final List<Regra> REGRAS = List.of(
-        new Regra("CREME DENTAL|DETERGENTE|DESINFETANTE|AGUA SANITARIA|SABAO|ESPONJA|ALVEJANTE|LIMPADOR", "LIMPEZA|HIGIENE", "Limpeza"),
+        new Regra("CREME DENTAL|DETERGENTE|DESINFETANTE|AGUA SANITARIA|SABAO|ESPONJA|ALVEJANTE|LIMPADOR|ALCOOL (?:LIQUIDO|GEL)|SACO (?:DE |PARA )?LIXO", "LIMPEZA|HIGIENE", "Limpeza"),
         new Regra("GUARDANAPO|EMBALAGEM|DESCARTAVEL|DESCARTAVEIS|PAPEL ALUMINIO|FILME PVC", "DESCARTAVE|EMBALAGE", "Descartáveis e embalagens"),
-        new Regra("BEBIDA|GASEIFICADA|REFRIGERANTE|SUCO|CERVEJA|VINHO|AGUA MINERAL|ENERGETICO", "BEBIDA", "Bebidas"),
-        new Regra("BOVINO|BOVINA|SUINO|SUINA|FRANGO|PICANHA|ALCATRA|MAMINHA|CONTRA FILE|COSTELA|CARNE|LINGUICA|BACON|PATINHO|ACEM|CUPIM", "CARNE|PROTEINA|ACOUGUE", "Carnes"),
+        new Regra("BEBIDA|GASEIFICADA|REFRIGERANTE|SUCO|CERVEJA|VINHO|AGUA MINERAL|ENERGETICO|H2O|H2OH", "BEBIDA", "Bebidas"),
+        new Regra("BOVINO|BOVINA|SUINO|SUINA|FRANGO|PICANHA|ALCATRA|MAMINHA|CONTRA FILE|COSTELA|CARNE|LINGUICA|BACON|PATINHO|ACEM|CUPIM|COXA|SOBRECOXA|SASSAMI|FILE (?:DE )?PEITO|FIGADO", "CARNE|PROTEINA|ACOUGUE", "Carnes"),
         new Regra("PEIXE|TILAPIA|SALMAO|CAMARAO|SARDINHA|ATUM", "PEIXE|PESCADO|FRUTOS DO MAR|PROTEINA", "Peixes e frutos do mar"),
         new Regra("BEBIDA LACTEA|LEITE|QUEIJO|MANTEIGA|IOGURTE|REQUEIJAO|CREME DE LEITE", "LATICINIO|LACTEO", "Laticínios"),
-        new Regra("ARROZ|FEIJAO|LENTILHA|GRAO DE BICO|ERVILHA", "GRAO|CEREA|LEGUMINOSA", "Grãos"),
-        new Regra("TOMATE|CEBOLA|BATATA|ALFACE|CENOURA|ABOBORA|ABOBRINHA|BROCOLIS|COUVE|PEPINO|BANANA|MACA|LARANJA|LIMAO", "HORTIFRUTI|HORTALICA|VERDURA|LEGUME|FRUTA", "Hortifruti"),
-        new Regra("MACARRAO|ESPAGUETE|LASANHA|PENNE|FUSILLI", "MASSA", "Massas"),
-        new Regra("SAL|PIMENTA|OREGANO|COMINHO|COLORAU|TEMPERO|CANELA", "TEMPERO|CONDIMENTO|ESPECIARIA", "Temperos e condimentos"),
-        new Regra("OLEO|AZEITE|VINAGRE|MOLHO", "OLEO|AZEITE|MOLHO|CONDIMENTO", "Óleos e molhos"),
-        new Regra("BATATA PALHA|BATATA CHIPS|ACUCAR|FARINHA|CAFE|FUBA|AMIDO|BISCOITO|BOLACHA|CHOCOLATE EM PO", "MERCEARIA|SECO|DESPENSA|CEREA", "Mercearia")
+        new Regra("ARROZ|FEIJAO|LENTILHA|GRAO DE BICO|ERVILHA|MILHO VERDE|TRIGO (?:PARA )?QUIBE", "GRAO|CEREA|LEGUMINOSA", "Grãos"),
+        new Regra("TOMATE|CEBOLA|BATATA|ALFACE|CENOURA|ABOBORA|ABOBRINHA|BROCOLIS|COUVE|PEPINO|BANANA|MACA|LARANJA|LIMAO|ACELGA|ALHO(?: PORO)?|CEBOLINHA|COENTRO|RUCULA", "HORTIFRUTI|HORTALICA|VERDURA|LEGUME|FRUTA", "Hortifruti"),
+        new Regra("MACARRAO|ESPAGUETE|LASANHA|PENNE|FUSILLI|MASSA (?:DE |PARA )?PASTEL", "MASSA", "Massas"),
+        new Regra("SAL|PIMENTA|OREGANO|COMINHO|COLORAU|TEMPERO|CANELA|ACAFRAO|COENTRO (?:EM )?PO|ALHO (?:EM )?PO|CALDO(?: [A-Z0-9]+){0,5} (?:CARNE|GALINHA|LEGUMES)", "TEMPERO|CONDIMENTO|ESPECIARIA", "Temperos e condimentos"),
+        new Regra("OLEO|AZEITE|VINAGRE|MOLHO|EXTRATO (?:DE )?TOMATE|PASSATA (?:DE )?TOMATE|MAIONESE|KETCHUP|MOSTARDA", "OLEO|AZEITE|MOLHO|CONDIMENTO", "Óleos e molhos"),
+        new Regra("BATATA PALHA|BATATA CHIPS|ACUCAR|FARINHA|CAFE|FUBA|AMIDO|BISCOITO|BOLACHA|CHOCOLATE EM PO|COCADA|COCO RALADO|GELATINA|GOIABADA|OVO|OVOS|PAO|LEITE DE COCO|PO (?:PARA |P )?REFRESCO|REFRESCO EM PO", "MERCEARIA|SECO|DESPENSA|CEREA", "Mercearia")
     );
     private static final Set<String> GENERICOS = Set.of("INTEGRAL", "NATURAL", "TRADICIONAL", "REFINADO", "CONGELADO", "RESFRIADO", "PACOTE", "CAIXA", "EXTRA", "TIPO", "BEBIDA", "PRODUTO", "ARTIGO", "KIT", "MISTURA", "PREPARADO", "FILE", "CREME");
     private static final Pattern EMBALAGEM = Pattern.compile(
         "(?i)(?<![\\p{L}\\d])\\d+(?:[.,]\\d+)?\\s*(?:KG|GR|G|ML|LT|L|UN|UND|UNID)\\b");
     private static final Pattern CREME_LEITE = Pattern.compile("\\bCR (?:DE )?LEITE\\b");
     private static final Pattern ABREVIACOES = Pattern.compile(
-        "\\b(?:BEB|GAISE|GASEIF|REFRI|REFRIG|BOV|SUIN|FRG|CONTRAFILE|QJO|QUEIJ|LEIT|FAR|ACUC|MACARR|DETERG|DESINF)\\b");
+        "\\b(?:BEB|GAISE|GASEIF|REFRI|REFRIG|BOV|SUIN|FRG|CONTRAFILE|QJO|QUEIJ|LEIT|FAR|ACUC|MACARR|DETERG|DESINF|BISC|LING|CALAB|COLORIFICO|QUIBE|KIBE)\\b");
 
     public record Sugestao(Long categoriaId, String origem, String motivo, boolean revisar) { }
 
@@ -62,9 +62,8 @@ public class AssociadorCategoriaNota {
         if (exatas.size() == 1)
             return new Sugestao(exatas.getFirst(), "CATALOGO", "Produto com o mesmo nome normalizado no catálogo, desconsiderando apenas a embalagem informada.", false);
         if (exatas.size() > 1) return revisar("O catálogo usa categorias diferentes para o mesmo nome normalizado. Confira a categoria.");
-        // Nestes compostos o ingrediente não identifica o tipo do produto.
-        if (nome.matches(".*\\b(?:LEITE DE COCO|CALDO DE CARNE)\\b.*"))
-            return revisar("O nome tem mais de um sentido. Escolha a categoria após conferir o produto.");
+        // Compostos conhecidos têm regra própria: leite de coco não é laticínio;
+        // caldo de carne é condimento. O prefixo específico prevalece sobre o ingrediente.
         var encontradas = tipos(nome);
         if (encontradas.size() > 1) return revisar("A descrição combina tipos de produto diferentes. Confira a categoria.");
         String primeiro = nome.split(" ")[0];
@@ -106,6 +105,12 @@ public class AssociadorCategoriaNota {
         // Apenas a busca usa as abreviações expandidas; a descrição fiscal é preservada.
         String nome = AssociadorProdutoNota.normalizar(descricao == null ? "" : descricao);
         nome = CREME_LEITE.matcher(nome).replaceAll("CREME DE LEITE");
+        nome = nome.replaceAll("\\bAGUA MIN\\b", "AGUA MINERAL")
+            .replaceAll("\\bALCOOL LIQ\\b", "ALCOOL LIQUIDO")
+            .replaceAll("\\bCOXA SOB\\b", "COXA SOBRECOXA")
+            .replaceAll("\\bEXTRATO TOM\\b", "EXTRATO DE TOMATE")
+            .replaceAll("\\bTRIGO P (?:KIBE|QUIBE)\\b", "TRIGO PARA QUIBE")
+            .replaceAll("\\bPF PAO\\b", "PAO");
         return ABREVIACOES.matcher(nome).replaceAll(m -> switch (m.group()) {
             case "BEB" -> "BEBIDA";
             case "GAISE", "GASEIF" -> "GASEIFICADA";
@@ -121,6 +126,11 @@ public class AssociadorCategoriaNota {
             case "MACARR" -> "MACARRAO";
             case "DETERG" -> "DETERGENTE";
             case "DESINF" -> "DESINFETANTE";
+            case "BISC" -> "BISCOITO";
+            case "LING" -> "LINGUICA";
+            case "CALAB" -> "CALABRESA";
+            case "COLORIFICO" -> "COLORAU";
+            case "KIBE" -> "QUIBE";
             default -> m.group();
         });
     }

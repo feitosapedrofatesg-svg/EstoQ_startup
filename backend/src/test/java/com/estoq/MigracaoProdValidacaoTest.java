@@ -111,7 +111,7 @@ class MigracaoProdValidacaoTest {
                     """);
         }
         var flyway = Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("bebidas")
-                .locations("classpath:db/migration").load();
+                .locations("classpath:db/migration").target("14").load();
         assertEquals(1, flyway.migrate().migrationsExecuted);
         assertEquals(0, flyway.migrate().migrationsExecuted);
         try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
@@ -155,6 +155,66 @@ class MigracaoProdValidacaoTest {
     }
 
     @Test
+    void reclassificaPendentesSemAlterarEscolhasManuaisEstoqueOuOutrasCozinhas() throws Exception {
+        Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("classificacao")
+                .locations("classpath:db/migration").target("14").load().migrate();
+        try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
+            st.execute("set search_path to classificacao");
+            st.execute("""
+                    insert into restaurantes(id,nome,ativo,data_hora_criacao,version) values
+                    (1,'Loja A',true,now(),0),(2,'Loja B',true,now(),0),(3,'Ambígua',true,now(),0),(4,'Sem destino ativo',true,now(),0);
+                    insert into categorias(id,restaurante_id,nome,ativo,data_hora_criacao,version) values
+                    (1,1,'Sem classificação',true,now(),0),(2,1,'Carnes',true,now(),0),
+                    (3,1,'Mercearia',true,now(),0),(4,1,'Bebidas',true,now(),0),(5,1,'Limpeza',true,now(),0),
+                    (21,2,'Sem classificação',true,now(),0),(22,2,'Carnes',true,now(),0),
+                    (31,3,'Sem classificação',true,now(),0),(32,3,'Carnes bovinas',true,now(),0),(33,3,'Proteínas',true,now(),0),
+                    (41,4,'Sem classificação',true,now(),0),(42,4,'Carnes',false,now(),0);
+                    insert into produtos(id,restaurante_id,categoria_id,nome,unidade_medida,ativo,data_hora_criacao,version) values
+                    (1,1,1,'COXA/SOB CONG MARCA 20 KG','KG',true,now(),5),
+                    (2,1,1,'BISC MAIZENA MARCA 300G','G',true,now(),0),
+                    (3,1,1,'LEITE DE COCO MARCA 500ML','ML',true,now(),0),
+                    (4,1,1,'ARTIGO SEM TIPO','UN',true,now(),0),
+                    (5,1,3,'ACELGA MARCA','UN',true,now(),0),
+                    (6,1,1,'BISC MARCA 500G','G',false,now(),0),
+                    (7,2,21,'SASSAMI MARCA 1KG','KG',true,now(),0),
+                    (8,3,31,'SASSAMI MARCA 1KG','KG',true,now(),0),
+                    (9,1,1,'AGUA MIN MARCA 500ML','UN',true,now(),0),
+                    (10,1,1,'PO P/REFRESCO MARCA 18G','G',true,now(),0),
+                    (11,1,1,'SACO LIXO MARCA 100L','L',true,now(),0),
+                    (12,4,41,'SASSAMI MARCA 1KG','KG',true,now(),0);
+                    insert into lotes(id,produto_id,restaurante_id,codigo,quantidade_inicial,quantidade_atual,preco_unitario,ativo,data_hora_criacao,version) values
+                    (1,1,1,'A',10,7,2.5,true,now(),0),(2,9,1,'B',30,29,3,true,now(),0);
+                    """);
+        }
+        var flyway = Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("classificacao")
+                .locations("classpath:db/migration").load();
+        assertEquals(1, flyway.migrate().migrationsExecuted);
+        assertEquals(0, flyway.migrate().migrationsExecuted);
+        try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
+            st.execute("set search_path to classificacao");
+            try (var rs = st.executeQuery("select categoria_id from produtos order by id")) {
+                assertEquals(List.of("2","3","3","1","3","1","22","31","4","3","5","41"), coletar(rs));
+            }
+            try (var rs = st.executeQuery("select quantidade_atual,preco_unitario from lotes order by id")) {
+                rs.next(); assertEquals(7,rs.getInt(1)); assertEquals(0,new java.math.BigDecimal("2.5").compareTo(rs.getBigDecimal(2)));
+                rs.next(); assertEquals(29,rs.getInt(1)); assertEquals(3,rs.getInt(2));
+            }
+            try (var rs = st.executeQuery("select unidade_medida,version from produtos where id=9")) {
+                rs.next(); assertEquals("UN",rs.getString(1)); assertEquals(1,rs.getLong(2));
+            }
+            try (var rs = st.executeQuery("select unidade_medida,version from produtos where id=10")) {
+                rs.next(); assertEquals("G",rs.getString(1)); assertEquals(1,rs.getLong(2));
+            }
+            try (var rs = st.executeQuery("select version from produtos where id=5")) {
+                rs.next(); assertEquals(0,rs.getLong(1));
+            }
+            try (var rs = st.executeQuery("select version from produtos where id=1")) {
+                rs.next(); assertEquals(6,rs.getLong(1));
+            }
+        }
+    }
+
+    @Test
     void migracoesAplicamNumBancoLegado() throws Exception {
         criarLegado(null, List.of());
         rodarMigracoes(null);
@@ -182,7 +242,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("14", flyway.info().current().getVersion().toString());
+            assertEquals("15", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -269,7 +329,7 @@ class MigracaoProdValidacaoTest {
                     st.execute("create table " + prefixo + "lotes (id bigint generated by default as identity primary key, codigo varchar(60) not null)");
                 } else if ("produtos".equals(t)) {
                     st.execute("create table " + prefixo + "produtos (id bigint generated by default as identity primary key, "
-                            + "nome varchar(120), unidade_medida varchar(20), categoria_id bigint)");
+                            + "nome varchar(120), unidade_medida varchar(20), categoria_id bigint, ativo boolean not null default true, version bigint not null default 0)");
                 } else if ("parametros_estoque".equals(t)) {
                     st.execute("create table " + prefixo + "parametros_estoque (id bigint generated by default as identity primary key, produto_id bigint, "
                             + "estoque_minimo numeric(18,3) not null default 0, estoque_medio numeric(18,3) not null default 0, "
@@ -396,7 +456,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("novos_campos").locations("classpath:db/migration").load();
-        assertEquals(4, depois.migrate().migrationsExecuted);
+        assertEquals(5, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             try (var rs = st.executeQuery("select confirmacao_email_obrigatoria,email_confirmado_em,senha,version from novos_campos.usuarios")) {
                 assertTrue(rs.next()); assertTrue(!rs.getBoolean(1)); assertNull(rs.getObject(2));
@@ -425,7 +485,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("login_google").locations("classpath:db/migration").load();
-        assertEquals(2, depois.migrate().migrationsExecuted);
+        assertEquals(3, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             st.execute("set search_path to login_google");
             try (var rs = st.executeQuery("select senha,google_sub from usuarios where email='legado@teste.com'")) {
@@ -454,7 +514,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(14, resultado.migrationsExecuted, "V1 até V14 devem executar no banco legado");
+        assertEquals(15, resultado.migrationsExecuted, "V1 até V15 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

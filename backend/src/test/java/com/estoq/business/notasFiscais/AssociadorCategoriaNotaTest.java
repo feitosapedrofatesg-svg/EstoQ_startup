@@ -146,4 +146,64 @@ class AssociadorCategoriaNotaTest {
         var produto=new ProdutoModel(); produto.setNome(nome); produto.setCategoria(categoria); return produto;
     }
 
+    @Test void descricoesFiscaisPendentesReconhecemTiposComMarcasEEmbalagensSemDependerDaMarca() {
+        var categorias = new java.util.ArrayList<CategoriaModel>();
+        for (var nome : com.estoq.business.categorias.CategoriaPadraoService.NOMES)
+            categorias.add(categoria(categorias.size() + 1, nome));
+        var casos = java.util.Map.ofEntries(
+            java.util.Map.entry("COXA/SOB CONG MARCA ENVELOPADA 20 KG", "Carnes"),
+            java.util.Map.entry("FILE DE PEITO CG. MARCA ENVELOPADO 19,5", "Carnes"),
+            java.util.Map.entry("FILEZINHO SASSAMI CG MARCA ENV. 19,5 KG", "Carnes"),
+            java.util.Map.entry("ACAFRAO MARCA 90G", "Temperos e condimentos"),
+            java.util.Map.entry("ACELGA UN", "Hortifruti"),
+            java.util.Map.entry("AGUA MIN MARCA C/G 500ML", "Bebidas"),
+            java.util.Map.entry("AGUA MIN MARCA S/G 500ML", "Bebidas"),
+            java.util.Map.entry("ALCOOL LIQ MARCA 46 1L", "Limpeza"),
+            java.util.Map.entry("ALHO PORO MACO", "Hortifruti"),
+            java.util.Map.entry("BISC MAIZENA MARCA 300G", "Mercearia"),
+            java.util.Map.entry("CALDO MARCA 1,1KG GALINHA", "Temperos e condimentos"),
+            java.util.Map.entry("CAR BOV RESF RESER FIGADO FC", "Carnes"),
+            java.util.Map.entry("CEBOLINHA UN", "Hortifruti"),
+            java.util.Map.entry("COCADA CREMOSA BRANCA MARCA 335G", "Mercearia"),
+            java.util.Map.entry("COCO RALADO MARCA 100G ADOCADO", "Mercearia"),
+            java.util.Map.entry("COENTRO UN", "Hortifruti"),
+            java.util.Map.entry("COLORIFICO MARCA 1,01KG", "Temperos e condimentos"),
+            java.util.Map.entry("DESINF MARCA 1L CAMPOS LAVANDA", "Limpeza"),
+            java.util.Map.entry("EXTRATO TOM MARCA POUCH 1,7KG", "Óleos e molhos"),
+            java.util.Map.entry("GELATINA MARCA 24G S/SABOR", "Mercearia"),
+            java.util.Map.entry("GOIABADA MARCA LISA 1,01KG", "Mercearia"),
+            java.util.Map.entry("LING T CALAB DEF MARCA 2KG", "Carnes"),
+            java.util.Map.entry("MAIONESE MARCA 3KG", "Óleos e molhos"),
+            java.util.Map.entry("MASSA PASTEL MARCA MINI 200G", "Massas"),
+            java.util.Map.entry("MILHO VERDE MARCA SACHE 170G", "Grãos"),
+            java.util.Map.entry("OVO BRANCO GRANDE C/30UN", "Mercearia"),
+            java.util.Map.entry("PF PAO FRANCES MARCA KG", "Mercearia"),
+            java.util.Map.entry("PO P/REFRESCO MARCA 18G MARACUJA", "Mercearia"),
+            java.util.Map.entry("REFRIG MARCA ZERO 269ML GUARANA", "Bebidas"),
+            java.util.Map.entry("RUCULA HIDROPONICA", "Hortifruti"),
+            java.util.Map.entry("SACO LIXO MARCA PRETO REF 100L", "Limpeza"),
+            java.util.Map.entry("LEITE DE COCO MARCA 500ML", "Mercearia"),
+            java.util.Map.entry("TRIGO P/KIBE MARCA 500G", "Grãos"));
+        for (var caso : casos.entrySet()) {
+            var resultado = associador.analisar(caso.getKey(), List.of(), categorias);
+            assertNotNull(resultado.categoriaId(), caso.getKey());
+            assertEquals(caso.getValue(), categorias.stream().filter(c -> c.getId().equals(resultado.categoriaId())).findFirst().orElseThrow().getNome(), caso.getKey());
+            assertFalse(resultado.revisar(), caso.getKey());
+        }
+    }
+
+    @Test void compostosNovosPrevalecemSobreIngredienteSemClassificarMisturasOuNomesGenericos() {
+        var categorias = List.of(categoria(1,"Mercearia"),categoria(2,"Laticínios"),categoria(3,"Carnes"),
+                categoria(4,"Temperos e condimentos"),categoria(5,"Hortifruti"),categoria(6,"Limpeza"),categoria(7,"Massas"));
+        assertEquals(1L, associador.sugerir("LEITE DE COCO 500ML", List.of(), categorias));
+        assertEquals(4L, associador.sugerir("CALDO DE CARNE 1KG", List.of(), categorias));
+        assertEquals(4L, associador.sugerir("COENTRO EM PO 30G", List.of(), categorias));
+        assertEquals(5L, associador.sugerir("COENTRO MACO", List.of(), categorias));
+        assertEquals(4L, associador.sugerir("ALHO EM PO 90G", List.of(), categorias));
+        assertEquals(5L, associador.sugerir("ALHO PORO MACO", List.of(), categorias));
+        for (var nome : List.of("KIT SUCO DETERGENTE", "KIT LEITE DE COCO SABAO", "ALCOOL SEM TIPO", "MASSA CORRIDA",
+                "FILE SEM TIPO", "PRODUTO FICTICIO HML 013"))
+            assertNull(associador.sugerir(nome, List.of(), categorias), nome);
+    }
+
 }

@@ -80,11 +80,28 @@ genérica FILÉ não permite que frango classifique tilápia. Produtos inativos,
 categorias indisponíveis e Sem classificação não servem de referência para novas
 sugestões de categoria.
 
-Compostos como LEITE DE COCO e CALDO DE CARNE ficam para conferência, salvo
-correspondência confiável com o catálogo. Mais de uma categoria para o mesmo
+Compostos conhecidos têm destino próprio: **LEITE DE COCO → Mercearia**,
+**CALDO DE CARNE/GALINHA → Temperos e condimentos** e **EXTRATO DE TOMATE →
+Óleos e molhos**. O ingrediente não define a categoria do composto. Mais de uma categoria para o mesmo
 nome completo ou tipo conflitante não escolhe o primeiro resultado. Uma
 correspondência completa pode resolver um conflito que existia só na primeira
 palavra; se o nome completo não resolver, a revisão continua necessária.
+
+As regras também reconhecem cortes de frango (COXA/SOB, filé de peito, sassami),
+açafrão/colorífico, folhas e ervas frescas, AGUA MIN, ALCOOL LIQ, BISC, LING CALAB,
+maionese, massa de pastel, milho verde, ovos, pão, doces, saco de lixo e TRIGO P/KIBE.
+**Pó para refresco → Mercearia**: trata-se de um ingrediente, não de uma garrafa
+pronta para consumo, e a classificação não transforma seu saldo em unidades.
+Coentro/alho em pó são temperos; os frescos e alho-poró são hortifruti.
+
+A migração **V15** reavalia produtos ativos que ainda pertencem a “Sem
+classificação”, usando as categorias e referências do próprio restaurante.
+Só aplica sugestões únicas, sem pedido de revisão. Preserva categorias já
+escolhidas, produtos inativos e casos ambíguos ou sem categoria ativa de destino.
+Todas as decisões usam o mesmo retrato do catálogo para não propagar inferências
+durante a migração. A atualização confere categoria anterior e versão do produto.
+Altera somente a categoria e a versão do cadastro: não muda unidades, quantidades,
+preços, notas confirmadas ou movimentações. O log registra a quantidade corrigida.
 
 Categorias escolhidas ao confirmar uma nota ficam no catálogo e podem ajudar
 as próximas sugestões. O histórico do fornecedor continua exigindo descrição

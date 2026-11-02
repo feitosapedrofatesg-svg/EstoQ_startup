@@ -1,5 +1,20 @@
 # Histórico de mudanças do EstoQ
 
+## 02/11/2026 — classificação de itens pendentes
+
+Auditoria somente em leitura dos cadastros atuais identificou lacunas no
+vocabulário fiscal e produtos que permaneceram sem classificação após melhorias
+anteriores. Ampliadas regras para cortes de frango, hortifruti, condimentos,
+mercearia, molhos, massas e materiais de limpeza, com abreviações e compostos
+específicos. Pó para refresco permanece ingrediente; leite de coco não vira
+laticínio e caldo de carne não vira carne.
+
+A V15 reclassifica apenas produtos ativos em Sem classificação com sugestão
+única dentro do próprio restaurante. Preserva categorias manuais, ambiguidades,
+inativos, unidades, saldos, custos e histórico fiscal. Testes cobrem descrições
+representativas sem dados privados, categorias indisponíveis e isolamento de lojas.
+Entrega limitada a dev e homologacao.
+
 ## 02/11/2026 — bebidas por unidade
 
 Cadastro e importação de bebidas usam UN. O volume continua no nome/descrição;

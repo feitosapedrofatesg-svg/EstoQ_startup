@@ -82,6 +82,19 @@ class NotaFiscalIntegrationTest {
         assertThrows(FieldValidationException.class, () -> produtos.criar(produto));
     }
 
+    @Test void arrozEmUnConverteEmKgUmaUnicaVezEConteudoDesconhecidoNaoEntra() {
+        var nota = analisar(NotaFiscalExemplo.CHAVE,"ARROZ 5KG","UN");
+        var item = nota.itens().getFirst();
+        assertEquals(UnidadeMedida.KG,item.unidadeEstoque());
+        assertEquals(0,new BigDecimal("5").compareTo(item.fator()));
+        var confirmada = notas.confirmar(nota.id(),confirmar(nota,null,categoriaId,item.fator()));
+        assertEquals(0,new BigDecimal("10").compareTo(produtos.buscar(confirmada.itens().getFirst().produtoId()).getSaldoAtual()));
+        var caixa = analisar(NotaFiscalExemplo.CHAVE.replace("000000011","000000021"),"FARINHA 5KG","CX");
+        assertNull(caixa.itens().getFirst().fator());
+        assertThrows(FieldValidationException.class, () -> notas.confirmar(caixa.id(),confirmar(caixa,null,categoriaId,null)));
+        assertFalse(notas.buscar(caixa.id()).confirmada());
+    }
+
     @Test void loteDoFabricanteEntraNaRevisaoENaoDuplicaNaRepeticao() {
         var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ","KG");
         var i=nota.itens().getFirst();

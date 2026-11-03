@@ -377,7 +377,7 @@ export interface ItemNotaFiscalDTO {
   id: number; numero: number; codigo: string; descricao: string; unidadeNota: string;
   quantidadeNota: number; valorBruto: number; desconto: number; valorRateado: number; valorEntrada: number;
   produtoId: number | null; categoriaId: number | null; nomeProduto: string; unidadeEstoque: UnidadeMedida;
-  fator: number; quantidadeEntrada: number | null; validade: string | null;
+  fator: number | null; quantidadeEntrada: number | null; validade: string | null;
   selecionado: boolean; embalagemConfirmada: boolean; incerto: boolean; movimentacaoId: number | null;
   origemCategoria?: string | null; motivoCategoria?: string | null; revisarCategoria?: boolean;
 }

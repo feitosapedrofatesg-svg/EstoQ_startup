@@ -31,12 +31,19 @@ public class EntradaService {
         validation.validar(d);
         var semCusto = Boolean.TRUE.equals(d.semCusto());
         var produto = produtos.encontrar(d.produtoId());
-        var quantidade = ConversorUnidade.converter(d.quantidade(), d.unidadeCompra(), produto.getUnidadeMedida());
+        var quantidade = d.conteudoEmbalagem() == null
+                ? ConversorUnidade.converter(d.quantidade(), d.unidadeCompra(), produto.getUnidadeMedida())
+                : com.estoq.business.produtos.ConversorEmbalagem.calcular(d.quantidade(), d.conteudoEmbalagem(),
+                    d.unidadeConteudo(), produto.getUnidadeMedida());
         var preco = semCusto ? BigDecimal.ZERO : d.valorTotalPago().divide(quantidade, 6, RoundingMode.HALF_UP);
         var lote = lotes.criar(produto, quantidade, quantidade, preco, d.dataValidade(), d.loteFabricante());
         var e = new EntradaModel();
         e.setValorTotalPago(semCusto ? BigDecimal.ZERO : d.valorTotalPago());
         e.setUnidadeCompra(d.unidadeCompra());
+        if (d.conteudoEmbalagem() != null) {
+            e.setQuantidadeCompra(d.quantidade()); e.setConteudoEmbalagem(d.conteudoEmbalagem());
+            e.setUnidadeConteudo(d.unidadeConteudo());
+        }
         e.setDataValidade(d.dataValidade());
         e.registrar(lote, usuarioAtual.obter(), quantidade, BigDecimal.ZERO, quantidade, d.observacao(), null);
         registros.salvar(e);

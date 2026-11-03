@@ -33,6 +33,9 @@ public class EntradaModel extends MovimentacaoEstoqueModel {
     @Column(nullable = false)
     private UnidadeMedida unidadeCompra;
 
+    @Column(precision = 18, scale = 3) private BigDecimal quantidadeCompra;
+    @Column(precision = 18, scale = 6) private BigDecimal conteudoEmbalagem;
+    @Enumerated(EnumType.STRING) @Column(length = 20) private UnidadeMedida unidadeConteudo;
     private LocalDate dataValidade;
 
     public EntradaModel() {

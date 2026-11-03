@@ -56,7 +56,7 @@ test("categoria Bebidas troca volume por unidades e permite doze garrafas por ca
   await page.reload();
   await page.locator("#nota-categoria-1").selectOption("125");
   await expect(page.locator("#nota-unidade-1")).toHaveValue("UN");
-  await expect(page.getByLabel("Unidades por item da nota", { exact: true })).toHaveValue("1");
+  await expect(page.getByLabel("Unidades por item da nota", { exact: true })).toHaveValue("");
   await page.getByLabel("Unidades por item da nota", { exact: true }).fill("12");
   await page.getByLabel("Unidades por item da nota", { exact: true }).blur();
   await expect(page.getByText("Entrada: 24 UN", { exact: true })).toBeVisible();
@@ -101,4 +101,20 @@ test("produto existente preserva categoria e aponta para o catálogo no celular"
   await expect(page.locator("#nota-categoria-1")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: "/tmp/estoq-categoria-mobile.png", fullPage: true });
+});
+
+test("caixa sem conteúdo exige preenchimento antes da confirmação", async ({ page }) => {
+  const estado = await prepararNota(page, { descricao: "ARROZ 5KG", nomeProduto: "ARROZ 5KG", unidadeNota: "CX",
+    unidadeEstoque: "KG", categoriaId: null, fator: null });
+  await expect(page.locator("#nota-fator-1")).toHaveValue("");
+  await page.getByLabel("Conferi os itens, os descontos e os custos rateados").check();
+  await page.getByRole("button", { name: "Confirmar entrada no estoque" }).click();
+  expect(estado.confirmacoes).toHaveLength(0);
+  await expect(page.getByText("Pendências para confirmar a entrada:", { exact: true })).toBeVisible();
+  await page.locator("#nota-fator-1").fill("60");
+  await page.locator("#nota-fator-1").blur();
+  await page.getByLabel("Conferi os itens, os descontos e os custos rateados").check();
+  await page.getByRole("button", { name: "Confirmar entrada no estoque" }).click();
+  await expect(page.getByText(/Esta nota já foi importada/)).toBeVisible();
+  expect(estado.confirmacoes[0].itens[0].fator).toBe(60);
 });

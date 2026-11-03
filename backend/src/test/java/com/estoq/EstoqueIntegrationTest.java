@@ -117,6 +117,26 @@ class EstoqueIntegrationTest {
                 .movimentacoes().getFirst().loteId();
     }
 
+    @Test void compraPorEmbalagemPreservaCustoEPermiteConsumoFracionado() {
+        var resposta = entradas.registrarEntrada(new EntradaRequestDTO(produtoId,n("2"),n("60"),UnidadeMedida.UN,
+            LocalDate.now().plusDays(30),null,false,null,n("5"),UnidadeMedida.KG));
+        var lote = lotes.findById(resposta.movimentacoes().getFirst().loteId()).orElseThrow();
+        igual("10",lote.getQuantidadeAtual()); igual("6",lote.getPrecoUnitario());
+        var entrada = (com.estoq.business.entradas.EntradaModel) movimentos.findById(resposta.movimentacoes().getFirst().id()).orElseThrow();
+        igual("2",entrada.getQuantidadeCompra()); igual("5",entrada.getConteudoEmbalagem());
+        consumos.registrarConsumo(new com.estoq.business.consumos.ConsumoRequestDTO(produtoId,null,n("0.5"),null,null));
+        igual("9.5",produtos.buscar(produtoId).getSaldoAtual());
+    }
+    @Test void converteGramasDepoisDaMultiplicacaoSemArredondarOuAceitarCamposIncompletos() {
+        entradas.registrarEntrada(new EntradaRequestDTO(produtoId,n("2"),n("10"),UnidadeMedida.UN,null,null,false,null,n("500"),UnidadeMedida.G));
+        igual("1",produtos.buscar(produtoId).getSaldoAtual());
+        assertThrows(com.estoq.core.exceptions.FieldValidationException.class, () -> entradas.registrarEntrada(
+            new EntradaRequestDTO(produtoId,n("1"),n("10"),UnidadeMedida.UN,null,null,false,null,n("5"),null)));
+        assertThrows(com.estoq.core.exceptions.FieldValidationException.class, () -> entradas.registrarEntrada(
+            new EntradaRequestDTO(produtoId,n("1"),n("10"),UnidadeMedida.UN,null,null,false,null,n("0.5"),UnidadeMedida.G)));
+        igual("1",produtos.buscar(produtoId).getSaldoAtual());
+    }
+
     @Test
     void loteFabricanteRepetidoPreservaEntradasECustosSeparados() {
         var primeira = entradas.registrarEntrada(new EntradaRequestDTO(produtoId, n("2"), n("20"),

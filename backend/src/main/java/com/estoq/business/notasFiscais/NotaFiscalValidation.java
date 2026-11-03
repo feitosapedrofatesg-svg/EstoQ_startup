@@ -37,11 +37,8 @@ public class NotaFiscalValidation {
         if (item.quantidadeNota()==null || item.quantidadeNota().signum()<=0 || item.quantidadeNota().scale()>6
                 || item.fator()==null || item.fator().signum()<=0 || item.fator().scale()>6)
             erro("Informe quantidade e fator de conversão positivos.");
-        try {
-            var quantidade = item.quantidadeNota().multiply(item.fator()).setScale(3, RoundingMode.UNNECESSARY);
-            if (quantidade.precision()>15) erro("Quantidade acima do limite do estoque.");
-            return quantidade;
-        } catch (ArithmeticException e) { throw new FieldValidationException("quantidade", "A conversão exige mais de três casas decimais. Corrija a quantidade."); }
+        return com.estoq.business.produtos.ConversorEmbalagem.calcular(item.quantidadeNota(), item.fator(),
+                item.unidadeEstoque(), item.unidadeEstoque());
     }
 
     public void validarItem(ConfirmarNotaDTO.Item item) {

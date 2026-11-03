@@ -187,7 +187,7 @@ class MigracaoProdValidacaoTest {
                     """);
         }
         var flyway = Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("classificacao")
-                .locations("classpath:db/migration").load();
+                .locations("classpath:db/migration").target("15").load();
         assertEquals(1, flyway.migrate().migrationsExecuted);
         assertEquals(0, flyway.migrate().migrationsExecuted);
         try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
@@ -242,7 +242,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("15", flyway.info().current().getVersion().toString());
+            assertEquals("16", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -456,7 +456,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("novos_campos").locations("classpath:db/migration").load();
-        assertEquals(5, depois.migrate().migrationsExecuted);
+        assertEquals(6, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             try (var rs = st.executeQuery("select confirmacao_email_obrigatoria,email_confirmado_em,senha,version from novos_campos.usuarios")) {
                 assertTrue(rs.next()); assertTrue(!rs.getBoolean(1)); assertNull(rs.getObject(2));
@@ -485,7 +485,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("login_google").locations("classpath:db/migration").load();
-        assertEquals(3, depois.migrate().migrationsExecuted);
+        assertEquals(4, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             st.execute("set search_path to login_google");
             try (var rs = st.executeQuery("select senha,google_sub from usuarios where email='legado@teste.com'")) {
@@ -514,7 +514,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(15, resultado.migrationsExecuted, "V1 até V15 devem executar no banco legado");
+        assertEquals(16, resultado.migrationsExecuted, "V1 até V16 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

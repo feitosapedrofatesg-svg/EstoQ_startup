@@ -96,7 +96,7 @@ public class NotaFiscalService {
                     .findFirst().orElse(null);
                 if (EstoqueBebida.porUnidade(item.getDescricao(), categoria == null ? null : categoria.getNome())) {
                     item.setUnidadeEstoque(UnidadeMedida.UN);
-                    item.setFator(BigDecimal.ONE);
+                    item.setFator(AssociadorProdutoNota.unidadeAvulsa(item.getUnidadeNota()) ? BigDecimal.ONE : null);
                     item.setEmbalagemConfirmada(AssociadorProdutoNota.unidadeAvulsa(item.getUnidadeNota()));
                 }
                 item.setOrigemCategoria(sugestao.origem());

@@ -42,7 +42,7 @@ class AssociadorProdutoNotaTest {
         var item = item("BEB GAISE H2O LIMAO", "CX");
         associador.sugerir(item,List.of(produto(1,"Suco da casa")),vinculo());
         assertNull(item.getProdutoId()); assertNull(item.getCategoriaId());
-        assertEquals(0,BigDecimal.ONE.compareTo(item.getFator()));
+        assertNull(item.getFator());
         assertFalse(item.isEmbalagemConfirmada()); assertTrue(item.isRevisarCategoria());
         assertTrue(item.getMotivoCategoria().contains("fator anterior não foi reutilizado"));
     }
@@ -70,6 +70,30 @@ class AssociadorProdutoNotaTest {
         assertNull(item.getProdutoId()); assertNull(item.getCategoriaId());
         assertNull(item.getOrigemCategoria()); assertFalse(item.isEmbalagemConfirmada());
         assertEquals(UnidadeMedida.UN,item.getUnidadeEstoque());
-        assertEquals(0,BigDecimal.ONE.compareTo(item.getFator()));
+        assertNull(item.getFator());
+    }
+    @Test void pacotesEmUnConvertemPesoSemMultiplicarNotasQueJaVemEmKg() {
+        var arroz = produto(3,"ARROZ 5KG"); arroz.setUnidadeMedida(UnidadeMedida.KG);
+        for (var un : List.of("UN","UN1","PC1","PC")) {
+            var linha = item("ARROZ 5KG", un); associador.sugerir(linha,List.of(arroz),null);
+            assertEquals(UnidadeMedida.KG,linha.getUnidadeEstoque());
+            assertEquals(0,new BigDecimal("5").compareTo(linha.getFator()));
+        }
+        var peso = item("ARROZ 5KG","KG"); associador.sugerir(peso,List.of(arroz),null);
+        assertEquals(0,BigDecimal.ONE.compareTo(peso.getFator()));
+        var gramas = item("ARROZ 500G","UN"); arroz.setNome("ARROZ 500G");
+        associador.sugerir(gramas,List.of(arroz),null);
+        assertEquals(0,new BigDecimal("0.5").compareTo(gramas.getFator()));
+    }
+    @Test void caixasSemHistoricoMultipacksEHistoricoConflitanteExigemConteudo() {
+        for (var descricao : List.of("ARROZ 5KG","ARROZ 12X5KG","ARROZ")) {
+            var linha = item(descricao,"CX"); associador.sugerir(linha,List.of(),null);
+            assertNull(linha.getFator());
+        }
+        var arroz = produto(1,"ARROZ 5KG"); arroz.setUnidadeMedida(UnidadeMedida.KG);
+        var anterior = vinculo(); anterior.setDescricao("ARROZ 5KG"); anterior.setUnidadeNota("UN");
+        anterior.setUnidadeEstoque(UnidadeMedida.KG); anterior.setFator(BigDecimal.ONE);
+        var linha = item("ARROZ 5KG","UN"); associador.sugerir(linha,List.of(arroz),anterior);
+        assertNull(linha.getFator()); assertFalse(linha.isEmbalagemConfirmada());
     }
 }

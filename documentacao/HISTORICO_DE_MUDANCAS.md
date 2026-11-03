@@ -1,5 +1,21 @@
 # Histórico de mudanças do EstoQ
 
+## 02/11/2026 — compra por embalagem
+
+Notas com UN/UN1/PC/PC1 reconhecem peso ou volume explícito da embalagem. Notas
+já em KG/G/L/ML não multiplicam novamente pelo tamanho descrito. Caixas,
+múltiplas medidas e conflitos de fator pedem conteúdo antes da confirmação.
+Bebidas continuam em UN. Fatores compatíveis já conferidos são preservados.
+
+Entrada manual oferece quantidade direta ou por embalagem, com conteúdo,
+unidade e prévia. O backend converte com precisão decimal e calcula o custo por
+quantidade final. A V16 adiciona metadados opcionais apenas para novas entradas
+por embalagem. Não altera saldos, unidades ou fatores antigos.
+
+Auditoria somente em leitura disponível em `scripts/AuditarEmbalagens.java` e
+resumo em `scripts/resumir_auditoria_embalagens.py`. Compara evidências, preserva
+incertezas e nunca propõe correção automática de saldo. Entrega dev → homologacao.
+
 ## 02/11/2026 — classificação de itens pendentes
 
 Auditoria somente em leitura dos cadastros atuais identificou lacunas no

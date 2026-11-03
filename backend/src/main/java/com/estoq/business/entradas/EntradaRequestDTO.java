@@ -18,7 +18,13 @@ public record EntradaRequestDTO(
         LocalDate dataValidade,
         @Size(max = 500) String observacao,
         Boolean semCusto,
-        @Size(max = 50) String loteFabricante) {
+        @Size(max = 50) String loteFabricante,
+        @DecimalMin(value = "0", inclusive = false) @Digits(integer = 12, fraction = 6) BigDecimal conteudoEmbalagem,
+        UnidadeMedida unidadeConteudo) {
+    public EntradaRequestDTO(Long produtoId, BigDecimal quantidade, BigDecimal valorTotalPago, UnidadeMedida unidadeCompra,
+            LocalDate dataValidade, String observacao, Boolean semCusto, String loteFabricante) {
+        this(produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade, observacao, semCusto, loteFabricante, null, null);
+    }
     public EntradaRequestDTO(Long produtoId, BigDecimal quantidade, BigDecimal valorTotalPago, UnidadeMedida
             unidadeCompra, LocalDate dataValidade, String observacao, Boolean semCusto) {
         this(produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade, observacao, semCusto, null);

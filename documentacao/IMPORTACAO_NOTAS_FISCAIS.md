@@ -237,3 +237,39 @@ O número informado acompanha o lote, o histórico e as exportações.
 
 A migração V12 adiciona somente colunas opcionais; os lotes existentes
 continuam válidos e seus saldos não são alterados. Aplicar junto da V11.
+
+## Conversão de compra por embalagem
+
+UN/UN1/PC/PC1 com uma medida explícita (ex.: ARROZ 5KG) sugerem o conteúdo na
+unidade do produto. Duas embalagens de 5 kg entram como 10 kg; consumir 0,5 kg
+resta 9,5 kg no mesmo lote. Se a nota já informa 5 KG, a entrada continua 5 KG.
+500 G podem ser convertidos para KG sem mudar o cadastro. Bebidas avulsas usam UN.
+
+Caixas sem histórico compatível, descrições com várias medidas ou fatores em
+conflito ficam com conteúdo pendente. É obrigatório preencher um valor positivo
+antes de confirmar; a conferência geral não transforma conteúdo ausente em 1.
+Selecionar outra unidade limpa o fator anterior para nova conferência.
+
+Em Movimentações, a entrada manual permite “Quantidade direta” ou “Por
+embalagem”. No segundo modo, informe quantidade, conteúdo por embalagem e sua
+unidade. A prévia mostra a quantidade final; bebidas pedem número de garrafas,
+não ml. O custo total é dividido pela quantidade convertida.
+
+`POST /api/entradas` aceita `conteudoEmbalagem` e `unidadeConteudo` opcionais,
+sempre juntos e com `unidadeCompra=UN`. Sem eles, mantém a conversão direta
+anterior. A V16 adiciona quantidade da compra e conteúdo/unidade como metadados
+opcionais nas novas entradas por embalagem. O fator da revisão de notas pode ser
+nulo enquanto houver pendência. Não há correção ou preenchimento retroativo.
+
+### Auditoria histórica somente em leitura
+
+Execute `scripts/AuditarEmbalagens.java` com Java 21 e o driver JDBC no classpath,
+fornecendo DATABASE_URL (JDBC), DATABASE_USER e DATABASE_PASSWORD pelo ambiente
+privado, nunca pela linha de comando. O processo usa transação somente em leitura,
+limita o tempo das consultas e retorna JSON com evidências, sem modificar registros.
+
+`python3 scripts/resumir_auditoria_embalagens.py /caminho/privado/auditoria.json`
+separa indícios de divergência e registros para conferência. A quantidade fiscal
+pode ter sido corrigida durante a revisão antiga e não comprova a quantidade
+conferida; por isso não é possível deduzir um saldo correto só da descrição.
+Guarde os relatórios localmente com acesso restrito, fora do Git.

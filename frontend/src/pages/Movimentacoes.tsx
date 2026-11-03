@@ -36,7 +36,6 @@ import type {
 import { useToast } from "../store/toast";
 import { ITENS_POR_PAGINA, Paginacao } from "../components/Paginacao";
 
-const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
 
 const TIPO_LABEL: Record<TipoMovimentacao, string> = {
   ENTRADA: "Entrada",
@@ -304,6 +303,9 @@ function RegisterEntrada({
 
   const [valorTotalPago, setValorTotalPago] = useState<number | null>(null);
   const [unidadeCompra, setUnidadeCompra] = useState<UnidadeMedida>("KG");
+  const [porEmbalagem, setPorEmbalagem] = useState(false);
+  const [conteudoEmbalagem, setConteudoEmbalagem] = useState<number | null>(null);
+  const [unidadeConteudo, setUnidadeConteudo] = useState<UnidadeMedida>("KG");
   const [dataValidade, setDataValidade] = useState("");
   const [semCusto, setSemCusto] = useState(false);
 
@@ -312,12 +314,17 @@ function RegisterEntrada({
   );
 
   useEffect(() => {
-    if (detalheProduto?.unidadeMedida) setUnidadeCompra(detalheProduto.unidadeMedida);
-  }, [detalheProduto?.unidadeMedida]);
+    if (detalheProduto?.unidadeMedida) {
+      setUnidadeCompra(detalheProduto.unidadeMedida);
+      setUnidadeConteudo(detalheProduto.unidadeMedida);
+      setConteudoEmbalagem(null);
+    }
+  }, [detalheProduto?.id, detalheProduto?.unidadeMedida]);
 
   const validate = (): string | null => {
     if (!produtoId) return "Escolha um produto.";
     if (!quantidade || quantidade <= 0) return "Informe uma quantidade maior que zero.";
+    if (porEmbalagem && (!conteudoEmbalagem || conteudoEmbalagem <= 0)) return "Informe o conteúdo de cada embalagem.";
     if (!semCusto && (valorTotalPago === null || valorTotalPago < 0))
       return "Informe o valor total pago, ou marque como Sem custo.";
     if (valorTotalPago === 0) setSemCusto(true);
@@ -337,7 +344,8 @@ function RegisterEntrada({
         produtoId: Number(produtoId),
         quantidade,
         valorTotalPago: semCusto ? 0 : valorTotalPago ?? 0,
-        unidadeCompra,
+        unidadeCompra: porEmbalagem ? "UN" : unidadeCompra,
+        ...(porEmbalagem ? { conteudoEmbalagem, unidadeConteudo } : {}),
         dataValidade: dataValidade || null,
         semCusto,
         observacao: observacao || null,
@@ -350,6 +358,14 @@ function RegisterEntrada({
       setSubmitting(false);
     }
   };
+
+  const unidadeEstoque = detalheProduto?.unidadeMedida ?? "UN";
+  const compativeis = (unidade: UnidadeMedida) => unidade === "KG" || unidade === "G" ? ["KG", "G"]
+    : unidade === "L" || unidade === "ML" ? ["L", "ML"] : ["UN"];
+  const origem = porEmbalagem ? unidadeConteudo : unidadeCompra;
+  const escala = origem === unidadeEstoque ? 1 : (origem === "G" || origem === "ML") ? 0.001 : 1000;
+  const totalEntrada = quantidade == null || (porEmbalagem && conteudoEmbalagem == null) ? null
+    : quantidade * (porEmbalagem ? conteudoEmbalagem ?? 0 : 1) * escala;
 
   return (
     <Modal
@@ -389,28 +405,42 @@ function RegisterEntrada({
       <Field label="Lote do fabricante (opcional)" htmlFor="entrada-lote-fabricante">
         <Input id="entrada-lote-fabricante" maxLength={50} value={loteFabricante} onChange={e => setLoteFabricante(e.target.value)} placeholder="Número impresso na embalagem" />
       </Field>
+      <Field label="Como informar a compra" htmlFor="entrada-modo">
+        <Select id="entrada-modo" value={porEmbalagem ? "embalagem" : "direta"} onChange={e => { setPorEmbalagem(e.target.value === "embalagem"); setQuantidade(null); }}>
+          <option value="direta">Quantidade direta</option><option value="embalagem">Por embalagem</option>
+        </Select>
+      </Field>
       <div className="form-grid-2">
         <NumberField
-          label="Quantidade"
+          label={porEmbalagem ? "Quantidade de embalagens" : "Quantidade"}
           value={quantidade}
           onValue={setQuantidade}
           min={0}
           placeholder="Ex.: 5"
-          suffix={detalheProduto?.unidadeMedida ?? "UN"}
+          suffix={porEmbalagem ? "embalagens" : unidadeCompra}
           error={error && quantidade && quantidade <= 0 ? error : null}
         />
         <Select
-          value={unidadeCompra}
+          disabled={porEmbalagem}
+          value={porEmbalagem ? "UN" : unidadeCompra}
           onChange={(e) => setUnidadeCompra(e.target.value as UnidadeMedida)}
           aria-label="Unidade da compra"
         >
-          {UNIDADES.map((u) => (
+          {(porEmbalagem ? ["UN"] : compativeis(unidadeEstoque)).map((u) => (
             <option key={u} value={u}>
               {u === "UN" ? "Unidade (UN)" : u}
             </option>
           ))}
         </Select>
       </div>
+      {porEmbalagem && <div className="form-grid-2">
+        <NumberField label="Conteúdo de cada embalagem" value={conteudoEmbalagem} onValue={setConteudoEmbalagem} min={0} suffix={unidadeConteudo} />
+        <Select aria-label="Unidade do conteúdo" value={unidadeConteudo} onChange={e => setUnidadeConteudo(e.target.value as UnidadeMedida)}>
+          {compativeis(unidadeEstoque).map(u => <option key={u} value={u}>{u}</option>)}
+        </Select>
+      </div>}
+      {totalEntrada !== null && <p><strong>Entrada: {fmtNum(totalEntrada)} {unidadeEstoque}</strong></p>}
+      {porEmbalagem && unidadeEstoque === "UN" && <p className="muted">Informe unidades por embalagem: 1 para garrafa avulsa ou a quantidade de garrafas por caixa. Não informe o volume em ml.</p>}
       <Field label="Valor total pago (R$)" htmlFor="ent-valor" required={!semCusto}>
         <div className="input-group">
           <input

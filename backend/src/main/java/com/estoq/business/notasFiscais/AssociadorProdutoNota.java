@@ -48,34 +48,51 @@ public class AssociadorProdutoNota {
         } else {
             item.setNomeProduto(item.getDescricao().substring(0,Math.min(120,item.getDescricao().length())));
         }
-        if (produto!=null && vinculoCompativel && produto.getId().equals(vinculo.getProdutoId())
-                && vinculo.getUnidadeEstoque()==produto.getUnidadeMedida()) {
-            item.setFator(vinculo.getFator()); item.setEmbalagemConfirmada(true);
-            return;
+        boolean bebida = produto == null ? EstoqueBebida.porUnidade(item.getDescricao(), null)
+            : produto.getUnidadeMedida() == UnidadeMedida.UN && EstoqueBebida.porUnidade(produto.getNome(), produto.getCategoria().getNome());
+        var direta = unidade(item.getUnidadeNota());
+        var embalagem = Pattern.compile("(?i)(\\d+(?:[.,]\\d+)?)\\s*(KG|ML|G|L)\\b").matcher(item.getDescricao());
+        BigDecimal conteudo = null; UnidadeMedida origem = null; int medidas = 0;
+        while (embalagem.find()) {
+            medidas++; conteudo = new BigDecimal(embalagem.group(1).replace(',', '.'));
+            origem = UnidadeMedida.valueOf(embalagem.group(2).toUpperCase(java.util.Locale.ROOT));
         }
-        if ((produto == null && EstoqueBebida.porUnidade(item.getDescricao(), null))
-                || (produto != null && produto.getUnidadeMedida() == UnidadeMedida.UN
-                    && EstoqueBebida.porUnidade(produto.getNome(), produto.getCategoria().getNome()))) {
-            item.setUnidadeEstoque(UnidadeMedida.UN);
-            item.setFator(BigDecimal.ONE);
-            item.setEmbalagemConfirmada(unidadeAvulsa(item.getUnidadeNota()));
-            return;
-        }
-        var unidadeDireta = unidade(item.getUnidadeNota());
-        var embalagem = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(KG|ML|G|L)\\b", Pattern.CASE_INSENSITIVE).matcher(item.getDescricao());
-        BigDecimal conteudo = BigDecimal.ONE;
-        UnidadeMedida origem = unidadeDireta;
-        if (origem==null && embalagem.find()) {
-            origem = UnidadeMedida.valueOf(embalagem.group(2).toUpperCase());
-            conteudo = new BigDecimal(embalagem.group(1).replace(',','.'));
-        }
-        if (item.getUnidadeEstoque()==null) item.setUnidadeEstoque(origem==null ? UnidadeMedida.UN : origem);
+        boolean multipla = medidas != 1 || Pattern.compile("(?i)\\d\\s*[xX×]\\s*\\d").matcher(item.getDescricao()).find();
+        if (item.getUnidadeEstoque() == null)
+            item.setUnidadeEstoque(bebida ? UnidadeMedida.UN
+                : direta != null && direta != UnidadeMedida.UN ? direta
+                : origem != null ? origem : UnidadeMedida.UN);
+        BigDecimal fator = null;
         try {
-            item.setFator(origem==null ? BigDecimal.ONE : ConversorUnidade.converter(conteudo,origem,item.getUnidadeEstoque()));
-            item.setEmbalagemConfirmada(unidadeDireta!=null);
-        } catch (FieldValidationException e) {
-            item.setFator(BigDecimal.ONE); item.setEmbalagemConfirmada(false);
+            if (bebida) {
+                if (unidadeAvulsa(item.getUnidadeNota())) fator = BigDecimal.ONE;
+            } else if (direta != null && direta != UnidadeMedida.UN) {
+                fator = fator(BigDecimal.ONE, direta, item.getUnidadeEstoque());
+            } else if (unidadeAvulsa(item.getUnidadeNota())) {
+                if (item.getUnidadeEstoque() == UnidadeMedida.UN && direta == UnidadeMedida.UN) fator = BigDecimal.ONE;
+                else if (!multipla) fator = fator(conteudo, origem, item.getUnidadeEstoque());
+            }
+        } catch (FieldValidationException | ArithmeticException e) { fator = null; }
+        boolean historico = produto != null && vinculoCompativel && produto.getId().equals(vinculo.getProdutoId())
+            && vinculo.getUnidadeEstoque() == produto.getUnidadeMedida();
+        if (historico && vinculo.getFator() != null && vinculo.getFator().signum() > 0) {
+            if (fator == null || fator.compareTo(vinculo.getFator()) == 0) {
+                item.setFator(vinculo.getFator()); item.setEmbalagemConfirmada(true); return;
+            }
+            // Não reaproveita silenciosamente um fator antigo incompatível com a medida atual.
+            fator = null;
         }
+        item.setFator(fator);
+        item.setEmbalagemConfirmada(fator != null && direta != null);
+    }
+
+    private BigDecimal fator(BigDecimal conteudo, UnidadeMedida origem, UnidadeMedida destino) {
+        if (origem == destino) return conteudo;
+        if ((origem == UnidadeMedida.G && destino == UnidadeMedida.KG) || (origem == UnidadeMedida.ML && destino == UnidadeMedida.L))
+            return conteudo.divide(new BigDecimal("1000"));
+        if ((origem == UnidadeMedida.KG && destino == UnidadeMedida.G) || (origem == UnidadeMedida.L && destino == UnidadeMedida.ML))
+            return conteudo.multiply(new BigDecimal("1000"));
+        throw new FieldValidationException("unidadeEstoque", "Unidades incompatíveis. Confira o conteúdo da embalagem.");
     }
 
     public static boolean unidadeAvulsa(String valor) {

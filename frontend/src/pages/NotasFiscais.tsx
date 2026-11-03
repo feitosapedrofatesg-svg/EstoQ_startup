@@ -9,11 +9,11 @@ import type { CategoriaDTO, ItemNotaFiscalDTO, NotaFiscalDTO, ProdutoDTO, Unidad
 import { PageHeader, Card, Button, LinkButton, Field, Input, Select, Checkbox, SearchSelect, AlertBanner } from "../components/UI";
 import { useToast } from "../store/toast";
 
-function CampoDecimal({ id, label, value, onValue }: { id: string; label: string; value: number; onValue: (valor: number) => void }) {
-  const [texto, setTexto] = useState(String(value).replace(".", ","));
-  useEffect(() => { setTexto(String(value).replace(".", ",")); }, [value]);
+function CampoDecimal({ id, label, value, onValue }: { id: string; label: string; value: number | null; onValue: (valor: number | null) => void }) {
+  const [texto, setTexto] = useState(value === null ? "" : String(value).replace(".", ","));
+  useEffect(() => { setTexto(value === null ? "" : String(value).replace(".", ",")); }, [value]);
   return <Field label={label} htmlFor={id}><Input id={id} inputMode="decimal" value={texto}
-    onChange={e => setTexto(e.target.value)} onBlur={() => { const novoValor = parseDecimal(texto) ?? NaN; if (!Object.is(novoValor, value)) onValue(novoValor); }} /></Field>;
+    onChange={e => setTexto(e.target.value)} onBlur={() => { const novoValor = parseDecimal(texto) ?? null; if (!Object.is(novoValor, value)) onValue(novoValor); }} /></Field>;
 }
 const UNIDADES: UnidadeMedida[] = ["KG", "G", "L", "ML", "UN"];
 
@@ -41,7 +41,7 @@ function atualizarItem(item: ItemNotaFiscalDTO, campos: Partial<ItemNotaFiscalDT
 
 function ajustarUnidade(item: ItemNotaFiscalDTO, categorias?: CategoriaDTO[] | null): ItemNotaFiscalDTO {
   if (!item.produtoId && bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)) {
-    return { ...item, unidadeEstoque: "UN", fator: item.unidadeEstoque === "UN" ? item.fator : 1 };
+    return { ...item, unidadeEstoque: "UN", fator: item.unidadeEstoque === "UN" ? item.fator : /^(UN|UN1|UND|UNID|UNIDADE|UNIDADES|PC|PC1|PCA)$/i.test(item.unidadeNota) ? 1 : null };
   }
   return item;
 }
@@ -155,7 +155,7 @@ export function NotasFiscais() {
   for (const item of selecionados) {
     const linha = `Item ${item.numero} (${item.descricao})`;
     if (!item.produtoId && !item.nomeProduto?.trim()) pendencias.push(`${linha}: informe o nome do produto.`);
-    if (!Number.isFinite(item.quantidadeNota * item.fator) || item.quantidadeNota <= 0 || item.fator <= 0)
+    if (!Number.isFinite(item.quantidadeNota * (item.fator ?? 0)) || item.quantidadeNota <= 0 || (item.fator ?? 0) <= 0)
       pendencias.push(`${linha}: informe quantidade e conteúdo da embalagem maiores que zero.`);
     if (!Number.isFinite(item.valorEntrada) || item.valorEntrada < 0)
       pendencias.push(`${linha}: informe um custo válido, igual ou maior que zero.`);
@@ -220,7 +220,7 @@ export function NotasFiscais() {
               const produto = produtos.find(p => String(p.id) === valor);
               alterar(item.id, { produtoId: produto?.id ?? null, nomeProduto: produto?.nome ?? item.descricao.slice(0, 120),
                 categoriaId: produto?.categoriaId ?? null, unidadeEstoque: produto?.unidadeMedida ?? item.unidadeEstoque,
-                fator: produto?.unidadeMedida === "UN" && item.unidadeEstoque !== "UN" ? 1 : item.fator,
+                fator: produto?.unidadeMedida !== item.unidadeEstoque ? null : item.fator,
                 embalagemConfirmada: false });
             }} />
           {!item.produtoId && <div className="form-grid-2">
@@ -239,17 +239,18 @@ export function NotasFiscais() {
             </p>}
           </AlertBanner>}
           <div className="form-grid-2">
-            <CampoDecimal label="Quantidade na nota" id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota })} />
-            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, embalagemConfirmada: false })}>
+            <CampoDecimal label="Quantidade na nota" id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota: quantidadeNota ?? NaN })} />
+            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, fator: null, embalagemConfirmada: false })}>
               {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
             </Select></Field>
             <CampoDecimal label={item.unidadeEstoque === "UN" ? "Unidades por item da nota" : "Conteúdo de cada unidade da nota"} id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
-            <CampoDecimal label="Custo total deste item (R$)" id={`nota-custo-${item.id}`} value={item.valorEntrada} onValue={valorEntrada => alterar(item.id, { valorEntrada })} />
+            <CampoDecimal label="Custo total deste item (R$)" id={`nota-custo-${item.id}`} value={item.valorEntrada} onValue={valorEntrada => alterar(item.id, { valorEntrada: valorEntrada ?? NaN })} />
             <Field label="Lote do fabricante (opcional)" htmlFor={`nota-lote-${item.id}`}><Input id={`nota-lote-${item.id}`} maxLength={50} value={item.loteFabricante ?? ""} onChange={e => alterar(item.id, { loteFabricante: e.target.value })} /></Field>
             <Field label="Validade (opcional)" htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
           </div>
           {item.unidadeEstoque === "UN" && <p className="muted">Informe 1 para uma garrafa/lata avulsa ou a quantidade de unidades por caixa. O volume em ml não multiplica o estoque.</p>}
-          <p><strong>Entrada: {fmtNum(item.quantidadeNota * item.fator)} {item.unidadeEstoque}</strong> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</p>
+          {item.fator === null && <AlertBanner tone="warn">Conteúdo não identificado ou em conflito com o histórico. Informe o conteúdo por item da nota antes de confirmar.</AlertBanner>}
+          <p><strong>{item.fator === null ? "Entrada: conteúdo pendente" : `Entrada: ${fmtNum(item.quantidadeNota * item.fator)} ${item.unidadeEstoque}`}</strong>{item.fator !== null && <> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</>}</p>
         </fieldset>}
       </Card>)}
       <div ref={finalLista} className="nota-lista-destino" tabIndex={-1} aria-label="Final da lista de itens" />

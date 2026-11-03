@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,6 +40,7 @@ public class SeedDataConfig {
     private final IParametroCmvRepository parametroCmv;
     private final IConfiguracaoBalancoRepository configuracoes;
     private final PasswordEncoder encoder;
+    private final JdbcTemplate jdbc;
 
     @Bean
     public CommandLineRunner seed(@Value("${estoq.seed.enabled:false}") boolean habilitado) {
@@ -50,6 +52,7 @@ public class SeedDataConfig {
             criarUsuario(tenant, "admin@estoq.com", "Admin@12345", Perfil.ADMIN);
             criarUsuario(tenant, "cozinha@estoq.com", "Cozinha@12345", Perfil.COZINHA);
             criarUsuario(tenant, "nutricionista@estoq.com", "Nutricao@12345", Perfil.NUTRICIONISTA);
+            criarUsuarioPlataforma();
             if (parametroCmv.findFirstByAtivoTrueOrderByIdDesc().isEmpty()) {
                 var cmv = new ParametroCmvModel();
                 cmv.setPercentualIdeal(new BigDecimal("30.00"));
@@ -89,5 +92,18 @@ public class SeedDataConfig {
         usuario.setPerfil(perfil);
         usuario.setRestauranteId(tenant);
         usuarios.saveAndFlush(usuario);
+    }
+
+    /** A conta PLATAFORMA não pertence a um restaurante; o insert direto preserva restaurante_id nulo. */
+    private void criarUsuarioPlataforma() {
+        String email = "plataforma.dev@estoq.com";
+        if (usuarios.existsByEmailIgnoreCase(email)) {
+            return;
+        }
+        jdbc.update("""
+                insert into usuarios (ativo, data_hora_criacao, restaurante_id, version, perfil, senha,
+                                      nome, email, confirmacao_email_obrigatoria)
+                values (true, ?, null, 0, 'PLATAFORMA', ?, 'Plataforma EstoQ', ?, false)
+                """, LocalDateTime.now(ZoneOffset.UTC), encoder.encode("PlataformaDev@12345"), email);
     }
 }

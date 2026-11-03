@@ -111,19 +111,15 @@ java -jar target/estoq-startup.jar --spring.profiles.active=dev
 
 O seed opcional do perfil local `dev` cria contas de demonstração para um
 restaurante local: ADMIN, OPERACIONAL (identificador interno `COZINHA`) e
-NUTRICIONISTA. As credenciais de demonstração ficam no código de seed
-`backend/src/main/java/com/estoq/config/seed/SeedDataConfig.java`; não são
-credenciais de produção e não devem ser usadas em um serviço publicado.
+NUTRICIONISTA. Também cria `plataforma.dev@estoq.com`, uma conta PLATAFORMA sem
+restaurante, para testar o painel global localmente. As credenciais ficam em
+`backend/src/main/java/com/estoq/config/seed/SeedDataConfig.java`; são somente
+para desenvolvimento e não devem ser usadas em nenhum serviço publicado.
 
-A conta PLATAFORMA é outra conta, sem restaurante, criada separadamente no banco
-de produção pelo procedimento de bootstrap. Ela não é criada pelo seed local,
-não herda a senha do ADMIN de demonstração e não tem senha padrão publicada. A
-senha escolhida no bootstrap é independente; consulte
-[configuração do Supabase e criação da PLATAFORMA](documentacao/DEPLOY_SUPABASE.md).
-O e-mail `admin@estoq.com` pode existir nos dois ambientes, mas as contas vivem
-em bancos diferentes e não compartilham senha. Caso uma senha antiga de
-demonstração tenha sido usada na conta PLATAFORMA, troque-a no ambiente de
-produção; apagar uma senha do README não invalida uma credencial já usada.
+A conta de produção é provisionada separadamente, tem senha própria e não é
+criada pelo seed local; consulte [configuração do Supabase e bootstrap da
+PLATAFORMA](documentacao/DEPLOY_SUPABASE.md). O ADMIN `admin@estoq.com` do seed
+pertence ao restaurante local; ele não é a conta PLATAFORMA de produção.
 
 ## Autenticação e segurança
 

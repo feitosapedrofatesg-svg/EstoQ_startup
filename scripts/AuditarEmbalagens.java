@@ -35,7 +35,6 @@ class AuditarEmbalagens {
                     'Inconclusivo: sem conteúdo registrado, não se pode distinguir peso direto de embalagem apenas pelo nome.' as observacao
                   from entradas e join movimentacoes m on m.id=e.id join produtos p on p.id=m.produto_id and p.restaurante_id=m.restaurante_id
                   where (to_jsonb(e)->>'conteudo_embalagem') is null
-                    and p.nome ~* '[0-9]+([.,][0-9]+)?[[:space:]]*(KG|G|ML|L)\\y'
                     and not exists(select 1 from itens_nota_fiscal i where i.movimentacao_id=m.id and i.restaurante_id=m.restaurante_id)
                   order by m.restaurante_id,m.id
                 ) t

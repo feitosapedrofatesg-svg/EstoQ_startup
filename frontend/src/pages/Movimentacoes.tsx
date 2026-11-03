@@ -440,7 +440,7 @@ function RegisterEntrada({
         </Select>
       </div>}
       {totalEntrada !== null && <p><strong>Entrada: {fmtNum(totalEntrada)} {unidadeEstoque}</strong></p>}
-      {porEmbalagem && unidadeEstoque === "UN" && <p className="muted">Informe unidades por embalagem: 1 para garrafa avulsa ou a quantidade de garrafas por caixa. Não informe o volume em ml.</p>}
+      {porEmbalagem && unidadeEstoque === "UN" && <p className="muted">Informe unidades por embalagem: 1 para item avulso ou a quantidade de itens por pacote/caixa. Não informe peso ou volume.</p>}
       <Field label="Valor total pago (R$)" htmlFor="ent-valor" required={!semCusto}>
         <div className="input-group">
           <input

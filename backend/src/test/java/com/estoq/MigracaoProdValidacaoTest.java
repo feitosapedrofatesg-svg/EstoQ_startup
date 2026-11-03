@@ -215,6 +215,51 @@ class MigracaoProdValidacaoTest {
     }
 
     @Test
+    void limpezaMigraPesoVolumeEPacotesPreservandoCustoHistoricoEMetadados() throws Exception {
+        Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("limpeza").locations("classpath:db/migration").target("16").load().migrate();
+        try(var c=DriverManager.getConnection(jdbcUrl); var st=c.createStatement()) {
+            st.execute("set search_path to limpeza");
+            st.execute("""
+                insert into restaurantes(id,nome,ativo,data_hora_criacao,version) values(1,'Loja',true,now(),0),(2,'Outra loja',true,now(),0);
+                insert into categorias(id,restaurante_id,nome,ativo,data_hora_criacao,version) values(1,1,'Limpeza',true,now(),0),(2,1,'Mercearia',true,now(),0),(3,2,'Limpeza',true,now(),0);
+                insert into usuarios(id,restaurante_id,nome,email,senha,perfil,ativo,data_hora_criacao,version) values(1,1,'Admin','teste@teste.com','hash','ADMIN',true,now(),0);
+                insert into produtos(id,restaurante_id,categoria_id,nome,unidade_medida,ativo,data_hora_criacao,version) values
+                (1,1,1,'ESPONJA C/6 45G','G',true,now(),0),(2,1,1,'ALCOOL LIQ 1L','L',true,now(),0),
+                (3,1,1,'SACO LIXO 100L','L',true,now(),0),(4,1,1,'SEM EMBALAGEM','G',true,now(),0),
+                (5,1,2,'ARROZ 5KG','KG',true,now(),0),(6,2,3,'ESPONJA C/6 45G','G',true,now(),0),
+                (7,1,1,'ESPONJA C/6 C/8 45G','G',true,now(),0),(8,1,1,'ESPONJA C/6 45G','G',true,now(),0);
+                insert into lotes(id,restaurante_id,produto_id,codigo,quantidade_inicial,quantidade_atual,preco_unitario,ativo,data_hora_criacao,version) values
+                (1,1,1,'A',90,45,0.06,true,now(),0),(2,1,2,'B',2,1,10,true,now(),0),(3,1,3,'C',500,400,0.02,true,now(),0),
+                (4,1,4,'D',90,90,1,true,now(),0),(5,1,5,'E',10,10,1,true,now(),0),(6,2,6,'F',45,45,0.06,true,now(),0),
+                (7,1,7,'G',90,90,1,true,now(),0),(8,1,8,'H',45,1,0.06,true,now(),0);
+                insert into movimentacoes(id,restaurante_id,tipo,produto_id,lote_id,usuario_id,data_hora,quantidade,quantidade_anterior,quantidade_posterior,ativo,data_hora_criacao,version) values
+                (1,1,'ENTRADA',1,1,1,now(),90,0,90,true,now(),0),(2,1,'CONSUMO',1,1,1,now(),45,90,45,true,now(),0);
+                insert into entradas(id,restaurante_id,valor_total_pago,unidade_compra,quantidade_compra,conteudo_embalagem,unidade_conteudo) values(1,1,5.40,'UN',2,45,'G');
+                insert into consumos(id,restaurante_id) values(2,1);
+                insert into notas_fiscais(id,restaurante_id,chave,fornecedor,documento_fornecedor,numero,serie,valor_total,confirmada,ativo,data_hora_criacao,version) values(1,1,repeat('1',44),'Fornecedor','123','1','1',5.40,true,true,now(),0);
+                insert into itens_nota_fiscal(id,restaurante_id,nota_id,numero,codigo,descricao,unidade_nota,quantidade_nota,valor_bruto,desconto,valor_rateado,valor_entrada,produto_id,unidade_estoque,fator,quantidade_entrada,ativo,data_hora_criacao,version) values
+                (1,1,1,1,'ESP','ESPONJA C/6 45G','UN1',2,5.40,0,0,5.40,1,'G',45,90,true,now(),0);
+                insert into vinculos_fornecedor(id,restaurante_id,documento_fornecedor,codigo,descricao,unidade_nota,produto_id,unidade_estoque,fator,ativo,data_hora_criacao,version) values(1,1,'123','ESP','ESPONJA C/6 45G','UN1',1,'G',45,true,now(),0);
+                """);
+        }
+        var flyway=Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("limpeza").locations("classpath:db/migration").load();
+        assertEquals(1,flyway.migrate().migrationsExecuted); assertEquals(0,flyway.migrate().migrationsExecuted);
+        try(var c=DriverManager.getConnection(jdbcUrl);var st=c.createStatement()) {
+            st.execute("set search_path to limpeza");
+            try(var rs=st.executeQuery("select unidade_medida from produtos order by id")) { assertEquals(List.of("UN","UN","UN","G","KG","UN","G","G"),coletar(rs)); }
+            try(var rs=st.executeQuery("select quantidade_inicial,quantidade_atual,preco_unitario,quantidade_atual*preco_unitario from lotes where id=1")) {
+                rs.next();assertEquals(12,rs.getInt(1));assertEquals(6,rs.getInt(2));assertEquals(0,new java.math.BigDecimal("0.45").compareTo(rs.getBigDecimal(3)));assertEquals(0,new java.math.BigDecimal("2.70").compareTo(rs.getBigDecimal(4)));
+            }
+            try(var rs=st.executeQuery("select quantidade_compra,conteudo_embalagem,unidade_conteudo,valor_total_pago from entradas where id=1")) {
+                rs.next();assertEquals(2,rs.getInt(1));assertEquals(6,rs.getInt(2));assertEquals("UN",rs.getString(3));assertEquals(0,new java.math.BigDecimal("5.40").compareTo(rs.getBigDecimal(4)));
+            }
+            try(var rs=st.executeQuery("select quantidade,quantidade_anterior,quantidade_posterior from movimentacoes where id=2")) {rs.next();assertEquals(6,rs.getInt(1));assertEquals(12,rs.getInt(2));assertEquals(6,rs.getInt(3));}
+            try(var rs=st.executeQuery("select unidade_estoque,fator,quantidade_entrada,quantidade_nota from itens_nota_fiscal where id=1")) {rs.next();assertEquals("UN",rs.getString(1));assertEquals(6,rs.getInt(2));assertEquals(12,rs.getInt(3));assertEquals(2,rs.getInt(4));}
+            try(var rs=st.executeQuery("select unidade_estoque,fator from vinculos_fornecedor where id=1")) {rs.next();assertEquals("UN",rs.getString(1));assertEquals(6,rs.getInt(2));}
+        }
+    }
+
+    @Test
     void migracoesAplicamNumBancoLegado() throws Exception {
         criarLegado(null, List.of());
         rodarMigracoes(null);
@@ -242,7 +287,7 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("16", flyway.info().current().getVersion().toString());
+            assertEquals("17", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
                     "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
@@ -456,7 +501,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("novos_campos").locations("classpath:db/migration").load();
-        assertEquals(6, depois.migrate().migrationsExecuted);
+        assertEquals(7, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             try (var rs = st.executeQuery("select confirmacao_email_obrigatoria,email_confirmado_em,senha,version from novos_campos.usuarios")) {
                 assertTrue(rs.next()); assertTrue(!rs.getBoolean(1)); assertNull(rs.getObject(2));
@@ -485,7 +530,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("login_google").locations("classpath:db/migration").load();
-        assertEquals(4, depois.migrate().migrationsExecuted);
+        assertEquals(5, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             st.execute("set search_path to login_google");
             try (var rs = st.executeQuery("select senha,google_sub from usuarios where email='legado@teste.com'")) {
@@ -514,7 +559,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(16, resultado.migrationsExecuted, "V1 até V16 devem executar no banco legado");
+        assertEquals(17, resultado.migrationsExecuted, "V1 até V17 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {

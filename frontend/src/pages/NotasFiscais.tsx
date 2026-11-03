@@ -1,5 +1,6 @@
 import { mensagemErro } from "../lib/api";
-import { bebidaPorUnidade } from "../lib/estoqueBebida";
+import { limpezaPorUnidade, unidadesLimpeza } from "../lib/estoqueLimpeza";
+import { estoquePorUnidade } from "../lib/estoquePorUnidade";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
@@ -40,8 +41,10 @@ function atualizarItem(item: ItemNotaFiscalDTO, campos: Partial<ItemNotaFiscalDT
 }
 
 function ajustarUnidade(item: ItemNotaFiscalDTO, categorias?: CategoriaDTO[] | null): ItemNotaFiscalDTO {
-  if (!item.produtoId && bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)) {
-    return { ...item, unidadeEstoque: "UN", fator: item.unidadeEstoque === "UN" ? item.fator : /^(UN|UN1|UND|UNID|UNIDADE|UNIDADES|PC|PC1|PCA)$/i.test(item.unidadeNota) ? 1 : null };
+  if (!item.produtoId && estoquePorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)) {
+    const limpeza = limpezaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome);
+    const avulsa = /^(UN|UN1|UND|UNID|UNIDADE|UNIDADES|PC|PC1|PCA|FR|FR1|FRASCO|FRASCO1)$/i.test(item.unidadeNota);
+    return { ...item, unidadeEstoque: "UN", fator: item.unidadeEstoque === "UN" ? item.fator : avulsa ? limpeza ? unidadesLimpeza(item.descricao) : 1 : null };
   }
   return item;
 }
@@ -240,7 +243,7 @@ export function NotasFiscais() {
           </AlertBanner>}
           <div className="form-grid-2">
             <CampoDecimal label="Quantidade na nota" id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota: quantidadeNota ?? NaN })} />
-            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || bebidaPorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, fator: null, embalagemConfirmada: false })}>
+            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || estoquePorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, fator: null, embalagemConfirmada: false })}>
               {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
             </Select></Field>
             <CampoDecimal label={item.unidadeEstoque === "UN" ? "Unidades por item da nota" : "Conteúdo de cada unidade da nota"} id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
@@ -248,7 +251,7 @@ export function NotasFiscais() {
             <Field label="Lote do fabricante (opcional)" htmlFor={`nota-lote-${item.id}`}><Input id={`nota-lote-${item.id}`} maxLength={50} value={item.loteFabricante ?? ""} onChange={e => alterar(item.id, { loteFabricante: e.target.value })} /></Field>
             <Field label="Validade (opcional)" htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
           </div>
-          {item.unidadeEstoque === "UN" && <p className="muted">Informe 1 para uma garrafa/lata avulsa ou a quantidade de unidades por caixa. O volume em ml não multiplica o estoque.</p>}
+          {item.unidadeEstoque === "UN" && <p className="muted">Informe 1 para item avulso ou a quantidade de unidades por pacote/caixa. Ex.: pacote com 6 esponjas = 6 UN. Peso e volume não multiplicam o estoque.</p>}
           {item.fator === null && <AlertBanner tone="warn">Conteúdo não identificado ou em conflito com o histórico. Informe o conteúdo por item da nota antes de confirmar.</AlertBanner>}
           <p><strong>{item.fator === null ? "Entrada: conteúdo pendente" : `Entrada: ${fmtNum(item.quantidadeNota * item.fator)} ${item.unidadeEstoque}`}</strong>{item.fator !== null && <> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</>}</p>
         </fieldset>}

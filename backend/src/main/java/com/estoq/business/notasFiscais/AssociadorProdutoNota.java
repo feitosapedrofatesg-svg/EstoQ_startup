@@ -48,8 +48,8 @@ public class AssociadorProdutoNota {
         } else {
             item.setNomeProduto(item.getDescricao().substring(0,Math.min(120,item.getDescricao().length())));
         }
-        boolean bebida = produto == null ? EstoqueBebida.porUnidade(item.getDescricao(), null)
-            : produto.getUnidadeMedida() == UnidadeMedida.UN && EstoqueBebida.porUnidade(produto.getNome(), produto.getCategoria().getNome());
+        boolean porUnidade = produto == null ? EstoquePorUnidade.aplicar(item.getDescricao(), null)
+            : produto.getUnidadeMedida() == UnidadeMedida.UN && EstoquePorUnidade.aplicar(produto.getNome(), produto.getCategoria().getNome());
         var direta = unidade(item.getUnidadeNota());
         var embalagem = Pattern.compile("(?i)(\\d+(?:[.,]\\d+)?)\\s*(KG|ML|G|L)\\b").matcher(item.getDescricao());
         BigDecimal conteudo = null; UnidadeMedida origem = null; int medidas = 0;
@@ -59,13 +59,15 @@ public class AssociadorProdutoNota {
         }
         boolean multipla = medidas != 1 || Pattern.compile("(?i)\\d\\s*[xX×]\\s*\\d").matcher(item.getDescricao()).find();
         if (item.getUnidadeEstoque() == null)
-            item.setUnidadeEstoque(bebida ? UnidadeMedida.UN
+            item.setUnidadeEstoque(porUnidade ? UnidadeMedida.UN
                 : direta != null && direta != UnidadeMedida.UN ? direta
                 : origem != null ? origem : UnidadeMedida.UN);
         BigDecimal fator = null;
         try {
-            if (bebida) {
-                if (unidadeAvulsa(item.getUnidadeNota())) fator = BigDecimal.ONE;
+            if (porUnidade) {
+                if (EstoqueLimpeza.porUnidade(item.getDescricao(), produto == null ? null : produto.getCategoria().getNome())) {
+                    if (EstoqueLimpeza.embalagemAvulsa(item.getUnidadeNota())) fator = EstoqueLimpeza.unidadesPorEmbalagem(item.getDescricao());
+                } else if (unidadeAvulsa(item.getUnidadeNota())) fator = BigDecimal.ONE;
             } else if (direta != null && direta != UnidadeMedida.UN) {
                 fator = fator(BigDecimal.ONE, direta, item.getUnidadeEstoque());
             } else if (unidadeAvulsa(item.getUnidadeNota())) {

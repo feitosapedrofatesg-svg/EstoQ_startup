@@ -273,3 +273,23 @@ separa indícios de divergência e registros para conferência. A quantidade fis
 pode ter sido corrigida durante a revisão antiga e não comprova a quantidade
 conferida; por isso não é possível deduzir um saldo correto só da descrição.
 Guarde os relatórios localmente com acesso restrito, fora do Git.
+
+## Limpeza e higiene em UN
+
+Esponjas, detergentes, desinfetantes, sabão, álcool de limpeza, sacos de lixo e
+outros itens da categoria Limpeza/Higiene são controlados em UN. O peso ou volume
+no nome informa a embalagem: 500 ml de detergente não são 500 unidades, e 100 L
+no saco de lixo é capacidade. Um frasco avulso (UN/UN1/FR1) entra como 1 UN.
+
+C/6, COM 6 e 6 UN indicam seis peças por embalagem. Duas embalagens de esponja
+C/6 45G entram como 12 UN. Caixas sem contagem confiável e contagens conflitantes
+exigem conteúdo na revisão. Na entrada manual, produtos de limpeza usam unidades
+por pacote; a API rejeita novos cadastros desses produtos em peso ou volume.
+
+A V17 aplica a mesma medida aos cadastros antigos quando a conversão é exata,
+preservando quantidades fiscais originais e valores pagos. Converte lotes,
+movimentações, balanços, abertos, parâmetros, fatores de notas/fornecedores e os
+novos metadados de embalagem da V16. Quantidade inicial e atual, assim como preços,
+são tratados juntos. Requer bloqueio breve das tabelas; indisponibilidade do
+bloqueio encerra a migração sem alteração parcial. Não adivinha fatores ou
+arredonda quantidades/preços históricos incompatíveis; pendências aparecem no log.

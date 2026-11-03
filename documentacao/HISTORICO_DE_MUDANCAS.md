@@ -1,5 +1,18 @@
 # Histórico de mudanças do EstoQ
 
+## 02/11/2026 — limpeza por unidade
+
+Materiais de limpeza e higiene usam UN no catálogo, na API e nas notas fiscais.
+Peso, volume do frasco e capacidade do saco não multiplicam o saldo. Pacotes
+com contagem explícita preservam as peças: duas embalagens C/6 de esponja 45 g
+entram como 12 UN; consumir uma deixa 11 UN. FR1 também identifica frasco avulso.
+
+A V17 converte cadastros antigos em G/KG/L/ML usando fatores das notas e contagem
+por pacote, ajustando histórico, custo unitário, parâmetros e metadados de
+embalagem juntos. Bloqueia as tabelas durante a conversão para evitar operações
+na unidade antiga. Sem evidência, com conflito ou perda de precisão, preserva
+os registros e avisa no log. Entrega limitada a dev e homologacao.
+
 ## 02/11/2026 — compra por embalagem
 
 Notas com UN/UN1/PC/PC1 reconhecem peso ou volume explícito da embalagem. Notas

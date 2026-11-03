@@ -16,10 +16,10 @@ public class ProdutoValidation extends GenericValidation<ProdutoModel> implement
         if (!p.getCategoria().isAtivo()) {
             throw new FieldValidationException("categoriaId", "A categoria deve estar ativa.");
         }
-        if (EstoqueBebida.porUnidade(p.getNome(), p.getCategoria().getNome())
+        if (EstoquePorUnidade.aplicar(p.getNome(), p.getCategoria().getNome())
                 && p.getUnidadeMedida() != UnidadeMedida.UN) {
             throw new FieldValidationException("unidadeMedida",
-                    "Bebidas devem ser controladas em unidades (UN). O volume da embalagem pode constar no nome.");
+                    "Bebidas e materiais de limpeza devem ser controlados em unidades (UN). Peso e volume podem constar no nome.");
         }
     }
 }

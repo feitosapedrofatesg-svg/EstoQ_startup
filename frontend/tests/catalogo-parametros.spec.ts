@@ -82,3 +82,15 @@ test("é possível remover os níveis padrão e optar por zero", async ({ page }
   await expect(modal).not.toBeVisible();
   expect(envios[0]).toMatchObject({ estoqueMinimo: 0, estoqueMedio: 0, estoqueMaximo: 0, consumoMedioDiario: 0 });
 });
+
+test("esponjas e categoria Limpeza usam UN no catálogo", async ({ page }) => {
+  await prepararParametros(page);
+  const modal = await novoProduto(page);
+  await modal.getByRole("textbox", { name: "Nome", exact: true }).fill("ESPONJA DE ACO C/6 45G");
+  await expect(modal.getByRole("combobox")).toHaveValue("UN");
+  await expect(modal.getByRole("combobox")).toBeDisabled();
+  const envio = page.waitForRequest(req => req.url().endsWith("/api/produtos") && req.method() === "POST");
+  await modal.getByRole("button", { name: "Salvar produto", exact: true }).click();
+  expect((await envio).postDataJSON()).toMatchObject({ unidadeMedida: "UN" });
+  await expect(modal).not.toBeVisible();
+});

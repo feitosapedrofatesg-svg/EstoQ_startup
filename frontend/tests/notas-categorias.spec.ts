@@ -118,3 +118,16 @@ test("caixa sem conteúdo exige preenchimento antes da confirmação", async ({ 
   await expect(page.getByText(/Esta nota já foi importada/)).toBeVisible();
   expect(estado.confirmacoes[0].itens[0].fator).toBe(60);
 });
+
+test("esponja C/6 deixa de usar gramas e mostra doze peças", async ({ page }) => {
+  const estado = await prepararNota(page, { descricao: "ESPONJA DE ACO C/6 45G", nomeProduto: "ESPONJA DE ACO C/6 45G",
+    unidadeNota: "UN1", quantidadeNota: 2, unidadeEstoque: "G", fator: 45, categoriaId: null });
+  await expect(page.locator("#nota-unidade-1")).toHaveValue("UN");
+  await expect(page.locator("#nota-unidade-1")).toBeDisabled();
+  await expect(page.locator("#nota-fator-1")).toHaveValue("6");
+  await expect(page.getByText("Entrada: 12 UN", { exact: true })).toBeVisible();
+  await page.getByLabel("Conferi os itens, os descontos e os custos rateados").check();
+  await page.getByRole("button", { name: "Confirmar entrada no estoque" }).click();
+  await expect(page.getByText(/Esta nota já foi importada/)).toBeVisible();
+  expect(estado.confirmacoes[0].itens[0]).toMatchObject({ unidadeEstoque: "UN", fator: 6 });
+});

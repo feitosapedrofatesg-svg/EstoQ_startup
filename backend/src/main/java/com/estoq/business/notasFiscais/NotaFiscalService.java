@@ -94,9 +94,11 @@ public class NotaFiscalService {
                 item.setCategoriaId(sugestao.categoriaId());
                 var categoria = disponiveis.stream().filter(c -> c.getId().equals(item.getCategoriaId()))
                     .findFirst().orElse(null);
-                if (EstoqueBebida.porUnidade(item.getDescricao(), categoria == null ? null : categoria.getNome())) {
+                if (EstoquePorUnidade.aplicar(item.getDescricao(), categoria == null ? null : categoria.getNome())) {
                     item.setUnidadeEstoque(UnidadeMedida.UN);
-                    item.setFator(AssociadorProdutoNota.unidadeAvulsa(item.getUnidadeNota()) ? BigDecimal.ONE : null);
+                    boolean limpeza = EstoqueLimpeza.porUnidade(item.getDescricao(), categoria == null ? null : categoria.getNome());
+                    item.setFator(limpeza ? (EstoqueLimpeza.embalagemAvulsa(item.getUnidadeNota()) ? EstoqueLimpeza.unidadesPorEmbalagem(item.getDescricao()) : null)
+                        : AssociadorProdutoNota.unidadeAvulsa(item.getUnidadeNota()) ? BigDecimal.ONE : null);
                     item.setEmbalagemConfirmada(AssociadorProdutoNota.unidadeAvulsa(item.getUnidadeNota()));
                 }
                 item.setOrigemCategoria(sugestao.origem());

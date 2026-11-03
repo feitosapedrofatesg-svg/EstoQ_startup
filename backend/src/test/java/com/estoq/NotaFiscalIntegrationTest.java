@@ -95,6 +95,20 @@ class NotaFiscalIntegrationTest {
         assertFalse(notas.buscar(caixa.id()).confirmada());
     }
 
+    @Test void duasEmbalagensDeSeisEsponjasEntramComoDozeUnidadesEConsumoBaixaUma() {
+        var nota=analisar(NotaFiscalExemplo.CHAVE,"ESPONJA DE ACO MARCA C/6 45G","UN1");
+        var item=nota.itens().getFirst();
+        assertEquals(UnidadeMedida.UN,item.unidadeEstoque()); assertEquals(0,new BigDecimal("6").compareTo(item.fator()));
+        var confirmada=notas.confirmar(nota.id(),confirmar(nota,null,categoriaId,item.fator()));
+        var id=confirmada.itens().getFirst().produtoId();
+        assertEquals(0,new BigDecimal("12").compareTo(produtos.buscar(id).getSaldoAtual()));
+        consumo.registrarConsumo(new com.estoq.business.consumos.ConsumoRequestDTO(id,null,BigDecimal.ONE,null,null));
+        assertEquals(0,new BigDecimal("11").compareTo(produtos.buscar(id).getSaldoAtual()));
+        var dto=new ProdutoDTO(); dto.setNome("Produto de limpeza especial"); dto.setUnidadeMedida(UnidadeMedida.G);
+        var categoria=new CategoriaModel(); categoria.setNome("Limpeza"); categorias.saveAndFlush(categoria); dto.setCategoriaId(categoria.getId());
+        assertThrows(FieldValidationException.class,()->produtos.criar(dto));
+    }
+
     @Test void loteDoFabricanteEntraNaRevisaoENaoDuplicaNaRepeticao() {
         var nota=analisar(NotaFiscalExemplo.CHAVE,"ARROZ","KG");
         var i=nota.itens().getFirst();

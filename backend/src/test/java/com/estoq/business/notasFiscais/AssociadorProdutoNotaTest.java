@@ -96,4 +96,15 @@ class AssociadorProdutoNotaTest {
         var linha = item("ARROZ 5KG","UN"); associador.sugerir(linha,List.of(arroz),anterior);
         assertNull(linha.getFator()); assertFalse(linha.isEmbalagemConfirmada());
     }
+    @Test void limpezaIgnoraPesoEVolumeMasContaPecasDoPacote() {
+        for (var caso : java.util.Map.of("ESPONJA DE ACO C/6 45G","6","DETERGENTE 500ML","1","SACO LIXO 100L","1").entrySet()) {
+            var linha=item(caso.getKey(),"UN1"); associador.sugerir(linha,List.of(),null);
+            assertEquals(UnidadeMedida.UN,linha.getUnidadeEstoque());
+            assertEquals(0,new BigDecimal(caso.getValue()).compareTo(linha.getFator()));
+        }
+        var frasco=item("DESINF MARCA 1L","FR1"); associador.sugerir(frasco,List.of(),null);
+        assertEquals(UnidadeMedida.UN,frasco.getUnidadeEstoque()); assertEquals(0,BigDecimal.ONE.compareTo(frasco.getFator()));
+        var caixa=item("ESPONJA 45G","CX"); associador.sugerir(caixa,List.of(),null); assertNull(caixa.getFator());
+        var pacote=item("ESPONJA C/6 C/8 45G","PC1"); associador.sugerir(pacote,List.of(),null); assertNull(pacote.getFator());
+    }
 }

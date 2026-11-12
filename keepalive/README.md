@@ -1,10 +1,10 @@
 # estoQ keep-alive (Cloudflare Workers)
 
-Worker Cloudflare que pode consultar a prontidão do backend de produção pelo
-endpoint `/api/saude/pronto` (público e sem criar sessão). O agendamento
-automático está desativado na configuração versionada em `wrangler.toml`
-(`crons = []`). Para aplicar a mudança ao Worker já publicado, faça deploy da
-configuração com `wrangler deploy`; o estado publicado não foi verificado aqui.
+Worker Cloudflare que consulta a prontidão do backend de produção pelo
+endpoint `/api/saude/pronto` (público e sem criar sessão). O agendamento está
+configurado para cada 10 minutos. Como `/pronto` consulta o banco, o cron pode
+mantê-lo ativo e aumentar o consumo de compute enquanto estiver ligado. Para
+aplicar a configuração ao Worker publicado, faça deploy com `wrangler deploy`.
 
 ## Deploy (uma vez)
 

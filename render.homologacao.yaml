@@ -4,7 +4,8 @@ services:
   - type: web
     name: estoq-backend-homologacao
     runtime: docker
-    plan: free
+    # Backend sempre ativo para evitar cold start após 15 min de inatividade.
+    plan: starter
     repo: https://github.com/feitosapedrofatesg-svg/EstoQ_startup
     branch: homologacao
     region: oregon

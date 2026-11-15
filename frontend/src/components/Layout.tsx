@@ -146,7 +146,7 @@ function AlertBell() {
   return (
     <div className="bell" ref={boxRef}>
       <button
-        className="bell__btn"
+        className="bell__btn btn--raised"
         onClick={openPanel}
         aria-label={`Alertas${count ? `, ${count} novos` : ""}`}
         aria-expanded={open}
@@ -174,7 +174,7 @@ function AlertBell() {
                     <p className="bell__msg">{a.mensagem}</p>
                     <p className="bell__time">{fmtDateTime(a.dataGeracao)}</p>
                   </div>
-                  <button className="bell__seen" disabled={marcando !== null} onClick={() => markSeen(a.id)}>
+                  <button className="bell__seen btn--raised" disabled={marcando !== null} onClick={() => markSeen(a.id)}>
                     {marcando === a.id ? "Marcando…" : "Marcar como visto"}
                   </button>
                 </li>
@@ -263,7 +263,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <RoleLabel perfil={perfil} />
             </div>
           </div>
-          <button className="sidebar__logout" onClick={() => void logout()} aria-label="Sair da conta">
+          <button className="sidebar__logout btn--raised" onClick={() => void logout()} aria-label="Sair da conta">
             <Icon name="logout" size={18} />
           </button>
         </div>
@@ -272,7 +272,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <div className="main">
         <header className="topbar">
           <button
-            className="topbar__menu"
+            className="topbar__menu btn--raised"
             onClick={() => setNavOpen((o) => !o)}
             aria-label={navOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={navOpen}

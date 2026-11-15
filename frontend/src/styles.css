@@ -685,7 +685,7 @@ a:hover {
 
 .login__password-toggle {
   place-items: center;
-  transform: translateY(-50%);
+  translate: 0 -50%;
   border: 0;
   border-radius: 7px;
   background: transparent;
@@ -1685,20 +1685,40 @@ a:hover {
   font-weight: 600;
 }
 
-.cmv-filters__refresh {
+/* Reutiliza o modelo original de Recalcular nos botões de ação. */
+.btn--raised {
   border-radius: var(--r-sm);
   box-shadow: 0 3px 0 var(--shadow-accent);
   transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
-.cmv-filters__refresh:not(:disabled):hover {
+.btn--raised:not(:disabled):hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 0 var(--shadow-accent);
 }
 
-.cmv-filters__refresh:not(:disabled):active {
+.btn--raised:not(:disabled):active {
   transform: translateY(1px);
   box-shadow: 0 1px 0 var(--shadow-accent);
+}
+
+.btn--raised:disabled {
+  box-shadow: none;
+  transform: none;
+}
+
+.btn--raised:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn--raised,
+  .btn--raised:not(:disabled):hover,
+  .btn--raised:not(:disabled):active {
+    transform: none;
+    transition: none;
+  }
 }
 
 .cmv-filters__refresh svg {

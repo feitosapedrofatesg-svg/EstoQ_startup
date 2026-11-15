@@ -55,10 +55,10 @@ export function Estoque() {
         actions={
           user && (user.perfil === "ADMIN" || user.perfil === "COZINHA") ? (
             <>
-              <LinkButton to="/consumo" icon="check-circle">
+              <LinkButton to="/consumo" icon="check-circle" className="btn--raised">
                 Registrar consumo
               </LinkButton>
-              <LinkButton to="/desperdicio" icon="trash">
+              <LinkButton to="/desperdicio" icon="trash" className="btn--raised">
                 Registrar desperdício
               </LinkButton>
             </>
@@ -213,7 +213,7 @@ function ProdutoDetalhe({
       </div>
 
       <div className="form-actions" style={{ justifyContent: "flex-end", marginTop: 0 }}>
-        <LinkButton to={`/desperdicio?produto=${produto.produtoId}`} icon="trash">
+        <LinkButton to={`/desperdicio?produto=${produto.produtoId}`} icon="trash" className="btn--raised">
           Registrar desperdício
         </LinkButton>
       </div>

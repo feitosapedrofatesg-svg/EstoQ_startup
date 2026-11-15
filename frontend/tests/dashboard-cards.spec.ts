@@ -126,12 +126,15 @@ for (const width of [320, 1440]) {
   });
 }
 
-test("botões do Dashboard respondem ao teclado e preservam o foco", async ({ page }) => {
+test("botões do Dashboard usam o relevo de Recalcular e preservam o foco por teclado", async ({ page }) => {
   await prepararDashboard(page);
   const reload = page.getByRole("button", { name: "Recarregar faturamento", exact: true });
+  await expect(reload).toHaveClass(/btn--raised/);
+  await expect(reload).not.toHaveClass(/dashboard-tactile-control/);
+  await expect(reload).toHaveCSS("box-shadow", "rgb(217, 94, 14) 0px 3px 0px 0px");
   await reload.focus();
   await page.keyboard.down(" ");
-  await expect.poll(() => deslocamento(reload)).toEqual([-1, 6]);
+  await expect.poll(() => deslocamento(reload)).toEqual([0, 1]);
   await page.keyboard.up(" ");
   await expect.poll(() => deslocamento(reload)).toEqual([0, 0]);
   await expect(reload).toBeFocused();

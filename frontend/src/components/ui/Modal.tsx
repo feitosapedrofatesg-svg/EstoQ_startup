@@ -85,7 +85,7 @@ export function Modal({
           <h2 className="modal__title" id={labelledBy ?? id}>
             {title}
           </h2>
-          <button className="modal__x" onClick={onClose} aria-label="Fechar janela">
+          <button className="modal__x btn--raised" onClick={onClose} aria-label="Fechar janela">
             <Icon name="x" size={18} />
           </button>
         </div>

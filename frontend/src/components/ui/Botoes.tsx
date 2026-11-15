@@ -29,16 +29,13 @@ export function Button({
   disabled,
   ...rest
 }: BtnProps) {
-  const tactile = useDashboardTactile<HTMLButtonElement>(disabled || loading, rest);
   return (
     <button
       type="button"
-      ref={tactile.ref}
-      className={`btn btn--${variant} btn--${size} ${block ? "btn--block" : ""} ${className} ${tactile.className}`}
+      className={`btn btn--${variant} btn--${size} ${variant !== "link" ? "btn--raised" : ""} ${block ? "btn--block" : ""} ${className}`}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}
-      {...tactile.events}
     >
       {loading ? (
         <span className="spinner spinner--sm" aria-hidden="true" />

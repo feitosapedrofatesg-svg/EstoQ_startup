@@ -111,9 +111,8 @@ export function useDashboardTactile<T extends HTMLElement>(disabled = false, ori
   return { ref: enabled ? scope : undefined, className: enabled && !disabled ? "dashboard-tactile-control" : "", events };
 }
 
-/** Preserva os botões de texto dos alertas sem trocar sua apresentação por um botão preenchido. */
+/** Mantém as cores dos alertas com o relevo compartilhado pelos botões de ação. */
 export function DashboardTactileAction({ className = "", disabled, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  const tactile = useDashboardTactile<HTMLButtonElement>(disabled, props);
-  return <button type="button" {...props} disabled={disabled} ref={tactile.ref}
-    className={`${className} ${tactile.className}`} {...tactile.events} />;
+  return <button type="button" {...props} disabled={disabled}
+    className={`${className} btn--raised`} />;
 }

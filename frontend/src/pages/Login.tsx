@@ -114,7 +114,7 @@ export function Login() {
               />
               <button
                 type="button"
-                className="login__password-toggle"
+                className="login__password-toggle btn--raised"
                 aria-label={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
                 aria-pressed={senhaVisivel}
                 onMouseDown={(e) => e.preventDefault()}

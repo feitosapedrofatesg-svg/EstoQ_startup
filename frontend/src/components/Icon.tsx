@@ -185,6 +185,7 @@ const PATHS: Record<string, ReactElement> = {
       <path d="M6 14h12v8H6z" />
     </>
   ),
+  "chevron-left": <path d="m15 6-6 6 6 6" />,
   "chevron-right": <path d="m9 6 6 6-6 6" />,
   store: (
     <>

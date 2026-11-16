@@ -84,7 +84,8 @@ function AppRoutes() {
   if (location.pathname === "/privacidade") return <Privacidade />;
   if (location.pathname === "/confirmar-email") return <ConfirmarEmail />;
   if (location.pathname === "/verificar-email") return <VerificarEmail />;
-  if (!ready) return <Splash />;
+  const publica = ["/", "/login", "/registro", "/registro/google"].includes(location.pathname);
+  if (!ready && !publica) return <Splash />;
 
   // Sem sessão: só as telas públicas de entrada e cadastro.
   if (!user) {

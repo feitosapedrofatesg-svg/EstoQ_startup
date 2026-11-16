@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -39,43 +40,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUserDTO | null>(null);
   const [ready, setReady] = useState(false);
   const toast = useToast();
+  const consultaSessao = useRef<AbortController | null>(null);
+  const geracaoAuth = useRef(0);
+  const usuarioSessao = useRef<AuthenticatedUserDTO | null>(null);
+
+  const cancelarConsulta = useCallback(() => {
+    geracaoAuth.current++;
+    consultaSessao.current?.abort();
+    consultaSessao.current = null;
+  }, []);
 
   const atualizarUsuario = useCallback((novo: AuthenticatedUserDTO | null) => {
+    // Uma consulta inicial anônima não invalida formulários/requisições públicas já abertas.
+    if (novo === null && usuarioSessao.current === null) return;
+    usuarioSessao.current = novo;
     reiniciarCache(novo ? `${novo.restauranteId ?? 0}|${novo.id}|${novo.perfil}` : "anonimo");
     setUser(novo);
   }, []);
 
   const refetchMe = useCallback(async () => {
+    cancelarConsulta();
+    const geracao = geracaoAuth.current;
+    const controller = new AbortController();
+    consultaSessao.current = controller;
+    const vigente = () => geracao === geracaoAuth.current && !controller.signal.aborted;
     try {
-      atualizarUsuario(await api.get<AuthenticatedUserDTO>("/api/auth/me"));
+      const usuario = await api.get<AuthenticatedUserDTO>("/api/auth/me", {
+        signal: controller.signal, notifyUnauthorized: false,
+      });
+      if (vigente()) atualizarUsuario(usuario);
     } catch {
-      atualizarUsuario(null);
+      if (vigente()) atualizarUsuario(null);
     } finally {
-      setReady(true);
+      if (vigente()) {
+        consultaSessao.current = null;
+        setReady(true);
+      }
     }
-  }, [atualizarUsuario]);
+  }, [atualizarUsuario, cancelarConsulta]);
 
   useEffect(() => {
     void refetchMe();
-  }, [refetchMe]);
+    return cancelarConsulta;
+  }, [refetchMe, cancelarConsulta]);
 
   useEffect(() => {
     const onUnauthorized = () => {
+      cancelarConsulta();
       atualizarUsuario(null);
+      setReady(true);
       resetCsrf();
     };
     window.addEventListener("estoq:unauthorized", onUnauthorized);
     return () => window.removeEventListener("estoq:unauthorized", onUnauthorized);
-  }, [atualizarUsuario]);
+  }, [atualizarUsuario, cancelarConsulta]);
 
   const concluirLogin = useCallback((u: AuthenticatedUserDTO) => {
+    cancelarConsulta();
     atualizarUsuario(u);
+    setReady(true);
     resetCsrf();
     toast.success(`Bem-vindo(a), ${u.nome.split(" ")[0]}`);
-  }, [toast, atualizarUsuario]);
+  }, [toast, atualizarUsuario, cancelarConsulta]);
 
   const login = useCallback(
     async (email: string, senha: string) => {
+      cancelarConsulta();
       try {
         const u = await api.post<AuthenticatedUserDTO>("/api/auth/login", { email, senha });
         concluirLogin(u);
@@ -83,12 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const err = e as { message?: string };
         toast.error("Não foi possível entrar", err.message);
         throw e;
+      } finally {
+        setReady(true);
       }
     },
-    [toast, concluirLogin]
+    [toast, concluirLogin, cancelarConsulta]
   );
 
   const logout = useCallback(async () => {
+    cancelarConsulta();
     try {
       await api.post("/api/auth/logout");
     } catch {
@@ -96,7 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     resetCsrf();
     atualizarUsuario(null);
-  }, [atualizarUsuario]);
+    setReady(true);
+  }, [atualizarUsuario, cancelarConsulta]);
 
   const value = useMemo<AuthCtx>(() => {
     const perfil = user?.perfil;

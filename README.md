@@ -246,6 +246,12 @@ os relatórios de desperdício, o CMV e o dashboard.
 
 Requer Node.js 24 e npm. O sistema é um site, sem requisito de PWA, executável ou operação offline.
 
+Home, login e cadastro aparecem sem aguardar a consulta de sessão ao backend.
+A verificação ocorre em segundo plano; uma sessão válida mantém a entrada automática
+na área do perfil. Rotas internas aguardam autenticação, e envios de login, cadastro
+e operações continuam dependendo da API. A consulta inicial é cancelada ao entrar ou
+sair, para que uma resposta antiga não substitua a sessão atual.
+
 ```bash
 cd frontend
 npm ci

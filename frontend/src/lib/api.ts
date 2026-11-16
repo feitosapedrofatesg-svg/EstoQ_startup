@@ -77,12 +77,17 @@ async function isCsrfFailure(res: Response): Promise<boolean> {
 }
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
+interface GetOptions {
+  signal?: AbortSignal;
+  notifyUnauthorized?: boolean;
+}
 
 async function request<T>(
   method: Method,
   path: string,
   body?: unknown,
-  retried = false
+  retried = false,
+  options: GetOptions = {}
 ): Promise<T> {
   const sessao = sessaoAtual();
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -112,6 +117,7 @@ async function request<T>(
       headers,
       credentials: "include",
       body: payload,
+      signal: options.signal,
     });
   } catch {
     throw new ApiError(0, "Não foi possível falar com o servidor. Verifique sua conexão.");
@@ -121,11 +127,11 @@ async function request<T>(
   if (!retried && method !== "GET" && await isCsrfFailure(res)) {
     await fetchCsrf(true);
     conferirSessao(sessao);
-    return request<T>(method, path, body, true);
+    return request<T>(method, path, body, true, options);
   }
 
   if (!res.ok) {
-    if (sessao === sessaoAtual() && res.status === 401 && !["/api/auth/login", "/api/auth/google/vincular"].includes(path)) {
+    if (options.notifyUnauthorized !== false && sessao === sessaoAtual() && res.status === 401 && !["/api/auth/login", "/api/auth/google/vincular"].includes(path)) {
       window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
     }
     throw await parseError(res);
@@ -143,7 +149,7 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
+  get: <T>(path: string, options?: GetOptions) => request<T>("GET", path, undefined, false, options),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
   del: <T>(path: string) => request<T>("DELETE", path),

@@ -2,6 +2,6 @@ name = "estoq-keepalive"
 main = "src/index.js"
 compatibility_date = "2026-09-28"
 
-# Cron desativado: o Render free dorme após 15 min sem tráfego.
+# PING a cada 10 minutos: o Render free dorme após 15 min sem tráfego.
 [triggers]
-crons = []
+crons = ["*/10 * * * *"]

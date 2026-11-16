@@ -2,10 +2,10 @@
 
 Worker Cloudflare que consulta a prontidão do backend de produção pelo
 endpoint `/api/saude/pronto` (público e sem criar sessão). O agendamento
-automático está **desativado** na configuração versionada em `wrangler.toml`
-(`crons = []`); para reativar, configure o cron e faça `wrangler deploy`. Como
-`/pronto` consulta o banco, um cron ativo mantém backend e banco acordados e
-aumenta o consumo de compute enquanto estiver ligado. O Worker publicado é
+automático está **ativo** em `wrangler.toml` (`crons = ["*/10 * * * *"]`), a
+cada 10 minutos: o Render free dorme após ~15 minutos sem tráfego. Como
+`/pronto` consulta o banco, o cron mantém backend e banco acordados e aumenta o
+consumo de compute enquanto estiver ligado. O Worker publicado é
 `https://estoq-keepalive.feitosapedrofatesg.workers.dev`.
 
 ## Deploy

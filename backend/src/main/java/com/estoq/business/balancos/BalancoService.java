@@ -200,8 +200,9 @@ public class BalancoService {
         if (balanco.getStatus() != StatusBalanco.CONCLUIDO) {
             throw new ConflictException("Gere ajustes apenas em um balanço CONCLUIDO.");
         }
+        var executor = usuarioAtual.obter();
         for (var item : balanco.getItens()) {
-            ajustes.aplicarItem(balanco, item);
+            ajustes.aplicarItem(balanco, item, executor);
         }
         alertas.apagarDiferencas(balanco);
         repository.flush();

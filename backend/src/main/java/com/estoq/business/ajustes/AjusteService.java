@@ -33,7 +33,7 @@ public class AjusteService {
     private final MovimentacaoRegistroService registros;
 
     @Transactional
-    public void aplicarItem(BalancoModel balanco, ItemBalancoModel item) {
+    public void aplicarItem(BalancoModel balanco, ItemBalancoModel item, UsuarioModel executor) {
         if (item.isAjusteAplicado()) {
             return;
         }
@@ -42,11 +42,10 @@ public class AjusteService {
             item.setAjusteAplicado(true);
             return;
         }
-        var usuario = balanco.getUsuario();
         if (diferenca.signum() < 0) {
-            aplicarDeficit(balanco, item, diferenca.negate(), usuario);
+            aplicarDeficit(balanco, item, diferenca.negate(), executor);
         } else {
-            aplicarSuperavit(balanco, item, diferenca, usuario);
+            aplicarSuperavit(balanco, item, diferenca, executor);
         }
         item.setAjusteAplicado(true);
     }

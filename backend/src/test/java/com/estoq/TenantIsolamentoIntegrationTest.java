@@ -6,6 +6,7 @@ import com.estoq.business.usuarios.Perfil;
 import com.estoq.business.usuarios.UsuarioModel;
 
 import java.util.List;
+import java.util.Map;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -83,6 +86,96 @@ class TenantIsolamentoIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
         return json.readTree(res.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    private JsonNode postarJson(MockHttpSession sessao, String rota, Object corpo, int statusEsperado) throws Exception {
+        var resposta = mvc.perform(post(rota).session(sessao).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(corpo)))
+                .andExpect(status().is(statusEsperado)).andReturn();
+        return json.readTree(resposta.getResponse().getContentAsString());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 8, 5})
+    void ajustesDoBalancoPertencemAoExecutorESaoPreservadosNoReenvio(int quantidadeFisica) throws Exception {
+        String senha = "Teste@12345";
+        registrar("Autoria", "admin-autoria@teste.com", senha);
+        var admin = login("admin-autoria@teste.com", senha);
+        var responsavel = json.readTree(mvc.perform(get("/api/auth/me").session(admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        long executorId = responsavel.get("id").asLong();
+        String executorNome = responsavel.get("nome").asText();
+        var operador = postarJson(admin, "/api/usuarios", Map.of("nome", "Operador do balanço",
+                "email", "operador-autoria@teste.com", "senha", senha, "perfil", "COZINHA"), 201);
+        long criadorId = operador.get("id").asLong();
+        var cozinha = login("operador-autoria@teste.com", senha);
+        postarJson(admin, "/api/usuarios", Map.of("nome", "Segundo administrador",
+                "email", "segundo-autoria@teste.com", "senha", senha, "perfil", "ADMIN"), 201);
+        var segundoAdmin = login("segundo-autoria@teste.com", senha);
+        long categoria = criarCategoria(admin, "Ingredientes");
+        var produto = postarJson(admin, "/api/produtos", Map.of("nome", "Farinha",
+                "unidadeMedida", "KG", "categoriaId", categoria), 201);
+        long produtoId = produto.get("id").asLong();
+        for (int quantidade : List.of(2, 3)) {
+            postarJson(admin, "/api/entradas", Map.of("produtoId", produtoId, "quantidade", quantidade,
+                    "valorTotalPago", quantidade * 10, "unidadeCompra", "KG"), 201);
+        }
+
+        var balanco = postarJson(cozinha, "/api/balancos", Map.of(), 201);
+        String rota = "/api/balancos/" + balanco.get("id").asLong();
+        balanco = postarJson(cozinha, rota + "/iniciar", Map.of("version", balanco.get("version").asLong()), 200);
+        assertThat(balanco.get("itens").size()).isEqualTo(1);
+        var item = balanco.get("itens").get(0);
+        assertThat(item.get("quantidadeSistema").asInt()).isEqualTo(5);
+        mvc.perform(put(rota + "/itens/" + item.get("id").asLong() + "/contagem").session(admin).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(
+                        "quantidadeFisica", quantidadeFisica, "version", item.get("version").asLong()))))
+                .andExpect(status().isOk());
+        balanco = json.readTree(mvc.perform(get(rota).session(admin)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        item = balanco.get("itens").get(0);
+        balanco = postarJson(admin, rota + "/confirmar", Map.of("version", balanco.get("version").asLong(),
+                "itens", List.of(Map.of("id", item.get("id").asLong(), "version", item.get("version").asLong()))), 200);
+
+        // O criador operacional continua sem permissão para gerar ajustes.
+        mvc.perform(post(rota + "/gerar-ajustes").session(cozinha).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("version", balanco.get("version").asLong()))))
+                .andExpect(status().isForbidden());
+        assertThat(banco.queryForObject("select count(*) from movimentacoes where tipo='AJUSTE'", Long.class)).isZero();
+
+        balanco = postarJson(admin, rota + "/gerar-ajustes", Map.of("version", balanco.get("version").asLong()), 200);
+        int ajustesEsperados = quantidadeFisica < 5 ? 2 : quantidadeFisica > 5 ? 1 : 0;
+        String hoje = java.time.LocalDate.now(com.estoq.core.helpers.HorarioOperacao.FUSO).toString();
+        String movimentos = "/api/movimentacoes?tipo=AJUSTE&dataInicio=" + hoje + "&dataFim=" + hoje;
+        var ajustes = json.readTree(mvc.perform(get(movimentos + "&usuarioId=" + executorId).session(admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(ajustes.size()).isEqualTo(ajustesEsperados);
+        for (var ajuste : ajustes) {
+            assertThat(ajuste.get("usuarioId").asLong()).isEqualTo(executorId);
+            assertThat(ajuste.get("usuarioNome").asText()).isEqualTo(executorNome);
+        }
+        mvc.perform(get(movimentos + "&usuarioId=" + criadorId).session(admin))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        assertThat(banco.queryForList("select usuario_id from movimentacoes where tipo='AJUSTE'", Long.class))
+                .hasSize(ajustesEsperados).allMatch(id -> id == executorId);
+        assertThat(banco.queryForList("select usuario_id from auditoria where tipo='AJUSTE'", Long.class))
+                .hasSize(ajustesEsperados).allMatch(id -> id == executorId);
+        assertThat(banco.queryForList("select usuario_nome from auditoria where tipo='AJUSTE'", String.class))
+                .hasSize(ajustesEsperados).allMatch(executorNome::equals);
+        mvc.perform(get("/api/estoque").session(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].saldoAtual").value(quantidadeFisica));
+
+        // Reenviar com outro administrador não duplica nem reatribui os registros anteriores.
+        postarJson(segundoAdmin, rota + "/gerar-ajustes", Map.of("version", balanco.get("version").asLong()), 200);
+        var depoisDoReenvio = json.readTree(mvc.perform(get(movimentos).session(segundoAdmin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(depoisDoReenvio).isEqualTo(ajustes);
+        assertThat(banco.queryForList("select usuario_id from auditoria where tipo='AJUSTE'", Long.class))
+                .hasSize(ajustesEsperados).allMatch(id -> id == executorId);
+        mvc.perform(get(rota).session(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.usuarioId").value(criadorId))
+                .andExpect(jsonPath("$.usuarioNome").value("Operador do balanço"))
+                .andExpect(jsonPath("$.itens[0].ajusteAplicado").value(true));
     }
 
     @Test

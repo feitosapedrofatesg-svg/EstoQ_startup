@@ -3,7 +3,7 @@ import { preparar } from "./fixtures";
 
 const lote={id:1,version:0,codigo:"LOTE-A",produtoId:1,produtoNome:"Produto <seguro>",unidadeMedida:"KG",dataValidade:"2027-12-31",quantidadeAtual:5,precoUnitario:2,vencido:false};
 
-test("estoque pagina no servidor, reinicia filtros e exporta sem limite de página",async({page})=>{
+test("estoque pagina no servidor e reinicia filtros sem botão de planilha",async({page})=>{
   await preparar(page);
   const consultas:string[]=[];
   await page.route("**/api/estoque/pagina?**",async route=>{
@@ -14,8 +14,6 @@ test("estoque pagina no servidor, reinicia filtros e exporta sem limite de pági
     const content=Array.from({length:Math.min(size,total-numero*size)},(_,i)=>({produtoId:numero*size+i+1,produtoNome:`Produto ${numero*size+i+1}`,categoriaNome:"Grãos",unidadeMedida:"KG",saldoAtual:1,saldoDisponivelConsumo:1,valorEstoque:2,proximoVencimento:prox,possuiLotesVencidos:prox}));
     await route.fulfill({json:{content,totalElements:total,totalPages:Math.ceil(total/size),number:numero,size,valorTotal:total*2}});
   });
-  let exportacao="";
-  await page.route("**/api/estoque/planilha?**",async route=>{exportacao=route.request().url();await route.fulfill({contentType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",body:"teste"});});
   await page.goto("/estoque");
   await page.getByLabel("Registros por página",{exact:true}).selectOption("10");
   await expect(page.getByText(/Página 1 de 3/)).toBeVisible();
@@ -25,8 +23,7 @@ test("estoque pagina no servidor, reinicia filtros e exporta sem limite de pági
   await expect(page.getByText(/Página 1 de 1/)).toBeVisible();
   await expect(page.getByRole("row").filter({hasText:"Produto 1"})).toContainText("Vencido");
   await expect(page.getByRole("row").filter({hasText:"Produto 1"})).toContainText("Próximo do vencimento");
-  await Promise.all([page.waitForEvent("download"),page.getByRole("button",{name:"Planilha",exact:true}).click()]);
-  expect(exportacao).toContain("situacao=PROXIMO");expect(exportacao).not.toMatch(/[?&](page|size)=/);
+  await expect(page.getByRole("button",{name:"Planilha",exact:true})).toHaveCount(0);
   expect(consultas.some(q=>q.includes("page=1"))).toBeTruthy();
 });
 

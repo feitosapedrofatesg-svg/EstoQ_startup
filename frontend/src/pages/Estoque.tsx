@@ -1,7 +1,5 @@
 import { traduzir } from "../lib/i18n";
-import { api, downloadBlob } from "../lib/api";
 import { Paginacao } from "../components/Paginacao";
-import { idiomaAtual } from "../lib/i18n";
 import { fmtLote } from "../lib/format";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -46,7 +44,6 @@ export function Estoque() {
   const rows=data?.content ?? [];
   useEffect(()=>setPagina(0),[q,soBaixo,soAbertos,situacao,tamanho]);
   useEffect(()=>{if(data && pagina>0 && pagina>=data.totalPages)setPagina(Math.max(0,data.totalPages-1));},[data,pagina]);
-  const exportar=async()=>{try {const arquivo=await api.blob(`/api/estoque/planilha?${qs}&idioma=${idiomaAtual()}`);downloadBlob(arquivo,"estoQ-estoque.xlsx");}catch(e){window.alert(e instanceof Error?e.message:"Não foi possível exportar.");}};
 
   return (
     <>
@@ -92,7 +89,6 @@ export function Estoque() {
           </div>
         }
       >
-        {user?.perfil === "ADMIN" && <Button variant="outline" icon="download" onClick={()=>void exportar()}>{" "}{traduzir("Planilha")}{" "}</Button>}
         {data && <p className="muted">{data.totalElements}{" "}{traduzir("registros · Valor em estoque:")}{" "}{fmtMoney(data.valorTotal)}</p>}
         {error && <div className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
         {loading && !data ? (

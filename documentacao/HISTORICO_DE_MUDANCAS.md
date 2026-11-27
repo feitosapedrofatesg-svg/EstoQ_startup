@@ -1,5 +1,10 @@
 # Histórico de mudanças do EstoQ
 
+## 27/11/2026 — exportação centralizada em Relatórios
+
+Removido o botão Planilha da tela Estoque, conforme solicitação. A exportação
+completa continua disponível em Relatórios, com o serviço e o endpoint preservados.
+
 ## 27/11/2026 — operação, impressão e configurações
 
 Adicionado o perfil OPERACIONAL (Cozinha + entrada), sem migração de usuários.

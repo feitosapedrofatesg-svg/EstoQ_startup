@@ -41,7 +41,9 @@ contra bancos remotos nesta implementação.
 
 ## Verificações locais realizadas
 
-- Backend completo: 243 testes, zero falhas/erros, três ignorados por OCR indisponível nessa execução local.
+- Backend local completo: 243 testes, zero falhas/erros; três ignorados por ausência de OCR configurado e/ou documentos reais locais.
+- CI da dev (implementação 19042ff): 244 testes backend, zero falhas/erros, dois ignorados por dependerem de documentos reais não versionados; 184 testes frontend aprovados. OCR com documentos fictícios foi executado na CI.
+- CI: https://github.com/feitosapedrofatesg-svg/EstoQ_startup/actions/runs/45983856178
 - API depois das últimas adições: 35 testes passaram; nova rodada de paginação e isolamento: 17 passaram. Há um teste novo além da suíte completa anterior.
 - Frontend completo: 182 testes passaram; dois casos adicionais de cadastro e desperdício passaram.
 - Revisão final das funcionalidades novas: 15 testes passaram, incluindo todos os perfis, 375/768/1440 px, sete temas, fonte 125%, inglês/espanhol, persistência, foco e clipboard.
@@ -61,6 +63,10 @@ exercitam H2 e PostgreSQL/HTTP reais conforme a suíte existente. Os resultados
 não representam validação física de impressoras, de todos os drivers ou de
 todos os navegadores/dispositivos reais. Traduções foram implementadas e
 verificadas em fluxos representativos, sem revisão linguística profissional.
+
+O backend de homologação registrou aplicação bem-sucedida de V19, V20 e V21,
+sem apagar dados. A promoção deve manter o mesmo commit validado; a disponibilidade
+final do site e o commit publicado são conferidos depois do deploy.
 
 ## Etiquetas: configuração na impressora
 

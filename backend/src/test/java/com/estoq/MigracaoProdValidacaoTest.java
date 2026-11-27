@@ -243,7 +243,7 @@ class MigracaoProdValidacaoTest {
                 """);
         }
         var flyway=Flyway.configure().dataSource(jdbcUrl,"postgres","postgres").schemas("limpeza").locations("classpath:db/migration").load();
-        assertEquals(2,flyway.migrate().migrationsExecuted); assertEquals(0,flyway.migrate().migrationsExecuted);
+        assertEquals(5,flyway.migrate().migrationsExecuted); assertEquals(0,flyway.migrate().migrationsExecuted);
         try(var c=DriverManager.getConnection(jdbcUrl);var st=c.createStatement()) {
             st.execute("set search_path to limpeza");
             try(var rs=st.executeQuery("select unidade_medida from produtos order by id")) { assertEquals(List.of("UN","UN","UN","G","KG","UN","G","G"),coletar(rs)); }
@@ -287,10 +287,10 @@ class MigracaoProdValidacaoTest {
             assertEquals(0, context.getBean(com.estoq.business.lotes.ILoteRepository.class)
                     .posicoesHistoricas(java.time.LocalDateTime.now().minusDays(30), java.time.LocalDateTime.now()).size());
             var flyway = context.getBean(Flyway.class);
-            assertEquals("18", flyway.info().current().getVersion().toString());
+            assertEquals("21", flyway.info().current().getVersion().toString());
             assertEquals(0, flyway.migrate().migrationsExecuted);
             context.getBean(RegistroService.class).registrar(new RegistroRequestDTO(
-                    "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345"));
+                    "Restaurante novo", "Responsável", "novo@teste.com", "Senha@12345", true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
             assertTrue(context.getBean(IUsuarioRepository.class).existsByEmailIgnoreCase("novo@teste.com"));
             var admin=context.getBean(IUsuarioRepository.class).findAll().stream()
                 .filter(u -> u.getEmail().equals("novo@teste.com")).findFirst().orElseThrow();
@@ -501,7 +501,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("novos_campos").locations("classpath:db/migration").load();
-        assertEquals(8, depois.migrate().migrationsExecuted);
+        assertEquals(11, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             try (var rs = st.executeQuery("select confirmacao_email_obrigatoria,email_confirmado_em,senha,version from novos_campos.usuarios")) {
                 assertTrue(rs.next()); assertTrue(!rs.getBoolean(1)); assertNull(rs.getObject(2));
@@ -530,7 +530,7 @@ class MigracaoProdValidacaoTest {
         }
         var depois = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres")
                 .schemas("login_google").locations("classpath:db/migration").load();
-        assertEquals(6, depois.migrate().migrationsExecuted);
+        assertEquals(9, depois.migrate().migrationsExecuted);
         try (var conn = DriverManager.getConnection(jdbcUrl); var st = conn.createStatement()) {
             st.execute("set search_path to login_google");
             try (var rs = st.executeQuery("select senha,google_sub from usuarios where email='legado@teste.com'")) {
@@ -567,7 +567,7 @@ class MigracaoProdValidacaoTest {
         }
         var migracao = Flyway.configure().dataSource(jdbcUrl, "postgres", "postgres").schemas("autoria")
                 .locations("classpath:db/migration").load();
-        assertEquals(1, migracao.migrate().migrationsExecuted);
+        assertEquals(4, migracao.migrate().migrationsExecuted);
         assertEquals(0, migracao.migrate().migrationsExecuted);
         try (var c = DriverManager.getConnection(jdbcUrl); var st = c.createStatement()) {
             st.execute("set search_path to autoria");
@@ -593,7 +593,7 @@ class MigracaoProdValidacaoTest {
             configuracao = configuracao.schemas(schema);
         }
         var resultado = configuracao.load().migrate();
-        assertEquals(18, resultado.migrationsExecuted, "V1 até V18 devem executar no banco legado");
+        assertEquals(21, resultado.migrationsExecuted, "V1 até V21 devem executar no banco legado");
     }
 
     private void validarResultado(String schema) throws Exception {
@@ -624,7 +624,7 @@ class MigracaoProdValidacaoTest {
             try (ResultSet rs = st.executeQuery("select count(*) from pg_constraint "
                     + "where contype = 'f' and confrelid = 'restaurantes'::regclass")) {
                 rs.next();
-                assertEquals(23, rs.getInt(1)); // V8 acrescenta a referência da auditoria da plataforma.
+                assertEquals(24, rs.getInt(1)); // Inclui os aceites associados ao restaurante.
             }
             try (ResultSet rs = st.executeQuery("select conname from pg_constraint "
                     + "where conrelid = 'operacoes_consumo'::regclass and contype = 'u'")) {

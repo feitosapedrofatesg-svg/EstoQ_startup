@@ -12,7 +12,7 @@ as entregas de consumo conjunto desta revisão. Base local: `http://localhost:80
 4. Envie cookie e token atual nas operações POST/PUT/DELETE. Login e registro também exigem CSRF.
 5. `GET /api/auth/me` recupera a identidade; `POST /api/auth/logout` encerra a sessão e retorna 204.
 
-Perfis: ADMIN, COZINHA, NUTRICIONISTA e PLATAFORMA. O restaurante vem da sessão;
+Perfis: ADMIN, COZINHA, OPERACIONAL, NUTRICIONISTA e PLATAFORMA. O restaurante vem da sessão;
 não há parâmetro público para consultar arbitrariamente outra loja. PLATAFORMA
 não recebe acesso irrestrito às rotas operacionais do restaurante.
 
@@ -90,7 +90,7 @@ operar sobre o lote selecionado para detectar alterações concorrentes.
 | Método | Rota | Permissão / corpo |
 | --- | --- | --- |
 | GET | `/api/movimentacoes` | ADMIN/COZINHA; `produtoId, loteId, usuarioId, tipo, inicio, fim`. Mais recentes primeiro. |
-| POST | `/api/entradas` | ADMIN; `{produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade?, observacao?, semCusto?}`. |
+| POST | `/api/entradas` | ADMIN/OPERACIONAL; `{produtoId, quantidade, valorTotalPago, unidadeCompra, dataValidade?, observacao?, semCusto?}`. |
 | POST | `/api/consumos` | ADMIN/COZINHA; `{produtoId, loteId?, quantidade, versionLote?, observacao?}`. |
 | POST | `/api/consumos/lote` | ADMIN/COZINHA; `{chave: UUID, itens: [{produtoId, loteId?, quantidade, versionLote?, observacao?}]}`. |
 | POST | `/api/desperdicios` | ADMIN/COZINHA; `{produtoId, loteId?, quantidade, motivo, descricaoMotivo?, versionLote?, observacao?}`. |
@@ -294,3 +294,34 @@ Consulte o [anexo de correções](REVISAO_SEGURANCA_2026_10_18.md#api-ajustada):
 
 A ativação real do e-mail depende de OAuth e teste do remetente; default false.
 Aplicar V11 (confirmação) e V12 (lote opcional) juntas antes de subir o código.
+
+## Complemento de 27/11/2026 — operação e preferências
+
+OPERACIONAL recebe as mesmas permissões da COZINHA, acrescidas de POST /api/entradas.
+COZINHA mantém os acessos anteriores e não pode registrar entradas. Nenhum usuário
+existente troca de perfil automaticamente. As consultas auxiliares de produtos e
+lotes seguem o restaurante autenticado.
+
+| Método | Rota | Contrato |
+| --- | --- | --- |
+| GET | `/api/estoque/pagina` | ADMIN/COZINHA/OPERACIONAL. `q`, `somenteAbertos`, `somenteBaixo`, `situacao=TODOS/VENCIDO/PROXIMO`, `page`, `size`. Retorna página e `valorTotal` de todo o resultado filtrado. |
+| GET | `/api/estoque/planilha` | ADMIN/NUTRICIONISTA. Mesmos filtros, `idioma=pt-BR/es/en`, sem limite da página. XLSX com células numéricas e data de emissão. |
+| GET | `/api/lotes/pagina` | ADMIN/COZINHA/OPERACIONAL. `q`, `vencidos`, `produtoId`, `somenteComSaldo` (padrão true), `page`, `size`. False permite reimprimir lotes salvos já consumidos. |
+| GET | `/api/balancos/pagina` | ADMIN/COZINHA/OPERACIONAL. `page`, `size`; ordem data decrescente e ID decrescente. Mantém o DTO completo do balanço para conferência e impressão. |
+| GET/PUT | `/api/auth/preferencias` | Todos os perfis autenticados. PUT recebe `{tema, fonte, idioma}`; apenas a própria conta. Tema claro inicial, fonte 90–125%, idioma pt-BR inicial. |
+| GET | `/api/documentos` | Público. Versões de termos/privacidade, idioma original e indicador de minuta em revisão. |
+
+POST /api/registro e POST /api/auth/google/cadastro também recebem
+`aceitouTermos: true`, `cientePrivacidade: true`, `versaoTermos` e
+`versaoPrivacidade`, conforme GET /api/documentos. Ausência ou versão divergente
+retorna 400 antes de criar o restaurante. Os dois registros de confirmação usam
+responsável e restaurante efetivos e horário UTC do servidor, na mesma transação.
+Não há retroatividade nem novo aceite em login, preferências ou consulta aos documentos.
+
+Os relatórios existentes recebem `Accept-Language: pt-BR/es/en` para apresentação;
+valores e moeda BRL não mudam. Nomes e conteúdos cadastrados não são traduzidos.
+A validade continua usando `diasAlertaVencimento` dos parâmetros existentes do
+produto, administrados pela loja, e o dia operacional de America/Sao_Paulo.
+
+A impressão é gerada no navegador a partir de GET /api/lotes/{id}; não existe
+endpoint de criação de entrada para reimprimir uma etiqueta.

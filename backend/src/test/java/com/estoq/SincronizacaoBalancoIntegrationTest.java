@@ -78,7 +78,7 @@ class SincronizacaoBalancoIntegrationTest {
     UsuarioPrincipal restaurante(String prefixo) {
         SecurityContextHolder.clearContext();
         String email = prefixo + System.nanoTime() + "@teste.local";
-        app.getBean(RegistroService.class).registrar(new RegistroRequestDTO("Restaurante de teste", "Admin", email, SENHA));
+        app.getBean(RegistroService.class).registrar(new RegistroRequestDTO("Restaurante de teste", "Admin", email, SENHA, true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
         return UsuarioPrincipal.of(app.getBean(IUsuarioRepository.class).findByEmailIgnoreCaseAndAtivoTrue(email).orElseThrow());
     }
 
@@ -133,6 +133,34 @@ class SincronizacaoBalancoIntegrationTest {
     }
 
     @AfterEach void limpar() { SecurityContextHolder.clearContext(); }
+
+    @Test void desperdiciosConcorrentesNaoUltrapassamSaldoNemDuplicamCusto() throws Exception {
+        var lote = app.getBean(ILoteRepository.class).findTodosBaixa(produtoId).getFirst();
+        var pedido = new com.estoq.business.desperdicios.DesperdicioRequestDTO(produtoId, lote.getId(),
+                new BigDecimal("7"), com.estoq.business.desperdicios.MotivoDesperdicio.DETERIORACAO,
+                null, lote.getVersion(), null);
+        var partida = new CountDownLatch(1);
+        Callable<Boolean> tarefa = () -> {
+            autenticar(admin);
+            try {
+                aguardar(partida);
+                app.getBean(com.estoq.business.desperdicios.DesperdicioService.class).registrarDesperdicio(pedido);
+                return true;
+            } catch (ConflictException | org.springframework.orm.ObjectOptimisticLockingFailureException | jakarta.persistence.OptimisticLockException e) {
+                return false;
+            } finally { SecurityContextHolder.clearContext(); }
+        };
+        try(var executor = Executors.newFixedThreadPool(2)) {
+            var a = executor.submit(tarefa); var b = executor.submit(tarefa); partida.countDown();
+            assertNotEquals(a.get(15,TimeUnit.SECONDS), b.get(15,TimeUnit.SECONDS));
+        }
+        autenticar(admin);
+        assertEquals(0,new BigDecimal("3").compareTo(app.getBean(ILoteRepository.class).saldo(produtoId)));
+        var movimentos = app.getBean(IMovimentacaoEstoqueRepository.class).findAll().stream()
+                .filter(m -> m.getTipo()==TipoMovimentacao.DESPERDICIO).toList();
+        assertEquals(1,movimentos.size());
+        assertEquals(0,new BigDecimal("7").compareTo(movimentos.getFirst().getQuantidade()));
+    }
 
     ConfirmarBalancoRequestDTO confirmacao(BalancoDTO b) {
         return new ConfirmarBalancoRequestDTO(b.version(), b.itens().stream()

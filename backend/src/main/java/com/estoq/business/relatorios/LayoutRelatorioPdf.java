@@ -9,6 +9,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName;
 
 import java.awt.Color;
+import com.estoq.core.helpers.Idioma;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -39,14 +40,14 @@ final class LayoutRelatorioPdf {
         float pesos = (float) dados.colunas().stream().mapToDouble(DocumentoRelatorioPdf.Coluna::peso).sum();
         larguras = new float[dados.colunas().size()];
         for (int i = 0; i < larguras.length; i++) larguras[i] = (largura - 2 * MARGEM) * dados.colunas().get(i).peso() / pesos;
-        emissao = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm ' (UTC-3)'"));
+        emissao = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern((Idioma.atual().equals("en")?"MM/dd/yyyy":"dd/MM/yyyy")+" HH:mm ' (UTC-3)'"));
         try (var doc = new PDDocument(); var saida = new ByteArrayOutputStream()) {
             documento = doc;
             doc.getDocumentInformation().setTitle(dados.titulo());
             doc.getDocumentInformation().setAuthor("EstoQ");
             novaPagina(true);
             cabecalhoTabela();
-            if (dados.linhas().isEmpty()) { texto("Nenhum registro para os filtros selecionados.", MARGEM + 8, y - 22, normal, FONTE); y -= 38; }
+            if (dados.linhas().isEmpty()) { texto(Idioma.texto("Nenhum registro para os filtros selecionados."), MARGEM + 8, y - 22, normal, FONTE); y -= 38; }
             for (int i = 0; i < dados.linhas().size(); i++) {
                 // Reservar espaço na última linha evita um total sozinho na página seguinte.
                 reserva = i == dados.linhas().size() - 1 && !dados.totais().isEmpty() ? 44 : 0;
@@ -58,8 +59,8 @@ final class LayoutRelatorioPdf {
                 try (var rodape = new PDPageContentStream(doc, doc.getPage(i), PDPageContentStream.AppendMode.APPEND, true, true)) {
                     desenho = rodape;
                     traço(MARGEM, 42, largura - MARGEM, 42);
-                    texto("EstoQ | " + dados.linhas().size() + (dados.linhas().size() == 1 ? " registro" : " registros"), MARGEM, 27, normal, 9);
-                    String pagina = "Página " + (i + 1) + " de " + doc.getNumberOfPages();
+                    texto("EstoQ | " + dados.linhas().size() + (dados.linhas().size() == 1 ? " "+Idioma.texto("registro") : " "+Idioma.texto("registros")), MARGEM, 27, normal, 9);
+                    String pagina = Idioma.texto("Página")+" " + (i + 1) + " "+Idioma.texto("de")+" " + doc.getNumberOfPages();
                     texto(pagina, largura - MARGEM - medida(pagina, normal, 9), 27, normal, 9);
                 }
             }
@@ -101,7 +102,7 @@ final class LayoutRelatorioPdf {
             texto(linha, MARGEM, y, negrito, 16); y -= 20;
         }
         texto(dados.periodo(), MARGEM, y, normal, 10); y -= 16;
-        texto("Emissão: " + emissao, MARGEM, y, normal, 9); y -= 23;
+        texto(Idioma.texto("Emissão")+": " + emissao, MARGEM, y, normal, 9); y -= 23;
         if (primeira) {
             for (var destaque : dados.resumo()) {
                 texto(destaque.rotulo(), MARGEM + 10, y - 17, negrito, 10);

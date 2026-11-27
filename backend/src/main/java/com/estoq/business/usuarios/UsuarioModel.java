@@ -20,6 +20,15 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "usuarios")
 public class UsuarioModel extends TenantEntity {
+    @Column(nullable=false,length=20)
+    @org.hibernate.annotations.ColumnDefault("'claro'")
+    private String tema="claro";
+    @Column(nullable=false)
+    @org.hibernate.annotations.ColumnDefault("100")
+    private int fonte=100;
+    @Column(nullable=false,length=10)
+    @org.hibernate.annotations.ColumnDefault("'pt-BR'")
+    private String idioma="pt-BR";
 
     @Column(nullable = false, length = 120)
     private String nome;

@@ -9,7 +9,10 @@ public record LoteDTO(Long id, Long version, String codigo, Long produtoId, Stri
         UnidadeMedida unidadeMedida, BigDecimal quantidadeInicial, BigDecimal quantidadeAtual,
         LocalDate dataEntrada, LocalDate dataValidade, BigDecimal precoUnitario, boolean vencido,
         boolean disponivel, Long diasParaVencimento,
-        String loteFabricante) {
+        String loteFabricante, boolean proximoVencimento) {
+    public LoteDTO(Long id,Long version,String codigo,Long produtoId,String produtoNome,UnidadeMedida unidadeMedida,BigDecimal quantidadeInicial,BigDecimal quantidadeAtual,LocalDate dataEntrada,LocalDate dataValidade,BigDecimal precoUnitario,boolean vencido,boolean disponivel,Long diasParaVencimento,String loteFabricante) {
+        this(id,version,codigo,produtoId,produtoNome,unidadeMedida,quantidadeInicial,quantidadeAtual,dataEntrada,dataValidade,precoUnitario,vencido,disponivel,diasParaVencimento,loteFabricante,false);
+    }
     public LoteDTO(Long id, Long version, String codigo, Long produtoId, String produtoNome, UnidadeMedida
             unidadeMedida, BigDecimal quantidadeInicial, BigDecimal quantidadeAtual, LocalDate dataEntrada,
             LocalDate dataValidade, BigDecimal precoUnitario, boolean vencido, boolean disponivel, Long

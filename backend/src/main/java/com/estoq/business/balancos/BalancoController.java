@@ -25,6 +25,10 @@ public class BalancoController {
     private final BalancoService service;
     private final ConfiguracaoBalancoService configuracoes;
 
+    @GetMapping("/api/balancos/pagina")
+    public org.springframework.data.domain.Page<BalancoDTO> pagina(@org.springframework.web.bind.annotation.RequestParam(defaultValue="0") int page,
+        @org.springframework.web.bind.annotation.RequestParam(defaultValue="25") int size) { return service.pagina(page,size); }
+
     @GetMapping("/api/balancos")
     public List<BalancoDTO> listar() {
         return service.listar();

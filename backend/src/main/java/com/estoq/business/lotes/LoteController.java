@@ -17,6 +17,14 @@ public class LoteController {
 
     private final LoteService service;
 
+    @GetMapping("/pagina")
+    public org.springframework.data.domain.Page<LoteDTO> pagina(@RequestParam(defaultValue="") String q,
+        @RequestParam(defaultValue="true") boolean somenteComSaldo,
+        @RequestParam(defaultValue="false") boolean vencidos, @RequestParam(required=false) Long produtoId,
+        @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="25") int size) {
+        return service.pagina(q,vencidos,somenteComSaldo,produtoId,page,size);
+    }
+
     @GetMapping
     public List<LoteDTO> listar(@RequestParam(required = false) Long produtoId) {
         return service.listar(produtoId);

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import static com.estoq.core.helpers.Idioma.texto;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -32,7 +33,7 @@ public class PreparadorRelatorioService {
         var ate = horario.inicioUtc(periodoFim.plusDays(1));
         if (!de.isBefore(ate) || java.time.temporal.ChronoUnit.DAYS.between(de, ate) > 3660)
             throw new FieldValidationException("periodo", "Informe um intervalo válido de até dez anos.");
-        String periodo = "Período: " + periodoInicio.format(DATA) + " a " + periodoFim.format(DATA);
+        String periodo = texto("Período")+": " + periodoInicio.format(datas()) + " "+texto("a")+" " + periodoFim.format(datas());
         String observacao = null;
         var totais = new TotaisRelatorioPdf();
         var linhas = new ArrayList<List<String>>();
@@ -63,7 +64,7 @@ public class PreparadorRelatorioService {
                     totais.quantidade("Saldo total", l.quantidadeAtual(), l.unidadeMedida().name());
                 }
                 totais.adicionar("Valor total próximo do vencimento", moeda(valorTotal));
-                observacao = "Atenção: lotes próximos da validade. Confira a data antes de utilizar.";
+                observacao = texto("Atenção: lotes próximos da validade. Confira a data antes de utilizar.");
             }
             case "vencidos" -> {
                 titulo = "Lotes vencidos";
@@ -76,18 +77,18 @@ public class PreparadorRelatorioService {
                     totais.quantidade("Saldo total", l.quantidadeAtual(), l.unidadeMedida().name());
                 }
                 totais.adicionar("Valor total dos lotes vencidos", moeda(valorTotal));
-                observacao = "VENCIDO: os lotes desta lista ultrapassaram sua validade.";
+                observacao = texto("VENCIDO: os lotes desta lista ultrapassaram sua validade.");
             }
             case "produtos-abertos" -> {
                 titulo = "Embalagens abertas";
                 colunas = List.of(c("Produto", 3), c("Lote", 2.5f), c("Abertura", 1.8f), n("Quantidade aberta", 2), n("Restante", 2));
                 for (var p : relatorios.produtosAbertos()) {
-                    linhas.add(java.util.Arrays.asList(p.produtoNome(), lote(p.loteCodigo(), p.loteFabricante()), p.dataAbertura() == null ? "-" : horario.diaLocal(p.dataAbertura()).format(DATA), qtd(p.quantidadeAberta(), p.unidadeMedida()), qtd(p.quantidadeRestante(), p.unidadeMedida())));
+                    linhas.add(java.util.Arrays.asList(p.produtoNome(), lote(p.loteCodigo(), p.loteFabricante()), p.dataAbertura() == null ? "-" : horario.diaLocal(p.dataAbertura()).format(datas()), qtd(p.quantidadeAberta(), p.unidadeMedida()), qtd(p.quantidadeRestante(), p.unidadeMedida())));
                     totais.quantidade("Quantidade aberta total", p.quantidadeAberta(), p.unidadeMedida());
                     totais.quantidade("Quantidade restante total", p.quantidadeRestante(), p.unidadeMedida());
                 }
                 totais.adicionar("Embalagens abertas", Integer.toString(linhas.size()));
-                observacao = "O restante das embalagens já faz parte do saldo dos lotes. Não somar novamente ao estoque.";
+                observacao = texto("O restante das embalagens já faz parte do saldo dos lotes. Não somar novamente ao estoque.");
             }
             case "desperdicio" -> {
                 titulo = "Desperdício no período";
@@ -103,47 +104,47 @@ public class PreparadorRelatorioService {
                     totais.quantidade("Quantidade perdida total", d.quantidade(), d.unidadeMedida());
                 }
                 totais.adicionar("Prejuízo total no período", moeda(valorTotal));
-                observacao = "Quantidades na unidade de cadastro de cada produto; quando indisponível, a unidade não é indicada. Não somar unidades diferentes. Horários em UTC-3.";
+                observacao = texto("Quantidades na unidade de cadastro de cada produto; quando indisponível, a unidade não é indicada. Não somar unidades diferentes. Horários em UTC-3.");
             }
             case "consumo-medio" -> {
                 titulo = "Consumo médio";
                 if (dias < 1 || dias > 3660)
                     throw new FieldValidationException("dias", "Informe de 1 a 3660 dias.");
                 var inicioConsumo = horario.inicioUtc(periodoFim.plusDays(1).minusDays(dias));
-                periodo = "Período: " + horario.diaLocal(inicioConsumo).format(DATA) + " a " + periodoFim.format(DATA);
+                periodo = texto("Período")+": " + horario.diaLocal(inicioConsumo).format(datas()) + " "+texto("a")+" " + periodoFim.format(datas());
                 colunas = List.of(c("Produto", 4), n("Total consumido", 2.5f), n("Dias", 1), n("Média por dia", 2.5f));
                 for (var c : relatorios.consumoMedio(inicioConsumo, ate)) {
                     linhas.add(java.util.Arrays.asList(c.produtoNome(), qtd(c.totalConsumidoPeriodo(), c.unidadeMedida()), Long.toString(c.diasPeriodo()), qtd(c.consumoMedioDiario(), c.unidadeMedida())));
                     totais.quantidade("Total consumido", c.totalConsumidoPeriodo(), c.unidadeMedida());
                 }
                 totais.adicionar("Produtos com consumo", Integer.toString(linhas.size()));
-                observacao = "Médias e dias não são somados. Quantidades sem unidade identificada permanecem apenas por produto.";
+                observacao = texto("Médias e dias não são somados. Quantidades sem unidade identificada permanecem apenas por produto.");
             }
             case "consumo-dia-semana" -> {
                 titulo = "Consumo por dia da semana";
                 colunas = List.of(c("Dia da semana", 4), n("Custo total", 3), n("Custo médio por ocorrência", 3));
                 var valorTotal = BigDecimal.ZERO;
                 for (var dia : relatorios.consumoPorDiaSemana(de, ate)) {
-                    linhas.add(List.of(dia.diaSemana().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.forLanguageTag("pt-BR")), moeda(dia.valorTotal()), moeda(dia.valorMedio())));
+                    linhas.add(List.of(dia.diaSemana().getDisplayName(java.time.format.TextStyle.FULL, com.estoq.core.helpers.Idioma.locale()), moeda(dia.valorTotal()), moeda(dia.valorMedio())));
                     valorTotal = valorTotal.add(valorMonetario(dia.valorTotal()));
                 }
                 totais.adicionar("Custo total de consumo no período", moeda(valorTotal));
-                observacao = "A média considera quantas vezes cada dia da semana ocorreu no intervalo, incluindo dias sem consumo. Médias não são somadas.";
+                observacao = texto("A média considera quantas vezes cada dia da semana ocorreu no intervalo, incluindo dias sem consumo. Médias não são somadas.");
             }
             case "faturamento" -> {
                 titulo = "Faturamento no período";
                 colunas = List.of(c("Data", 3), n("Faturamento", 3), c("Situação", 3));
                 var faturamento = relatorios.faturamento(periodoInicio, periodoFim);
                 for (var dia : faturamento.dias()) {
-                    linhas.add(List.of(data(dia.data()), dia.valor() == null ? "Não informado" : moeda(dia.valor()), dia.valor() == null ? "Pendente" : "Informado"));
+                    linhas.add(List.of(data(dia.data()), dia.valor() == null ? texto("Não informado") : moeda(dia.valor()), dia.valor() == null ? texto("Pendente") : texto("Informado")));
                 }
                 totais.adicionar(faturamento.diasPendentes() > 0 ? "Faturamento informado (parcial)" : "Faturamento total do período", moeda(faturamento.totalInformado()));
                 totais.adicionar("Dias informados", Integer.toString(faturamento.diasInformados()));
                 totais.adicionar("Dias pendentes", Integer.toString(faturamento.diasPendentes()));
-                observacao = "R$ 0 significa dia informado sem vendas. Não informado significa pendência; o total considera somente os dias informados.";
+                observacao = texto("R$ 0 significa dia informado sem vendas. Não informado significa pendência; o total considera somente os dias informados.");
                 if (faturamento.receitaPorPeriodo()) {
                     resumo.add(new Destaque("Total histórico do intervalo (referência)", moeda(faturamento.receitaBase())));
-                    observacao += " O total histórico foi cadastrado por período e não é somado nem distribuído entre os dias.";
+                    observacao += " " + texto("O total histórico foi cadastrado por período e não é somado nem distribuído entre os dias.");
                 }
             }
             case "cmv" -> {
@@ -152,29 +153,29 @@ public class PreparadorRelatorioService {
                 var cmv = relatorios.calcularCmv(de, ate, receitaBase);
                 resumo.add(new Destaque("CMV do período", moeda(cmv.cmv())));
                 if (cmv.receitaBase() != null) resumo.add(new Destaque("Percentual de CMV", percentual(cmv.cmvPercentual())));
-                linhas.add(java.util.Arrays.asList("Estoque no início do período", moeda(cmv.valorEstoqueInicial())));
-                linhas.add(java.util.Arrays.asList("+ Compras no período", moeda(cmv.valorCompras())));
-                linhas.add(java.util.Arrays.asList("- Estoque no fim do período", moeda(cmv.valorEstoqueFinal())));
-                linhas.add(java.util.Arrays.asList("Consumo registrado", moeda(cmv.valorConsumoRegistrado())));
-                linhas.add(java.util.Arrays.asList("Desperdício", moeda(cmv.valorDesperdicio())));
-                linhas.add(java.util.Arrays.asList("Ajustes positivos em balanços", moeda(cmv.valorAjustesPositivosBalancos())));
-                linhas.add(List.of("Percentual de CMV", percentual(cmv.cmvPercentual())));
-                linhas.add(List.of("Percentual de desperdício sobre o CMV", percentual(cmv.percentualDesperdicioSobreCmv())));
-                linhas.add(List.of("Percentual ideal de CMV", percentual(cmv.percentualIdeal())));
-                linhas.add(List.of("Diferença para a meta (pontos percentuais)", cmv.diferencaPercentualParaMeta() == null ? "Indisponível" : numero(cmv.diferencaPercentualParaMeta()) + " p.p."));
+                linhas.add(java.util.Arrays.asList(texto("Estoque no início do período"), moeda(cmv.valorEstoqueInicial())));
+                linhas.add(java.util.Arrays.asList(texto("+ Compras no período"), moeda(cmv.valorCompras())));
+                linhas.add(java.util.Arrays.asList(texto("- Estoque no fim do período"), moeda(cmv.valorEstoqueFinal())));
+                linhas.add(java.util.Arrays.asList(texto("Consumo registrado"), moeda(cmv.valorConsumoRegistrado())));
+                linhas.add(java.util.Arrays.asList(texto("Desperdício"), moeda(cmv.valorDesperdicio())));
+                linhas.add(java.util.Arrays.asList(texto("Ajustes positivos em balanços"), moeda(cmv.valorAjustesPositivosBalancos())));
+                linhas.add(List.of(texto("Percentual de CMV"), percentual(cmv.cmvPercentual())));
+                linhas.add(List.of(texto("Percentual de desperdício sobre o CMV"), percentual(cmv.percentualDesperdicioSobreCmv())));
+                linhas.add(List.of(texto("Percentual ideal de CMV"), percentual(cmv.percentualIdeal())));
+                linhas.add(List.of(texto("Diferença para a meta (pontos percentuais)"), cmv.diferencaPercentualParaMeta() == null ? texto("Indisponível") : numero(cmv.diferencaPercentualParaMeta()) + " p.p."));
                 if (cmv.receitaBase() != null) {
-                    linhas.add(java.util.Arrays.asList("Faturamento do período", moeda(cmv.receitaBase())));
+                    linhas.add(java.util.Arrays.asList(texto("Faturamento do período"), moeda(cmv.receitaBase())));
                 }
                 totais.adicionar("CMV total do período", moeda(cmv.cmv()));
-                observacao = "CMV = estoque inicial + compras - estoque final. Valores apurados pelo sistema para o período consultado.";
+                observacao = texto("CMV = estoque inicial + compras - estoque final. Valores apurados pelo sistema para o período consultado.");
                 if (cmv.receitaPorPeriodo()) {
-                    observacao += " Faturamento informado como total do período.";
+                    observacao += " " + texto("Faturamento informado como total do período.");
                 } else if (cmv.diasFaturamentoPendentes() > 0) {
-                    linhas.add(java.util.Arrays.asList("Faturamento diário já informado", moeda(cmv.faturamentoInformado())));
-                    linhas.add(java.util.Arrays.asList("Dias sem faturamento informado", Integer.toString(cmv.diasFaturamentoPendentes())));
-                    observacao += " Percentual pendente: complete o faturamento dos dias do período.";
+                    linhas.add(java.util.Arrays.asList(texto("Faturamento diário já informado"), moeda(cmv.faturamentoInformado())));
+                    linhas.add(java.util.Arrays.asList(texto("Dias sem faturamento informado"), Integer.toString(cmv.diasFaturamentoPendentes())));
+                    observacao += " " + texto("Percentual pendente: complete o faturamento dos dias do período.");
                 } else if (cmv.receitaBase() != null && cmv.receitaBase().signum() == 0) {
-                    observacao += " Percentual indisponível: faturamento total igual a zero.";
+                    observacao += " " + texto("Percentual indisponível: faturamento total igual a zero.");
                 }
             }
             case "cmv-mensal" -> {
@@ -192,32 +193,32 @@ public class PreparadorRelatorioService {
                 totais.adicionar("CMV total no período", moeda(cmvTotal));
                 totais.adicionar("Compras totais no período", moeda(comprasTotal));
                 totais.adicionar("Desperdício total no período", moeda(desperdicioTotal));
-                observacao = "Os meses nas bordas do intervalo podem representar períodos parciais.";
+                observacao = texto("Os meses nas bordas do intervalo podem representar períodos parciais.");
             }
             case "reposicao-sugerida" -> {
                 titulo = "Reposição sugerida";
                 colunas = List.of(c("Produto", 3), n("Saldo", 1.5f), n("Média/dia", 1.5f), c("Origem da média", 2.5f), n("Comprar", 1.5f), n("Prazo", 1));
                 for (var r : relatorios.reposicaoSugerida(null)) {
                     linhas.add(java.util.Arrays.asList(r.produtoNome(), qtd(r.saldoAtual(), r.unidadeMedida().name()), qtd(r.consumoMedioDiario(), r.unidadeMedida().name()),
-                            "AUTOMATICO".equals(r.origemMedia()) ? "Automático · " + r.periodoAnaliseDias() + " dias" : "Manual · sem histórico",
+                            "AUTOMATICO".equals(r.origemMedia()) ? texto("Automático")+" · " + r.periodoAnaliseDias() + " "+texto("dias") : texto("Manual · sem histórico"),
                             qtd(r.quantidadeSugerida(), r.unidadeMedida().name()), Integer.toString(r.diasReposicao())));
                     totais.quantidade("Quantidade sugerida total", r.quantidadeSugerida(), r.unidadeMedida().name());
                 }
                 totais.adicionar("Produtos a repor", Integer.toString(linhas.size()));
-                observacao = "Posição atual, independente do filtro de datas. Média automática inclui hoje; sem histórico, usa a manual. Lotes vencidos excluídos. Estoque mínimo apenas informativo. Prazos não são somados.";
+                observacao = texto("Posição atual, independente do filtro de datas. Média automática inclui hoje; sem histórico, usa a manual. Lotes vencidos excluídos. Estoque mínimo apenas informativo. Prazos não são somados.");
             }
             default -> throw new BusinessException("Relatório PDF não suportado: " + tipo, HttpStatus.BAD_REQUEST);
         }
         if (List.of("estoque-atual", "proximos-vencimento", "vencidos", "produtos-abertos", "reposicao-sugerida").contains(tipo)) {
-            periodo = "Posição atual em " + horario.hoje().format(DATA) + " (não é um estoque histórico)";
+            periodo = texto("Posição atual em")+" " + horario.hoje().format(datas()) + " "+texto("(não é um estoque histórico)");
         }
-        return new DocumentoRelatorioPdf(titulo, periodo, colunas, linhas, resumo, observacao, totais.listar());
+        return new DocumentoRelatorioPdf(texto(titulo), periodo, colunas, linhas, resumo.stream().map(d -> new Destaque(texto(d.rotulo()),d.valor())).toList(), observacao, totais.listar());
     }
 
     private static String lote(String codigo, String fabricante) {
-        return codigo + (fabricante == null ? "" : " · fabricante " + fabricante);
+        return codigo + (fabricante == null ? "" : " · "+texto("fabricante")+" " + fabricante);
     }
 
-    private static Coluna c(String titulo, float peso) { return new Coluna(titulo, peso, false); }
-    private static Coluna n(String titulo, float peso) { return new Coluna(titulo, peso, true); }
+    private static Coluna c(String titulo, float peso) { return new Coluna(texto(titulo), peso, false); }
+    private static Coluna n(String titulo, float peso) { return new Coluna(texto(titulo), peso, true); }
 }

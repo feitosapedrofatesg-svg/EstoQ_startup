@@ -1,6 +1,7 @@
 package com.estoq.business.alertas;
 
 import com.estoq.business.auth.UsuarioAtual;
+import com.estoq.business.usuarios.Perfil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,14 +22,19 @@ public class AlertaController {
     private final AlertaService service;
     private final UsuarioAtual usuarioAtual;
 
+    private Perfil perfilAlertas() {
+        var perfil=usuarioAtual.obter().getPerfil();
+        return perfil==Perfil.OPERACIONAL?Perfil.COZINHA:perfil;
+    }
+
     @GetMapping
     public List<AlertaDTO> listar(@RequestParam(required = false) Boolean visualizado) {
-        return service.listar(visualizado, usuarioAtual.obter().getPerfil());
+        return service.listar(visualizado, perfilAlertas());
     }
 
     @GetMapping("/abertos")
     public long abertos() {
-        return service.contarAbertos(usuarioAtual.obter().getPerfil());
+        return service.contarAbertos(perfilAlertas());
     }
 
     @PutMapping("/{id}/visualizado")

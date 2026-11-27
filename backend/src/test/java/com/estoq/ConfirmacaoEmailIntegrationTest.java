@@ -74,7 +74,7 @@ class ConfirmacaoEmailIntegrationTest {
         SecurityContextHolder.clearContext();
     }
     void cadastrar() {
-        registro.registrar(new RegistroRequestDTO("Cozinha teste", "Responsável", email, "Teste@12345"));
+        registro.registrar(new RegistroRequestDTO("Cozinha teste", "Responsável", email, "Teste@12345", true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
     }
     String token(String endereco) {
         return eventos.stream(ConfirmacaoSolicitada.class).filter(e -> e.email().equals(endereco))
@@ -92,7 +92,7 @@ class ConfirmacaoEmailIntegrationTest {
 
     @Test void cadastroPendenteSoEntraDepoisDeConfirmarETokenNaoSeRepete() throws Exception {
         mvc.perform(post("/api/registro").with(csrf()).contentType("application/json").content(json.writeValueAsString(Map.of(
-                "nomeLoja", "Teste", "nomeResponsavel", "Responsável", "email", email, "senha", "Teste@12345"))))
+                "nomeLoja", "Teste", "nomeResponsavel", "Responsável", "email", email, "senha", "Teste@12345", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE))))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.confirmacaoEmailPendente").value(true));
         var original = token(email);
         var salvo = tokens.findAll().stream().filter(t -> t.getEmail().equals(email)).findFirst().orElseThrow();

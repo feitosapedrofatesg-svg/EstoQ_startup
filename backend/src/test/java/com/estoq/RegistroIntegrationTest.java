@@ -28,10 +28,26 @@ class RegistroIntegrationTest {
     @Autowired com.estoq.business.usuarios.IUsuarioRepository usuarios;
     @Autowired com.estoq.business.restaurantes.IRestauranteRepository restaurantes;
     @Autowired org.springframework.transaction.PlatformTransactionManager transacoes;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate banco;
+
+    @Test
+    void exigeDoisAceitesERegistraVersoesSemCadastroParcial() throws Exception {
+        long antes=restaurantes.count();
+        for(String campos:new String[]{"",",\"aceitouTermos\":true",",\"aceitouTermos\":false,\"cientePrivacidade\":true"}) {
+            mvc.perform(post("/api/registro").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nomeLoja\":\"Sem aceite\",\"nomeResponsavel\":\"Pessoa\",\"email\":\"sem-aceite@teste.local\",\"senha\":\"Teste@12345\""+campos+"}"))
+                .andExpect(status().isBadRequest());
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(antes,restaurantes.count());
+        registrar("Com aceite","Responsável confirmado","aceite@teste.local","Teste@12345",201);
+        var responsavel=usuarios.findByEmailIgnoreCaseAndAtivoTrue("aceite@teste.local").orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(2,banco.queryForObject("select count(*) from aceites_documentos where restaurante_id=? and responsavel_id=? and confirmado_em is not null",Integer.class,responsavel.getRestauranteId(),responsavel.getId()));
+        org.junit.jupiter.api.Assertions.assertEquals(2,banco.queryForObject("select count(distinct documento) from aceites_documentos where restaurante_id=?",Integer.class,responsavel.getRestauranteId()));
+    }
 
     private void registrar(String loja, String responsavel, String email, String senha, int status) throws Exception {
         String body = String.format(
-                "{\"nomeLoja\":\"%s\",\"nomeResponsavel\":\"%s\",\"email\":\"%s\",\"senha\":\"%s\"}",
+                "{\"aceitouTermos\":true,\"cientePrivacidade\":true,\"versaoTermos\":\"2026-11-27-minuta-1\",\"versaoPrivacidade\":\"2026-10-25\",\"nomeLoja\":\"%s\",\"nomeResponsavel\":\"%s\",\"email\":\"%s\",\"senha\":\"%s\"}",
                 loja, responsavel, email, senha);
         mvc.perform(post("/api/registro").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().is(status));
@@ -79,7 +95,7 @@ class RegistroIntegrationTest {
         var transacao=new org.springframework.transaction.support.TransactionTemplate(transacoes);
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,() -> transacao.execute(status -> {
             registro.registrar(new com.estoq.business.registro.RegistroRequestDTO(
-                "Cadastro desfeito","Responsável","rollback@teste.com","Senha@12345"));
+                "Cadastro desfeito","Responsável","rollback@teste.com","Senha@12345", true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
             throw new IllegalStateException("Falha após preparar os dados do cadastro");
         }));
         org.junit.jupiter.api.Assertions.assertEquals(lojasAntes,restaurantes.count());

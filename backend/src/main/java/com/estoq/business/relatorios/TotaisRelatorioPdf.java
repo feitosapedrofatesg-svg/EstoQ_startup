@@ -14,12 +14,12 @@ final class TotaisRelatorioPdf {
     private final List<Destaque> valores = new ArrayList<>();
     private final TreeMap<String, BigDecimal> quantidades = new TreeMap<>();
 
-    void adicionar(String rotulo, String valor) { valores.add(new Destaque(rotulo, valor)); }
+    void adicionar(String rotulo, String valor) { valores.add(new Destaque(com.estoq.core.helpers.Idioma.texto(rotulo), valor)); }
 
     void quantidade(String rotulo, BigDecimal valor, String unidade) {
         // Sem unidade identificada, o valor permanece somente na linha do produto.
         if (valor == null || unidade == null || unidade.isBlank()) return;
-        String chave = rotulo + " (" + unidade.trim().toLowerCase(Locale.ROOT) + ")";
+        String chave = com.estoq.core.helpers.Idioma.texto(rotulo) + " (" + unidade.trim().toLowerCase(Locale.ROOT) + ")";
         quantidades.merge(chave, valor, BigDecimal::add);
     }
 

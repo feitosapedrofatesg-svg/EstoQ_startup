@@ -38,6 +38,13 @@ public class LoteService {
         return adapter.toDto(encontrar(id));
     }
 
+    public org.springframework.data.domain.Page<LoteDTO> pagina(String q,boolean vencidos,boolean somenteComSaldo,Long produtoId,int pagina,int tamanho) {
+        return repository.pagina(q.trim(),vencidos,somenteComSaldo,produtoId,horario.hoje(),
+            org.springframework.data.domain.PageRequest.of(Math.max(0,pagina),Math.clamp(tamanho,1,100),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Order.asc("dataValidade").nullsLast(),
+                    org.springframework.data.domain.Sort.Order.asc("id")))).map(adapter::toDto);
+    }
+
     public List<LoteDTO> listar(Long produtoId) {
         return repository.listarEstoque().stream()
                 .filter(l -> produtoId == null || produtoId.equals(l.getProduto().getId()))
@@ -59,11 +66,15 @@ public class LoteService {
     }
 
     public boolean proximoVencimento(LoteModel lote) {
+        return proximoVencimento(lote,horario.hoje());
+    }
+
+    public static boolean proximoVencimento(LoteModel lote, LocalDate hoje) {
         var par = lote.getProduto().getParametro();
-        if (par == null || !par.isAtivo() || !lote.estaDisponivel(horario.hoje())) {
+        if (par == null || !par.isAtivo() || !lote.estaDisponivel(hoje)) {
             return false;
         }
-        var dias = lote.diasParaVencimento(horario.hoje());
+        var dias = lote.diasParaVencimento(hoje);
         return dias != null && dias <= par.getDiasAlertaVencimento();
     }
 

@@ -13,6 +13,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ILoteRepository extends IGenericRepository<LoteModel> {
+        @EntityGraph(attributePaths={"produto","produto.parametro"})
+        @Query("select l from LoteModel l where l.ativo=true and l.produto.ativo=true and (:somenteComSaldo=false or l.quantidadeAtual>0) "
+            + "and (:vencidos=false or l.dataValidade<:hoje) and (:produtoId is null or l.produto.id=:produtoId) "
+            + "and (lower(l.produto.nome) like lower(concat('%',:q,'%')) or lower(l.codigo) like lower(concat('%',:q,'%')) "
+            + "or lower(l.loteFabricante) like lower(concat('%',:q,'%')))")
+        org.springframework.data.domain.Page<LoteModel> pagina(String q, boolean vencidos, boolean somenteComSaldo, Long produtoId, LocalDate hoje,
+            org.springframework.data.domain.Pageable pageable);
         @EntityGraph(attributePaths = { "produto", "produto.parametro" })
         @Query("select l from LoteModel l where l.ativo=true and l.produto.id in :ids")
         List<LoteModel> findParaAlertas(List<Long> ids);

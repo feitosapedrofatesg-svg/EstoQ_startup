@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IBalancoRepository extends IGenericRepository<BalancoModel> {
+    @Query("select b.id from BalancoModel b where b.ativo=true order by b.dataHora desc,b.id desc")
+    org.springframework.data.domain.Page<Long> paginaIds(org.springframework.data.domain.Pageable pageable);
+
+    @EntityGraph(attributePaths={"itens.produto","itens.produto.categoria","itens.produto.parametro","usuario"})
+    List<BalancoModel> findByIdIn(List<Long> ids);
 
     @EntityGraph(attributePaths = {"itens.produto", "itens.produto.categoria", "itens.produto.parametro", "usuario"})
     Optional<BalancoModel> findByIdAndAtivoTrue(Long id);

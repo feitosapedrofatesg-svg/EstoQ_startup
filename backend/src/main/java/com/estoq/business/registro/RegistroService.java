@@ -36,6 +36,7 @@ import java.util.Locale;
 public class RegistroService {
 
     private final HorarioOperacao horario;
+    private final DocumentosService documentos;
 
     private final IRestauranteRepository restaurantes;
     private final IUsuarioRepository usuarios;
@@ -47,12 +48,14 @@ public class RegistroService {
 
     @Transactional
     public boolean registrar(RegistroRequestDTO dto) {
+        documentos.validar(dto.aceitouTermos(),dto.cientePrivacidade(),dto.versaoTermos(),dto.versaoPrivacidade());
         return criar(dto.nomeLoja(), dto.nomeResponsavel(), dto.email(), encoder.encode(dto.senha()), null, false).emailPendente();
     }
 
     @Transactional
-    public UsuarioModel registrarGoogle(String nomeLoja, String nomeResponsavel, GoogleIdentidade identidade) {
-        return criar(nomeLoja, nomeResponsavel, identidade.email(), null, identidade.sub(), identidade.emailConfiavel());
+    public UsuarioModel registrarGoogle(com.estoq.business.loginGoogle.GoogleCadastroDTO dto, GoogleIdentidade identidade) {
+        documentos.validar(dto.aceitouTermos(),dto.cientePrivacidade(),dto.versaoTermos(),dto.versaoPrivacidade());
+        return criar(dto.nomeLoja(), dto.nomeResponsavel(), identidade.email(), null, identidade.sub(), identidade.emailConfiavel());
     }
 
     private UsuarioModel criar(String nomeLoja, String nomeResponsavel, String email, String senha,
@@ -78,6 +81,7 @@ public class RegistroService {
             if (emailConfiavel) admin.setEmailConfirmadoEm(horario.agoraUtc());
         }
         usuarios.saveAndFlush(admin);
+        documentos.registrar(admin);
 
         criarParametroCmv(restaurante.getId());
         criarConfiguracaoBalanco(restaurante.getId());

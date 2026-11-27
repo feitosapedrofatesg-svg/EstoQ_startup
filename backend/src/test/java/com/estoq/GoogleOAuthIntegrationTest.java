@@ -92,7 +92,7 @@ class GoogleOAuthIntegrationTest {
 
     @Test void contaJaVinculadaEntraComSessaoDoEstoqERespeitaTenantELogout() throws Exception {
         var sub = "vinculado-" + UUID.randomUUID();
-        var usuario = google.cadastrar(new GoogleIdentidade(sub, sub + "@gmail.com", "Pessoa", true), new GoogleCadastroDTO("Cozinha Google", "Pessoa"));
+        var usuario = google.cadastrar(new GoogleIdentidade(sub, sub + "@gmail.com", "Pessoa", true), new GoogleCadastroDTO("Cozinha Google", "Pessoa", true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
         var inicio = iniciar();
         var idAnterior = inicio.sessao().getId();
         responder(inicio, PROVEDOR.claims(sub, usuario.getEmail(), inicio.parametros().get("nonce")), "/");

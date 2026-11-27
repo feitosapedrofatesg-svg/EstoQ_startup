@@ -71,7 +71,7 @@ class GoogleLoginIntegrationTest {
     }
     MockHttpSession cadastrar() throws Exception {
         var sessao = pendente(GooglePendencias.Etapa.CADASTRO);
-        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Cozinha Google", "nomeResponsavel", "Responsável"), 201);
+        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Cozinha Google", "nomeResponsavel", "Responsável", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE), 201);
         return sessao;
     }
     UsuarioModel usuario() { return usuarios.findByGoogleSub(identidade.sub()).orElseThrow(); }
@@ -94,7 +94,7 @@ class GoogleLoginIntegrationTest {
                 .andExpect(status().isForbidden());
         sessao.setAttribute("ESTOQ_GOOGLE_PENDENTE", new GooglePendencias.Pendente(identidade,
                 GooglePendencias.Etapa.CADASTRO, LocalDateTime.MIN));
-        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa"), 400);
+        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE), 400);
         var outra = pendente(GooglePendencias.Etapa.CADASTRO);
         enviar("/api/auth/google/cancelar", outra, Map.of(), 204);
         mvc.perform(get("/api/auth/google/pendente").session(outra)).andExpect(status().isBadRequest());
@@ -102,7 +102,7 @@ class GoogleLoginIntegrationTest {
     }
 
     @Test void contasLocaisExigemSenhaParaVincularEPreservamPerfilRestauranteEHash() throws Exception {
-        registro.registrar(new RegistroRequestDTO("Loja existente", "Pessoa", identidade.email(), "Senha@12345"));
+        registro.registrar(new RegistroRequestDTO("Loja existente", "Pessoa", identidade.email(), "Senha@12345", true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
         var local = usuarios.findByEmailIgnoreCase(identidade.email()).orElseThrow();
         alterar(() -> { var u = usuarios.findById(local.getId()).orElseThrow(); u.setPerfil(Perfil.COZINHA); });
         var anterior = (MockHttpSession) enviar("/api/auth/login", new MockHttpSession(),
@@ -123,7 +123,7 @@ class GoogleLoginIntegrationTest {
 
     @Test void cadastroDuplicadoConcorrenteNaoDeixaRestauranteOrfao() throws Exception {
         long antes = restaurantes.count();
-        var corpo = json.writeValueAsString(Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa"));
+        var corpo = json.writeValueAsString(Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE));
         var s1 = pendente(GooglePendencias.Etapa.CADASTRO); var s2 = pendente(GooglePendencias.Etapa.CADASTRO);
         try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
             var resultados = executor.invokeAll(List.of(
@@ -148,10 +148,10 @@ class GoogleLoginIntegrationTest {
     @Test void enderecoExternoAoGoogleExigeConfirmacaoPeloLink() throws Exception {
         identidade = new GoogleIdentidade(identidade.sub(), "externo-" + identidade.sub() + "@exemplo.com", "Pessoa", false);
         var sessao = pendente(GooglePendencias.Etapa.CADASTRO); long antes = restaurantes.count();
-        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa"), 503);
+        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE), 503);
         assertEquals(antes, restaurantes.count());
         ReflectionTestUtils.setField(emailConfig, "enabled", true);
-        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa"), 201)
+        enviar("/api/registro/google", sessao, Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE), 201)
                 .getResponse();
         mvc.perform(get("/api/auth/me").session(sessao)).andExpect(status().isUnauthorized());
         assertTrue(usuario().emailPendente());
@@ -181,8 +181,8 @@ class GoogleLoginIntegrationTest {
     @Test void googleDesligadoMantemLoginLocal() throws Exception {
         ReflectionTestUtils.setField(config, "enabled", false);
         mvc.perform(get("/api/auth/google/configuracao")).andExpect(jsonPath("$.enabled").value(false));
-        enviar("/api/registro/google", pendente(GooglePendencias.Etapa.CADASTRO), Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa"), 503);
-        registro.registrar(new RegistroRequestDTO("Loja local", "Pessoa", identidade.email(), "Senha@12345"));
+        enviar("/api/registro/google", pendente(GooglePendencias.Etapa.CADASTRO), Map.of("nomeLoja", "Loja", "nomeResponsavel", "Pessoa", "aceitouTermos", true, "cientePrivacidade", true, "versaoTermos", com.estoq.business.registro.DocumentosService.TERMOS, "versaoPrivacidade", com.estoq.business.registro.DocumentosService.PRIVACIDADE), 503);
+        registro.registrar(new RegistroRequestDTO("Loja local", "Pessoa", identidade.email(), "Senha@12345", true, true, com.estoq.business.registro.DocumentosService.TERMOS, com.estoq.business.registro.DocumentosService.PRIVACIDADE));
         enviar("/api/auth/login", new MockHttpSession(), Map.of("email", identidade.email(), "senha", "Senha@12345"), 200);
     }
 }

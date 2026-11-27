@@ -67,7 +67,7 @@ class TenantIsolamentoIntegrationTest {
 
     private void registrar(String loja, String email, String senha) throws Exception {
         String body = String.format(
-                "{\"nomeLoja\":\"%s\",\"nomeResponsavel\":\"%s\",\"email\":\"%s\",\"senha\":\"%s\"}",
+                "{\"aceitouTermos\":true,\"cientePrivacidade\":true,\"versaoTermos\":\"2026-11-27-minuta-1\",\"versaoPrivacidade\":\"2026-10-25\",\"nomeLoja\":\"%s\",\"nomeResponsavel\":\"%s\",\"email\":\"%s\",\"senha\":\"%s\"}",
                 loja, "Dono de " + loja, email, senha);
         mvc.perform(post("/api/registro").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
@@ -254,6 +254,96 @@ class TenantIsolamentoIntegrationTest {
         postarJson(lucas, rota + "/gerar-ajustes", Map.of("version", balanco.get("version").asLong()), 200);
         assertThat(json.readTree(mvc.perform(get(consulta).session(lucas)).andReturn().getResponse().getContentAsString()))
                 .isEqualTo(movimentos);
+    }
+
+    @Test
+    void estoquePaginaVencimentosEPlanilhaRespeitamConfiguracaoELoja() throws Exception {
+        registrar("Loja Pagina","pagina@estoque.teste","Teste@12345");
+        var sessao=login("pagina@estoque.teste","Teste@12345");
+        long categoria=criarCategoria(sessao,"Ingredientes");
+        long produto=postarJson(sessao,"/api/produtos",Map.of("nome","Validade mista","unidadeMedida","KG","categoriaId",categoria),201).get("id").asLong();
+        var hoje=java.time.LocalDate.now(com.estoq.core.helpers.HorarioOperacao.FUSO);
+        postarJson(sessao,"/api/entradas",Map.of("produtoId",produto,"quantidade",2,"valorTotalPago",20,"unidadeCompra","KG","dataValidade",hoje.plusDays(20).toString()),201);
+        var antiga=postarJson(sessao,"/api/entradas",Map.of("produtoId",produto,"quantidade",3,"valorTotalPago",30,"unidadeCompra","KG"),201);
+        long lote=antiga.get("movimentacoes").get(0).get("loteId").asLong();
+        banco.update("update lotes set data_validade=? where id=?",hoje.minusDays(1),lote);
+        long semValidade=postarJson(sessao,"/api/produtos",Map.of("nome","Sem validade","unidadeMedida","L","categoriaId",categoria),201).get("id").asLong();
+        postarJson(sessao,"/api/entradas",Map.of("produtoId",semValidade,"quantidade",4,"valorTotalPago",8,"unidadeCompra","L"),201);
+        mvc.perform(get("/api/estoque/pagina?situacao=PROXIMO").session(sessao)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        var parametro=json.readValue(mvc.perform(get("/api/parametros-estoque/por-produto/"+produto).session(sessao)).andReturn().getResponse().getContentAsString(),com.estoq.business.parametrosEstoque.ParametroEstoqueDTO.class);
+        parametro.setDiasAlertaVencimento(21);
+        mvc.perform(put("/api/parametros-estoque/"+parametro.getId()).session(sessao).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(parametro))).andExpect(status().isOk());
+        mvc.perform(get("/api/estoque/pagina?situacao=PROXIMO").session(sessao)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].proximoVencimento").value(true)).andExpect(jsonPath("$.content[0].possuiLotesVencidos").value(true));
+        mvc.perform(get("/api/estoque/pagina?situacao=VENCIDO").session(sessao)).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/lotes/pagina?page=0&size=1").session(sessao)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(3)).andExpect(jsonPath("$.content[0].id").value(lote));
+        var segundaPagina=json.readTree(mvc.perform(get("/api/lotes/pagina?page=1&size=1").session(sessao)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(segundaPagina.path("content").get(0).path("id").asLong()).isNotEqualTo(lote);
+        for(int i=0;i<3;i++)postarJson(sessao,"/api/balancos",Map.of("tipo","GERAL"),201);
+        var paginaBalanco=json.readTree(mvc.perform(get("/api/balancos/pagina?page=0&size=1").session(sessao)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(3)).andReturn().getResponse().getContentAsString());
+        var outroBalanco=json.readTree(mvc.perform(get("/api/balancos/pagina?page=1&size=1").session(sessao)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(paginaBalanco.path("content").get(0).path("id").asLong()).isNotEqualTo(outroBalanco.path("content").get(0).path("id").asLong());
+        for(int i=0;i<27;i++)postarJson(sessao,"/api/produtos",Map.of("nome",String.format("Pagina %02d",i),"unidadeMedida","UN","categoriaId",categoria),201);
+        mvc.perform(get("/api/estoque/pagina?page=0&size=10").session(sessao)).andExpect(jsonPath("$.content.length()").value(10)).andExpect(jsonPath("$.totalElements").value(29)).andExpect(jsonPath("$.valorTotal").value(58));
+        var arquivo=mvc.perform(get("/api/estoque/planilha").session(sessao)).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        try(var wb=new org.apache.poi.xssf.usermodel.XSSFWorkbook(new java.io.ByteArrayInputStream(arquivo))) {
+            var folha=wb.getSheetAt(0);
+            assertThat(folha.getPaneInformation().isFreezePane()).isTrue();
+            assertThat(folha.getCTWorksheet().isSetAutoFilter()).isTrue();
+            assertThat(folha.getRow(1).getCell(0).getStringCellValue()).isEqualTo("Loja Pagina");
+            assertThat(org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(folha.getRow(2).getCell(1))).isTrue();
+            assertThat(folha.getRow(6).getCell(3).getCellType()).isEqualTo(org.apache.poi.ss.usermodel.CellType.NUMERIC);
+            assertThat(folha.getRow(35).getCell(5).getNumericCellValue()).isEqualTo(58);
+        }
+        java.nio.file.Files.write(java.nio.file.Path.of("target/estoq-estoque-validacao.xlsx"),arquivo);
+        var ingles=mvc.perform(get("/api/estoque/planilha?idioma=en").session(sessao)).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        try(var wb=new org.apache.poi.xssf.usermodel.XSSFWorkbook(new java.io.ByteArrayInputStream(ingles))) {
+            var folha=wb.getSheetAt(0);
+            assertThat(folha.getRow(5).getCell(0).getStringCellValue()).isEqualTo("Product");
+            assertThat(folha.getRow(1).getCell(0).getStringCellValue()).isEqualTo("Loja Pagina");
+            assertThat(folha.getRow(35).getCell(5).getNumericCellValue()).isEqualTo(58);
+            assertThat(folha.getRow(35).getCell(5).getCellStyle().getDataFormatString()).contains("R$");
+        }
+        var pdf=mvc.perform(get("/api/relatorios/pdf/estoque-atual").header("Accept-Language","en").session(sessao)).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        try(var documento=org.apache.pdfbox.Loader.loadPDF(pdf)) {
+            var texto=new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
+            assertThat(texto).contains("Current inventory","Validade mista","R$").doesNotContain("Estoque atual");
+        }
+        registrar("Outra Loja","outra@estoque.teste","Teste@12345");
+        var outra=login("outra@estoque.teste","Teste@12345");
+        mvc.perform(get("/api/estoque/pagina").session(outra)).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/lotes/pagina").session(outra)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/balancos/pagina").session(outra)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/lotes/"+lote).session(outra)).andExpect(status().isNotFound());
+        var externo=mvc.perform(get("/api/estoque/planilha").session(outra)).andReturn().getResponse().getContentAsByteArray();
+        try(var wb=new org.apache.poi.xssf.usermodel.XSSFWorkbook(new java.io.ByteArrayInputStream(externo))) {
+            assertThat(wb.getSheetAt(0).getRow(1).getCell(0).getStringCellValue()).isEqualTo("Outra Loja");
+            assertThat(wb.getSheetAt(0).getRow(6).getCell(0).getStringCellValue()).isEqualTo("Valor total em estoque");
+        }
+    }
+
+    @Test
+    void operacionalRegistraEntradaRealECozinhaMantemBloqueio() throws Exception {
+        registrar("Operacao","admin-operacao@teste.com","Teste@12345");
+        var admin=login("admin-operacao@teste.com","Teste@12345");
+        long categoria=criarCategoria(admin,"Operacao");
+        long produto=postarJson(admin,"/api/produtos",Map.of("nome","Produto operacional","unidadeMedida","UN","categoriaId",categoria),201).get("id").asLong();
+        for(var perfil:List.of("OPERACIONAL","COZINHA")) {
+            String email=perfil.toLowerCase()+"-entrada@teste.com";
+            postarJson(admin,"/api/usuarios",Map.of("nome",perfil,"email",email,"senha","Teste@12345","perfil",perfil),201);
+            var session=login(email,"Teste@12345");
+            var pedido=Map.of("produtoId",produto,"quantidade",2,"valorTotalPago",10,"unidadeCompra","UN");
+            if(perfil.equals("OPERACIONAL")) {
+                var resultado=postarJson(session,"/api/entradas",pedido,201);
+                long id=resultado.path("movimentacoes").get(0).path("loteId").asLong();
+                mvc.perform(get("/api/lotes/"+id).session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.produtoNome").value("Produto operacional"));
+            } else postarJson(session,"/api/entradas",pedido,403);
+            mvc.perform(get("/api/usuarios").session(session)).andExpect(status().isForbidden());
+            mvc.perform(get("/api/estoque/planilha").session(session)).andExpect(status().isForbidden());
+            mvc.perform(get("/api/auth/preferencias").session(session)).andExpect(status().isOk());
+        }
+        mvc.perform(get("/api/estoque/pagina").session(admin)).andExpect(jsonPath("$.content[0].saldoAtual").value(2));
     }
 
     @Test

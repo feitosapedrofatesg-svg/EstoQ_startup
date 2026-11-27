@@ -19,6 +19,10 @@ class DependenciasTest(unittest.TestCase):
             "  org.exemplo:nativo:jar:linux:1.2:runtime\n  org.exemplo:teste:jar:1.0:test")
         self.assertEqual([("org.exemplo:driver", "42.0"), ("org.exemplo:nativo", "1.2")], pacotes)
 
+    def test_cores_ansi_nao_ocultam_dependencias(self):
+        self.assertEqual([("org.apache.poi:poi", "6.0.0")], scanner.ler_dependencias(
+            "   org.apache.poi:poi:jar:6.0.0:compile\x1b[36m -- module org.apache.poi.poi\x1b[m"))
+
     def test_paginacao_preserva_avisos_da_segunda_pagina(self):
         with patch.object(scanner, "consultar", side_effect=[
             [{"vulns": [{"id": "AVISO-1"}], "next_page_token": "pagina2"}],

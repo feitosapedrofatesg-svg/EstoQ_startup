@@ -10,7 +10,7 @@ from pathlib import Path
 def ler_dependencias(texto):
     pacotes = set()
     for linha in texto.splitlines():
-        item = linha.strip().split(" ")[0]
+        item = re.sub(r"\x1b\[[0-9;]*m", "", linha).strip().split(" ")[0]
         partes = item.split(":")
         if len(partes) >= 5 and partes[-1] in {"compile", "runtime", "provided"}:
             if re.fullmatch(r"[\w.-]+", partes[0]) and re.fullmatch(r"[\w.-]+", partes[1]):

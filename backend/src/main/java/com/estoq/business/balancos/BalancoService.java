@@ -45,6 +45,13 @@ public class BalancoService {
         return repository.findAllByAtivoTrueOrderByDataHoraDesc().stream().map(adapter::toDto).toList();
     }
 
+    public org.springframework.data.domain.Page<BalancoDTO> pagina(int pagina,int tamanho) {
+        var ids=repository.paginaIds(org.springframework.data.domain.PageRequest.of(Math.max(0,pagina),Math.clamp(tamanho,1,100)));
+        var encontrados=ids.isEmpty()?java.util.Map.<Long,BalancoModel>of():repository.findByIdIn(ids.getContent()).stream()
+            .collect(java.util.stream.Collectors.toMap(BalancoModel::getId,b->b));
+        return new org.springframework.data.domain.PageImpl<>(ids.stream().map(id->adapter.toDto(encontrados.get(id))).toList(),ids.getPageable(),ids.getTotalElements());
+    }
+
     public BalancoDTO buscar(Long id) {
         return adapter.toDto(encontrar(id));
     }

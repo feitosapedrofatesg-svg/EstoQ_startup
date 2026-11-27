@@ -119,6 +119,33 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    void preferenciasSaoIndividuaisEValidamLimites() throws Exception {
+        var cozinha=login("cozinha@test.local","Teste@12345",200);
+        var operacional=login("operacional@test.local","Teste@12345",200);
+        mvc.perform(put("/api/auth/preferencias").session(cozinha).with(csrf()).contentType("application/json")
+            .content("{\"tema\":\"roxo\",\"fonte\":125,\"idioma\":\"es\"}")).andExpect(status().isOk());
+        mvc.perform(get("/api/auth/preferencias").session(cozinha)).andExpect(jsonPath("$.tema").value("roxo")).andExpect(jsonPath("$.idioma").value("es"));
+        mvc.perform(get("/api/auth/preferencias").session(operacional)).andExpect(jsonPath("$.tema").value("claro")).andExpect(jsonPath("$.fonte").value(100));
+        mvc.perform(put("/api/auth/preferencias").session(cozinha).with(csrf()).contentType("application/json")
+            .content("{\"tema\":\"qualquer\",\"fonte\":900,\"idioma\":\"de\"}")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/auth/me").session(cozinha)).andExpect(status().isOk());
+    }
+
+    @Test
+    void operacionalTemEntradaSemAdministracao() throws Exception {
+        var session=login("operacional@test.local","Teste@12345",200);
+        mvc.perform(post("/api/entradas").session(session).with(csrf()).contentType("application/json").content("{}"))
+            .andExpect(status().isBadRequest());
+        for(var rota:new String[]{"/api/estoque/pagina","/api/produtos","/api/lotes","/api/balancos"})
+            mvc.perform(get(rota).session(session)).andExpect(status().isOk());
+        for(var rota:new String[]{"/api/usuarios","/api/plataforma/restaurantes","/api/relatorios/cmv","/api/parametros-cmv"})
+            mvc.perform(get(rota).session(session)).andExpect(status().isForbidden());
+        for(var rota:new String[]{"/api/produtos","/api/categorias","/api/usuarios","/api/balancos/1/gerar-ajustes"})
+            mvc.perform(post(rota).session(session).with(csrf()).contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void cozinhaENutricionistaNaoFazemGestaoOuEntrada() throws Exception {
         for (String perfil : new String[] { "cozinha", "nutricionista" }) {
             var session = login(perfil + "@test.local", "Teste@12345", 200);

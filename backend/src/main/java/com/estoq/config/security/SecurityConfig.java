@@ -89,7 +89,7 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(a -> a
                                                 // O pedido original já foi autorizado; o encerramento SSE pode ocorrer após logout.
                                                 .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                                                .requestMatchers("/api/saude/vivo", "/api/saude/pronto", "/api/auth/csrf", "/api/auth/login", "/api/registro",
+                                                .requestMatchers("/api/documentos", "/api/saude/vivo", "/api/saude/pronto", "/api/auth/csrf", "/api/auth/login", "/api/registro",
                                                                 "/api/auth/email/confirmar", "/api/auth/email/reenviar",
                                                                 "/api/auth/google/configuracao", "/api/auth/google/pendente",
                                                                 "/api/auth/google/vincular", "/api/auth/google/cancelar", "/api/registro/google",
@@ -97,29 +97,32 @@ public class SecurityConfig {
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()
-                                                .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+                                                .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/auth/preferencias").authenticated()
                                                 .requestMatchers(HttpMethod.GET, "/api/sincronizacao/eventos")
-                                                .hasAnyRole("ADMIN", "COZINHA", "NUTRICIONISTA")
+                                                .hasAnyRole("ADMIN", "COZINHA", "OPERACIONAL", "NUTRICIONISTA")
                                                 .requestMatchers("/api/backups", "/api/backups/**").hasRole("PLATAFORMA")
                                                 .requestMatchers("/api/plataforma/**").hasRole("PLATAFORMA")
                                                 .requestMatchers(HttpMethod.GET, "/api/balancos/proximo")
-                                                .hasAnyRole("ADMIN", "COZINHA", "NUTRICIONISTA")
+                                                .hasAnyRole("ADMIN", "COZINHA", "OPERACIONAL", "NUTRICIONISTA")
+                                                .requestMatchers(HttpMethod.POST, "/api/entradas").hasAnyRole("ADMIN", "OPERACIONAL")
+                                                .requestMatchers(HttpMethod.GET, "/api/estoque/planilha").hasAnyRole("ADMIN", "NUTRICIONISTA")
+                                                .requestMatchers(HttpMethod.GET, "/api/estoque/**").hasAnyRole("ADMIN", "COZINHA", "OPERACIONAL")
                                                 .requestMatchers(HttpMethod.GET, "/api/categorias/**",
                                                                 "/api/produtos/**", "/api/lotes/**",
                                                                 "/api/estoque", "/api/produtos-abertos/**",
                                                                 "/api/balancos/**", "/api/movimentacoes/**",
                                                                 "/api/alertas/**")
-                                                .hasAnyRole("ADMIN", "COZINHA")
+                                                .hasAnyRole("ADMIN", "COZINHA", "OPERACIONAL")
                                                 .requestMatchers(HttpMethod.POST, "/api/consumos", "/api/consumos/lote", "/api/desperdicios",
                                                                 "/api/produtos-abertos/abrir",
                                                                 "/api/produtos-abertos/*/consumir",
                                                                 "/api/produtos-abertos/*/desperdicar",
                                                                 "/api/balancos", "/api/balancos/*/iniciar",
                                                                 "/api/balancos/*/contagens/sistema")
-                                                .hasAnyRole("ADMIN", "COZINHA")
+                                                .hasAnyRole("ADMIN", "COZINHA", "OPERACIONAL")
                                                 .requestMatchers(HttpMethod.PUT, "/api/balancos/*/itens/*/contagem",
                                                                 "/api/alertas/*/visualizado")
-                                                .hasAnyRole("ADMIN", "COZINHA")
+                                                .hasAnyRole("ADMIN", "COZINHA", "OPERACIONAL")
                                                 .requestMatchers(HttpMethod.GET, "/api/relatorios/**",
                                                                 "/api/dashboard/**",
                                                                 "/api/parametros-cmv")

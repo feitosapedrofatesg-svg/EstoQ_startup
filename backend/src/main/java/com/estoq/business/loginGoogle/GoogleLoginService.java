@@ -68,7 +68,7 @@ public class GoogleLoginService {
         conferirEnvio(identidade);
         if (usuarios.findByGoogleSub(identidade.sub()).isPresent())
             throw new ConflictException("Essa conta já foi cadastrada. Entre com Google novamente.");
-        return registro.registrarGoogle(dto.nomeLoja(), dto.nomeResponsavel(), identidade);
+        return registro.registrarGoogle(dto, identidade);
     }
 
     @Transactional

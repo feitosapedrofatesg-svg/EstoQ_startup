@@ -1,3 +1,7 @@
+import { traduzir } from "./lib/i18n";
+import { Entradas } from "./pages/Entradas";
+import { PreferenciasProvider } from "./store/preferencias";
+import { useIdiomaAtual } from "./lib/i18n";
 import { NotasFiscais } from "./pages/NotasFiscais";
 import { BrowserRouter, Navigate, Route, Routes, Link, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./store/auth";
@@ -10,6 +14,7 @@ import { Registro } from "./pages/Registro";
 import { RegistroGoogle } from "./pages/RegistroGoogle";
 import { Home } from "./pages/Home";
 import { Sobre } from "./pages/Sobre";
+import { Termos } from "./pages/Termos";
 import { Privacidade } from "./pages/Privacidade";
 import { Plataforma } from "./pages/Plataforma";
 import { Dashboard } from "./pages/Dashboard";
@@ -28,9 +33,9 @@ function Splash() {
   return (
     <div className="splash">
       <div className="splash__logo">
-        <img src="/logo_estoq_oficial.png" alt="estoQ" width={220} height={124} />
+        <img src="/logo_estoq_oficial.png" alt={traduzir("estoQ")} width={220} height={124} />
       </div>
-      <p className="splash__text">Carregando estoQ…</p>
+      <p className="splash__text">{" "}{traduzir("Carregando estoQ…")}{" "}</p>
     </div>
   );
 }
@@ -41,15 +46,12 @@ function AccessDenied() {
       <span className="empty__icon" aria-hidden="true">
         <Icon name="alert" size={30} />
       </span>
-      <p className="empty__title">Esta área não está disponível para o seu perfil</p>
+      <p className="empty__title">{" "}{traduzir("Esta área não está disponível para o seu perfil")}{" "}</p>
       <p className="empty__text">
-        Cada perfil vê só o que precisa: o Operacional registra consumo, desperdício e contagens;
-        o nutricionista analisa e o administrador configura.
-      </p>
+        {" "}{traduzir("Cada perfil vê só o que precisa: o Operacional registra consumo, desperdício e contagens; o nutricionista analisa e o administrador configura.")}{" "}</p>
       <div className="empty__action">
         <Link to="/dashboard" className="btn btn--accent">
-          Voltar à visão geral
-        </Link>
+          {" "}{traduzir("Voltar à visão geral")}{" "}</Link>
       </div>
     </div>
   );
@@ -67,6 +69,7 @@ function Guarded({
 }
 
 function AppRoutes() {
+  useIdiomaAtual();
   const {
     user,
     ready,
@@ -76,11 +79,14 @@ function AppRoutes() {
     canSeeCatalogo,
     isAdmin,
     isCozinha,
+    isOperacional,
+    canEnter,
     isPlataforma,
   } = useAuth();
 
   const location = useLocation();
   if (location.pathname === "/sobre") return <Sobre />;
+  if (location.pathname === "/termos") return <Termos />;
   if (location.pathname === "/privacidade") return <Privacidade />;
   if (location.pathname === "/confirmar-email") return <ConfirmarEmail />;
   if (location.pathname === "/verificar-email") return <VerificarEmail />;
@@ -118,7 +124,7 @@ function AppRoutes() {
       <Routes>
         <Route
           path="/dashboard"
-          element={isCozinha ? <Navigate to="/estoque" replace /> : <Dashboard />}
+          element={isCozinha || isOperacional ? <Navigate to="/estoque" replace /> : <Dashboard />}
         />
         <Route
           path="/estoque"
@@ -136,6 +142,7 @@ function AppRoutes() {
             </Guarded>
           }
         />
+        <Route path="/entradas" element={<Guarded allow={canEnter}><Entradas /></Guarded>} />
         <Route path="/notas-fiscais" element={<Guarded allow={isAdmin}><NotasFiscais /></Guarded>} />
         <Route
           path="/consumo"
@@ -203,12 +210,11 @@ export function App() {
   return (
     <ToastProvider>
       {import.meta.env.VITE_AMBIENTE === "homologacao" && <div className="alertbanner alertbanner--warn" role="status">
-        Homologação · use apenas dados de teste
-      </div>}
+        {" "}{traduzir("Homologação · use apenas dados de teste")}{" "}</div>}
       <AuthProvider>
-        <BrowserRouter>
+        <PreferenciasProvider><BrowserRouter>
           <AppRoutes />
-        </BrowserRouter>
+        </BrowserRouter></PreferenciasProvider>
       </AuthProvider>
     </ToastProvider>
   );

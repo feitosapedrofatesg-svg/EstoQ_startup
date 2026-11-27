@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { ProximoBalanco } from "../components/ProximoBalanco";
 import { useAuth } from "../store/auth";
@@ -44,22 +45,21 @@ export function Dashboard() {
       await api.put(`/api/alertas/${id}/visualizado`);
       void refreshAlerts();
     } catch (e) {
-      toast.error("Não foi possível atualizar", mensagemErro(e));
+      toast.error(traduzir("Não foi possível atualizar"), mensagemErro(e));
     }
   };
 
   return (
     <DashboardTactile>
       <PageHeader
-        title={<>Olá, {user?.nome.split(" ")[0]}.</>}
+        title={<>{" "}{traduzir("Olá,")}{" "}{user?.nome.split(" ")[0]}.</>}
         subtitle={<span className="capitalize">{fmtDataHoje()}</span>}
         actions={
           <>
-            {canMove && <LinkButton to="/consumo" icon="check-circle">Registrar consumo</LinkButton>}
+            {canMove && <LinkButton to="/consumo" icon="check-circle">{" "}{traduzir("Registrar consumo")}{" "}</LinkButton>}
             {canReport && (
               <LinkButton to="/relatorios" variant="outline" icon="chart">
-                Relatórios
-              </LinkButton>
+                {" "}{traduzir("Relatórios")}{" "}</LinkButton>
             )}
           </>
         }
@@ -69,45 +69,44 @@ export function Dashboard() {
 
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          Não foi possível carregar o resumo. {error}
+          {" "}{traduzir("Não foi possível carregar o resumo.")}{" "}{traduzir(error)}
           <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-            Tentar de novo
-          </Button>
+            {" "}{traduzir("Tentar de novo")}{" "}</Button>
         </div>
       )}
 
-      {loading && !data && <p className="muted">Carregando visão geral…</p>}
+      {loading && !data && <p className="muted">{" "}{traduzir("Carregando visão geral…")}{" "}</p>}
 
       {data && (
         <>
           <div className="stat-grid">
-            <StatCard label="Produtos ativos" value={data.totalProdutosAtivos} icon="boxes"
+            <StatCard label={traduzir("Produtos ativos")} value={data.totalProdutosAtivos} icon="boxes"
               to={canSeeCatalogo ? "/catalogo" : undefined} />
             <StatCard
-              label="Estoque baixo"
+              label={traduzir("Estoque baixo")}
               value={data.produtosEstoqueBaixo}
               tone={data.produtosEstoqueBaixo > 0 ? "warn" : "neutral"}
               icon="alert-triangle"
               to={canSeeEstoque ? "/estoque" : undefined}
             />
             <StatCard
-              label="Próximos a vencer"
+              label={traduzir("Próximos a vencer")}
               value={data.lotesProximosVencimento}
               tone={data.lotesProximosVencimento > 0 ? "warn" : "neutral"}
               icon="clock"
               to={canSeeEstoque ? "/estoque" : undefined}
             />
             <StatCard
-              label="Vencidos"
+              label={traduzir("Vencidos")}
               value={data.lotesVencidos}
               tone={data.lotesVencidos > 0 ? "bad" : "neutral"}
               icon="alert-circle"
               to={canMove ? "/desperdicio" : undefined}
             />
-            <StatCard label="Embalagens abertas" value={data.produtosAbertosAtivos} tone="accent" icon="box-open"
+            <StatCard label={traduzir("Embalagens abertas")} value={data.produtosAbertosAtivos} tone="accent" icon="box-open"
               to={canMove ? "/desperdicio" : undefined} />
             <StatCard
-              label="Balanços pendentes"
+              label={traduzir("Balanços pendentes")}
               value={data.balancosPendentes}
               tone={data.balancosPendentes > 0 ? "info" : "neutral"}
               icon="scale"
@@ -116,48 +115,48 @@ export function Dashboard() {
           </div>
 
           <div className={canSeeAlerts ? "grid-2" : "grid-2 grid-2--single"}>
-            <Card title="CMV — custo da mercadoria vendida">
+            <Card title={traduzir("CMV — custo da mercadoria vendida")}>
               {canReport ? (
                 <div className="cmv-block">
-                  <div className="cmv-block__money" aria-label="CMV percentual dos últimos 30 dias">{fmtPct(data.cmvPercentual)}</div>
-                  <p className="muted">nos últimos 30 dias: {fmtDate(inicio)} a {fmtDate(fim)}</p>
+                  <div className="cmv-block__money" aria-label={traduzir("CMV percentual dos últimos 30 dias")}>{fmtPct(data.cmvPercentual)}</div>
+                  <p className="muted">{" "}{traduzir("nos últimos 30 dias:")}{" "}{fmtDate(inicio)}{" "}{traduzir("a")}{" "}{fmtDate(fim)}</p>
                   <CmvGauge
                     percentual={data.cmvPercentual}
                     ideal={data.cmvIdeal}
-                    label="Percentual de CMV"
+                    label={traduzir("Percentual de CMV")}
                   />
                   <AvisoFaturamento {...data} />
                   <div className="cmv-block__rows">
-                    <div className="cmv-row"><span>Custo das mercadorias no período</span><strong>{fmtMoney(data.cmvPeriodo)}</strong></div>
-                    <div className="cmv-row"><span>Faturamento usado no cálculo</span><strong>{data.receitaBase == null ? "Pendente" : fmtMoney(data.receitaBase)}</strong></div>
+                    <div className="cmv-row"><span>{" "}{traduzir("Custo das mercadorias no período")}{" "}</span><strong>{fmtMoney(data.cmvPeriodo)}</strong></div>
+                    <div className="cmv-row"><span>{" "}{traduzir("Faturamento usado no cálculo")}{" "}</span><strong>{data.receitaBase == null ? traduzir("Pendente") : fmtMoney(data.receitaBase)}</strong></div>
                     <div className="cmv-row">
-                      <span>Desperdício no período</span>
+                      <span>{" "}{traduzir("Desperdício no período")}{" "}</span>
                       <strong>{fmtMoney(data.valorDesperdicioPeriodo)}</strong>
                     </div>
                     <div className="cmv-row">
-                      <span>Ajustes positivos em balanços</span>
+                      <span>{" "}{traduzir("Ajustes positivos em balanços")}{" "}</span>
                       <strong className="text-good">
                         {fmtMoney(data.valorAjustesPositivosBalancos)}
                       </strong>
                     </div>
                     <div className="cmv-row">
-                      <span>Diferença para a meta</span>
+                      <span>{" "}{traduzir("Diferença para a meta")}{" "}</span>
                       <strong>{fmtPct(data.diferencaCmvParaMeta)}</strong>
                     </div>
                   </div>
                   <FaturamentoDiario key={`${inicio}|${fim}`} inicio={inicio} fim={fim} />
-                  <LinkButton to={`/relatorios?${periodo}`} variant="outline" icon="chart">Ver relatório destes 30 dias</LinkButton>
+                  <LinkButton to={`/relatorios?${periodo}`} variant="outline" icon="chart">{" "}{traduzir("Ver relatório destes 30 dias")}{" "}</LinkButton>
                 </div>
               ) : (
                 <EmptyState
-                  title="Os relatórios de CMV ficam com o nutricionista"
-                  text="O perfil Operacional registra consumo, desperdício e contagens de balanço. A análise de CMV é feita pelo nutricionista ou administrador."
+                  title={traduzir("Os relatórios de CMV ficam com o nutricionista")}
+                  text={traduzir("O perfil Operacional registra consumo, desperdício e contagens de balanço. A análise de CMV é feita pelo nutricionista ou administrador.")}
                 />
               )}
             </Card>
 
             {canSeeAlerts && (
-              <Card title="Precisa de atenção">
+              <Card title={traduzir("Precisa de atenção")}>
                 {alerts && alerts.length > 0 ? (
                   <ul className="alert-list">
                     {alerts.slice(0, 8).map((a) => (
@@ -167,26 +166,25 @@ export function Dashboard() {
                           {ALERT_LABEL[a.tipo]}
                         </Badge>
                         <div className="alert-list__body">
-                          <p>{a.mensagem}</p>
+                          <p>{traduzir(a.mensagem)}</p>
                           <p className="alert-list__time">{fmtDateTime(a.dataGeracao)}</p>
                         </div>
                         <DashboardTactileAction
                           className="link-btn"
                           onClick={() => void markSeen(a.id)}
                         >
-                          Marcar como visto
-                        </DashboardTactileAction>
+                          {" "}{traduzir("Marcar como visto")}{" "}</DashboardTactileAction>
                       </li>
                     ))}
                   </ul>
                 ) : alerts && alerts.length === 0 ? (
                   <EmptyState
-                    title="Sem alertas em aberto"
-                    text="Esteja atento: aqui aparecem estoques baixos, vencimentos e diferenças no balanço."
+                    title={traduzir("Sem alertas em aberto")}
+                    text={traduzir("Esteja atento: aqui aparecem estoques baixos, vencimentos e diferenças no balanço.")}
                     icon="check-circle"
                   />
                 ) : (
-                  <p className="muted">Carregando alertas…</p>
+                  <p className="muted">{" "}{traduzir("Carregando alertas…")}{" "}</p>
                 )}
               </Card>
             )}

@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import {
   Fragment,
   createContext,
@@ -23,6 +24,8 @@ interface AuthCtx {
   refetchMe: () => Promise<void>;
   isAdmin: boolean;
   isCozinha: boolean;
+  isOperacional: boolean;
+  canEnter: boolean;
   isNutri: boolean;
   isPlataforma: boolean;
   canMove: boolean;
@@ -100,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     atualizarUsuario(u);
     setReady(true);
     resetCsrf();
-    toast.success(`Bem-vindo(a), ${u.nome.split(" ")[0]}`);
+    toast.success(traduzir("Bem-vindo(a), {0}",{0:u.nome.split(" ")[0]}));
   }, [toast, atualizarUsuario, cancelarConsulta]);
 
   const login = useCallback(
@@ -111,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         concluirLogin(u);
       } catch (e) {
         const err = e as { message?: string };
-        toast.error("Não foi possível entrar", err.message);
+        toast.error(traduzir("Não foi possível entrar"), err.message);
         throw e;
       } finally {
         setReady(true);
@@ -143,12 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refetchMe,
       isAdmin: perfil === "ADMIN",
       isCozinha: perfil === "COZINHA",
+      isOperacional: perfil === "OPERACIONAL",
+      canEnter: perfil === "ADMIN" || perfil === "OPERACIONAL",
       isNutri: perfil === "NUTRICIONISTA",
       isPlataforma: perfil === "PLATAFORMA",
-      canMove: perfil === "ADMIN" || perfil === "COZINHA",
+      canMove: perfil === "ADMIN" || perfil === "COZINHA" || perfil === "OPERACIONAL",
       canReport: perfil === "ADMIN" || perfil === "NUTRICIONISTA",
-      canSeeEstoque: perfil === "ADMIN" || perfil === "COZINHA",
-      canSeeCatalogo: perfil === "ADMIN" || perfil === "COZINHA",
+      canSeeEstoque: perfil === "ADMIN" || perfil === "COZINHA" || perfil === "OPERACIONAL",
+      canSeeCatalogo: perfil === "ADMIN" || perfil === "COZINHA" || perfil === "OPERACIONAL",
     };
   }, [user, ready, login, concluirLogin, logout, refetchMe]);
 

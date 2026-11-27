@@ -1,6 +1,7 @@
 import type { ReactElement, SVGProps } from "react";
 
 const PATHS: Record<string, ReactElement> = {
+  settings: <><circle cx="12" cy="12" r="3"/><path d="m9 3 1-1h4l1 3 3 1 3-1 2 4-2 2v3l2 2-2 4-3-1-3 1-1 3h-4l-1-3-3-1-3 1-2-4 2-2v-3L1 9l2-4 3 1 3-1Z"/></>,
   dashboard: (
     <>
       <path d="M4 4h16v16H4z" />

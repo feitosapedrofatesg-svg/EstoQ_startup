@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 export function Tabs({
   items,
   active,
@@ -18,7 +19,7 @@ export function Tabs({
           className={`tab ${active === t.id ? "tab--active" : ""}`}
           onClick={() => onChange(t.id)}
         >
-          {t.label}
+          {traduzir(t.label)}
         </button>
       ))}
     </div>

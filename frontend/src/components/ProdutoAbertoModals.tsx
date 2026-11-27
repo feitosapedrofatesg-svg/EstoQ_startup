@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { useMemo, useState } from "react";
 import { useFetch } from "../lib/hooks";
@@ -51,10 +52,10 @@ export function AbrirEmbalagemModal({
   const lotesDisponiveis = useMemo(() => (lotes ?? []).filter((l) => l.disponivel && !l.vencido), [lotes]);
 
   const submit = async () => {
-    if (!produtoId) return setError("Escolha o produto.");
-    if (!loteId) return setError("Escolha o lote que será aberto.");
-    if (!qtdEmbalagem || qtdEmbalagem <= 0) return setError("Informe o tamanho da embalagem.");
-    if (qtdUsada === null || qtdUsada < 0) return setError("Informe quanto foi usado agora (pode ser zero).");
+    if (!produtoId) return setError(traduzir("Escolha o produto."));
+    if (!loteId) return setError(traduzir("Escolha o lote que será aberto."));
+    if (!qtdEmbalagem || qtdEmbalagem <= 0) return setError(traduzir("Informe o tamanho da embalagem."));
+    if (qtdUsada === null || qtdUsada < 0) return setError(traduzir("Informe quanto foi usado agora (pode ser zero)."));
     setSubmitting(true);
     setError(null);
     const lote = lotesDisponiveis.find((l) => String(l.id) === loteId);
@@ -79,37 +80,35 @@ export function AbrirEmbalagemModal({
     <Modal
       open
       onClose={onClose}
-      title="Abrir embalagem"
+      title={traduzir("Abrir embalagem")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
+            {" "}{traduzir("Cancelar")}{" "}</Button>
           <Button onClick={() => void submit()} loading={submitting} icon="check">
-            Abrir e lançar
-          </Button>
+            {" "}{traduzir("Abrir e lançar")}{" "}</Button>
         </>
       }
     >
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
+          {traduzir(error)}
         </div>
       )}
       <SearchSelect
-        label="Produto"
+        label={traduzir("Produto")}
         options={produtoOpts}
         value={produtoId}
         onValue={(v) => {
           setProdutoId(v);
           setLoteId("");
         }}
-        placeholder="Buscar produto…"
+        placeholder={traduzir("Buscar produto…")}
         required
       />
       {lotesDisponiveis.length > 0 && (
         <SearchSelect
-          label="Lote a abrir"
+          label={traduzir("Lote a abrir")}
           options={lotesDisponiveis.map((l) => ({
             value: String(l.id),
             label: l.codigo,
@@ -117,19 +116,19 @@ export function AbrirEmbalagemModal({
           }))}
           value={loteId}
           onValue={setLoteId}
-          placeholder="Escolha o lote…"
+          placeholder={traduzir("Escolha o lote…")}
           required
         />
       )}
       {produtoId && lotesDisponiveis.length === 0 && (
-        <AlertBanner tone="warn">Este produto não tem lotes disponíveis para abrir.</AlertBanner>
+        <AlertBanner tone="warn">{" "}{traduzir("Este produto não tem lotes disponíveis para abrir.")}{" "}</AlertBanner>
       )}
       <div className="form-grid-2">
-        <NumberField label="Tamanho da embalagem" value={qtdEmbalagem} onValue={setQtdEmbalagem} min={0} placeholder="Ex.: 1" hint="Ex.: 1 kg, 5 L, pacote com 30" />
-        <NumberField label="Quanto usou ao abrir" value={qtdUsada} onValue={setQtdUsada} min={0} placeholder="Ex.: 0,2" hint="O restante fica na embalagem" />
+        <NumberField label={traduzir("Tamanho da embalagem")} value={qtdEmbalagem} onValue={setQtdEmbalagem} min={0} placeholder={traduzir("Ex.: 1")} hint={traduzir("Ex.: 1 kg, 5 L, pacote com 30")} />
+        <NumberField label={traduzir("Quanto usou ao abrir")} value={qtdUsada} onValue={setQtdUsada} min={0} placeholder={traduzir("Ex.: 0,2")} hint={traduzir("O restante fica na embalagem")} />
       </div>
-      <Field label="Observação (opcional)" htmlFor="abrir-obs">
-        <Input id="abrir-obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Notas internas…" />
+      <Field label={traduzir("Observação (opcional)")} htmlFor="abrir-obs">
+        <Input id="abrir-obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder={traduzir("Notas internas…")} />
       </Field>
     </Modal>
   );
@@ -157,7 +156,7 @@ export function AcaoProdutoAbertoModal({
 
   const submit = async () => {
     if (!quantidade || quantidade <= 0) {
-      setError("Informe uma quantidade maior que zero.");
+      setError(traduzir("Informe uma quantidade maior que zero."));
       return;
     }
     setSubmitting(true);
@@ -186,37 +185,36 @@ export function AcaoProdutoAbertoModal({
     <Modal
       open
       onClose={onClose}
-      title={tipo === "consumir" ? `Consumir de ${item.produtoNome}` : `Desperdiçar ${item.produtoNome}`}
+      title={tipo === "consumir" ? traduzir("Consumir de {0}",{0:item.produtoNome}) : traduzir("Desperdiçar {0}",{0:item.produtoNome})}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
+            {" "}{traduzir("Cancelar")}{" "}</Button>
           <Button variant={tipo === "desperdicar" ? "danger" : "accent"} onClick={() => void submit()} loading={submitting}>
-            {tipo === "consumir" ? "Consumir" : "Registrar desperdício"}
+            {tipo === "consumir" ? traduzir("Consumir") : traduzir("Registrar desperdício")}
           </Button>
         </>
       }
     >
       <p className="muted" style={{ marginBottom: 16 }}>
-        Embalagem de lote {item.loteCodigo}. Restam {fmtNum(item.quantidadeRestante)} {item.unidadeMedida.toLowerCase()}.
+        {" "}{traduzir("Embalagem de lote")}{" "}{item.loteCodigo}{" "}{traduzir(". Restam")}{" "}{fmtNum(item.quantidadeRestante)} {item.unidadeMedida.toLowerCase()}.
       </p>
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
+          {traduzir(error)}
         </div>
       )}
       <NumberField
-        label="Quantidade a registrar"
+        label={traduzir("Quantidade a registrar")}
         value={quantidade}
         onValue={setQuantidade}
         min={0}
         max={item.quantidadeRestante}
-        placeholder="Ex.: 0,5"
+        placeholder={traduzir("Ex.: 0,5")}
         suffix={item.unidadeMedida.toLowerCase()}
       />
-      <Field label="Observação (opcional)" htmlFor="pa-obs">
-        <Input id="pa-obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Notas internas…" />
+      <Field label={traduzir("Observação (opcional)")} htmlFor="pa-obs">
+        <Input id="pa-obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder={traduzir("Notas internas…")} />
       </Field>
     </Modal>
   );

@@ -1,3 +1,4 @@
+import { ACEITES_CADASTRO, prepararDocumentos, confirmarDocumentos } from "./fixtures";
 import { test, expect } from "@playwright/test";
 import { preparar } from "./fixtures";
 
@@ -17,6 +18,7 @@ for (const senha of ["Teste@12345", "Teste@12345 "]) {
       return route.fulfill({ status: 204 });
     });
     await page.goto("/registro");
+    await confirmarDocumentos(page);
     await page.locator("#reg-loja").fill("Cozinha do teste");
     await page.locator("#reg-nome").fill("Responsável do teste");
     await page.locator("#reg-email").fill("cadastro@teste.local");
@@ -30,7 +32,7 @@ for (const senha of ["Teste@12345", "Teste@12345 "]) {
     await page.locator("#reg-confirmar-senha").fill(senha);
     await page.getByRole("button", { name: "Criar conta", exact: true }).click();
     await expect(page).toHaveURL(/\/login$/);
-    expect(envios).toEqual([{ nomeLoja: "Cozinha do teste", nomeResponsavel: "Responsável do teste",
+    expect(envios).toEqual([{ ...ACEITES_CADASTRO, nomeLoja: "Cozinha do teste", nomeResponsavel: "Responsável do teste",
       email: "cadastro@teste.local", senha }]);
   });
 }
@@ -47,7 +49,7 @@ test("novo usuário exige confirmação antes de gravar", async ({ page }) => {
   await page.getByRole("button", { name: "Novo usuário", exact: true }).click();
   const modal = page.getByRole("dialog");
   await expect(modal.getByRole("combobox")).toHaveValue("COZINHA");
-  await expect(modal.getByRole("option", { name: "Operacional — estoque e operação diária", exact: true })).toHaveAttribute("value", "COZINHA");
+  await expect(modal.getByRole("option", { name: "Cozinha — estoque e operação diária", exact: true })).toHaveAttribute("value", "COZINHA");
   await modal.getByPlaceholder("Nome e sobrenome").fill("Operador");
   await modal.getByPlaceholder("pessoa@restaurante.com").fill("operador@teste.local");
   await modal.locator("#usuario-senha").fill("Teste@12345");
@@ -120,3 +122,5 @@ test("plataforma só redefine a senha após confirmação igual", async ({ page 
   await expect(modal).toHaveCount(0);
   expect(envios).toEqual([{ senha: "Teste@12345" }]);
 });
+
+test.beforeEach(async({page})=>{await prepararDocumentos(page);});

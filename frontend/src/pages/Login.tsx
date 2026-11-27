@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../store/auth";
@@ -26,7 +27,7 @@ export function Login() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !senha) {
-      setError("Informe o e-mail e a senha para entrar.");
+      setError(traduzir("Informe o e-mail e a senha para entrar."));
       return;
     }
     setLoading(true);
@@ -38,16 +39,16 @@ export function Login() {
       if (err instanceof ApiError) {
         setEmailPendente(err.motive === "EMAIL_NAO_CONFIRMADO");
         if ([502, 503, 504].includes(err.status)) {
-          setError("Serviço de acesso temporariamente indisponível. Tente novamente mais tarde.");
+          setError(traduzir("Serviço de acesso temporariamente indisponível. Tente novamente mais tarde."));
         } else if (err.status === 429) {
-          setError("Muitas tentativas de acesso. Espere alguns minutos e tente novamente.");
+          setError(traduzir("Muitas tentativas de acesso. Espere alguns minutos e tente novamente."));
         } else if (err.status === 401) {
-          setError("E-mail ou senha incorretos.");
+          setError(traduzir("E-mail ou senha incorretos."));
         } else {
           setError(err.message);
         }
       } else {
-        setError("Não foi possível entrar. Tente novamente.");
+        setError(traduzir("Não foi possível entrar. Tente novamente."));
       }
     } finally {
       setLoading(false);
@@ -69,40 +70,39 @@ export function Login() {
           tabIndex={-1}
         />
         <div className="login__message">
-          <p className="login__message-title">Menos desperdício, mais lucro.</p>
-          <p className="login__message-copy">O estoque e o CMV da sua cozinha em um só lugar.</p>
-          <p className="login__message-brand">estoQ · feito para quem cozinha de verdade</p>
+          <p className="login__message-title">{" "}{traduzir("Menos desperdício, mais lucro.")}{" "}</p>
+          <p className="login__message-copy">{" "}{traduzir("O estoque e o CMV da sua cozinha em um só lugar.")}{" "}</p>
+          <p className="login__message-brand">{" "}{traduzir("estoQ · feito para quem cozinha de verdade")}{" "}</p>
         </div>
       </div>
 
       <div className="login__panel">
         <form className="login__form" onSubmit={submit} noValidate>
-          <h1 className="login__title">Entrar</h1>
+          <h1 className="login__title">{" "}{traduzir("Entrar")}{" "}</h1>
           <p className="login__subtitle">
-            Use o cadastro da sua equipe. Cada cozinha acessa com seu próprio perfil.
-          </p>
+            {" "}{traduzir("Use o cadastro da sua equipe. Cada cozinha acessa com seu próprio perfil.")}{" "}</p>
 
           {error && (
             <div className="login__error" role="alert">
               <Icon name="alert-circle" size={18} />
-              {error}
+              {traduzir(error)}
             </div>
           )}
 
           <GoogleButton />
 
-          <Field label="E-mail" htmlFor="login-email" required>
+          <Field label={traduzir("E-mail")} htmlFor="login-email" required>
             <Input
               id="login-email"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="voce@restaurante.com"
+              placeholder={traduzir("voce@restaurante.com")}
             />
           </Field>
 
-          <Field label="Senha" htmlFor="login-senha" required>
+          <Field label={traduzir("Senha")} htmlFor="login-senha" required>
             <div className="login__password-wrap">
               <Input
                 id="login-senha"
@@ -110,12 +110,12 @@ export function Login() {
                 autoComplete="current-password"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                placeholder="Sua senha de acesso"
+                placeholder={traduzir("Sua senha de acesso")}
               />
               <button
                 type="button"
                 className="login__password-toggle btn--raised"
-                aria-label={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+                aria-label={senhaVisivel ? traduzir("Ocultar senha") : traduzir("Mostrar senha")}
                 aria-pressed={senhaVisivel}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSenhaVisivel((visivel) => !visivel)}
@@ -126,21 +126,18 @@ export function Login() {
           </Field>
 
           <Button type="submit" block size="lg" loading={loading} className="login__submit">
-            Entrar
-          </Button>
+            {" "}{traduzir("Entrar")}{" "}</Button>
 
-          {emailPendente && <p className="login__signup"><Link to="/verificar-email" state={{ email }} className="login__signup-link">Reenviar confirmação de e-mail</Link></p>}
+          {emailPendente && <p className="login__signup"><Link to="/verificar-email" state={{ email }} className="login__signup-link">{" "}{traduzir("Reenviar confirmação de e-mail")}{" "}</Link></p>}
 
           <p className="login__signup">
-            Sua cozinha ainda não usa o estoQ?{" "}
+            {" "}{traduzir("Sua cozinha ainda não usa o estoQ?")}{" "}
             <Link to="/registro" className="login__signup-link">
-              Crie a conta agora
-            </Link>
+              {" "}{traduzir("Crie a conta agora")}{" "}</Link>
           </p>
         </form>
         <p className="login__foot">
-          Problemas para entrar? Fale com o administrador da cozinha.
-        </p>
+          {" "}{traduzir("Problemas para entrar? Fale com o administrador da cozinha.")}{" "}</p>
         <LinksPublicos />
       </div>
     </div>

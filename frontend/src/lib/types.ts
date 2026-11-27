@@ -1,4 +1,4 @@
-export type Perfil = "ADMIN" | "COZINHA" | "NUTRICIONISTA" | "PLATAFORMA";
+export type Perfil = "ADMIN" | "COZINHA" | "OPERACIONAL" | "NUTRICIONISTA" | "PLATAFORMA";
 export type UnidadeMedida = "KG" | "G" | "L" | "ML" | "UN";
 
 export interface ConsumoLoteResultadoDTO {
@@ -113,6 +113,7 @@ export interface ParametroEstoqueDTO extends BaseDTO {
 }
 
 export interface LoteDTO {
+  proximoVencimento?: boolean;
   loteFabricante?: string | null;
   id: number;
   version: number;
@@ -131,6 +132,8 @@ export interface LoteDTO {
 }
 
 export interface EstoqueDTO {
+  possuiLotesVencidos?: boolean;
+  proximoVencimento?: boolean;
   produtoId: number;
   produtoNome: string;
   categoriaNome: string;

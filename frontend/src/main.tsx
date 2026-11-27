@@ -4,6 +4,7 @@ import "@fontsource/poppins/latin-500.css";
 import "@fontsource/poppins/latin-600.css";
 import "./styles.css";
 import "./responsividade/index.css";
+import "./temas.css";
 import { App } from "./App";
 
 createRoot(document.getElementById("root")!).render(<App />);

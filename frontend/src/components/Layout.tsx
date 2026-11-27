@@ -1,3 +1,5 @@
+import { traduzir } from "../lib/i18n";
+import { Configuracoes } from "./Configuracoes";
 import { mensagemErro } from "../lib/api";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Link } from "react-router-dom";
@@ -47,7 +49,7 @@ function buildNav(perfil: Perfil): NavGroup[] {
       { to: "/movimentacoes", label: "Movimentações", icon: "arrows" },
       { to: "/balanco", label: "Balanço físico", icon: "scale" }
     );
-  } else if (perfil === "COZINHA") {
+  } else if ((perfil === "COZINHA" || perfil === "OPERACIONAL")) {
     operacao.push(
       { to: "/estoque", label: "Estoque", icon: "boxes" },
       { to: "/consumo", label: "Consumo", icon: "check-circle" },
@@ -58,6 +60,7 @@ function buildNav(perfil: Perfil): NavGroup[] {
     operacao.push({ to: "/dashboard", label: "Visão geral", icon: "dashboard", end: true });
   }
 
+  if (perfil === "OPERACIONAL") operacao.push({ to: "/entradas", label: "Entradas", icon: "plus" });
   const groups: NavGroup[] = [{ heading: "Operação", items: operacao }];
 
   if (perfil === "ADMIN" || perfil === "NUTRICIONISTA") {
@@ -74,7 +77,7 @@ function buildNav(perfil: Perfil): NavGroup[] {
         { to: "/usuarios", label: "Usuários", icon: "users" },
       ],
     });
-  } else if (perfil === "COZINHA") {
+  } else if ((perfil === "COZINHA" || perfil === "OPERACIONAL")) {
     groups.push({
       heading: "Consulta",
       items: [{ to: "/catalogo", label: "Catálogo", icon: "tags" }],
@@ -85,16 +88,16 @@ function buildNav(perfil: Perfil): NavGroup[] {
 
 function Brand() {
   return (
-    <Link to="/dashboard" className="brand" aria-label="estoQ — início">
+    <Link to="/dashboard" className="brand" aria-label={traduzir("estoQ — início")}>
       <span className="brand__logo">
-        <img src="/logo_estoq_oficial.png" alt="estoQ — Controle o desperdício do seu restaurante" width={220} height={124} />
+        <img src="/logo_estoq_oficial.png" alt={traduzir("estoQ — Controle o desperdício do seu restaurante")} width={220} height={124} />
       </span>
     </Link>
   );
 }
 
 function RoleLabel({ perfil }: { perfil: Perfil }) {
-  return <span className="role-tag role-tag--plataforma">{PERFIL_LABEL[perfil]}</span>;
+  return <span className="role-tag role-tag--plataforma">{traduzir(PERFIL_LABEL[perfil])}</span>;
 }
 
 function AlertBell() {
@@ -134,7 +137,7 @@ function AlertBell() {
       updateCache<AlertaDTO[]>("/api/alertas?visualizado=false", remover);
     } catch (e) {
       setVistos(prev => { const atual = new Set(prev); atual.delete(id); return atual; });
-      toast.error("Não foi possível atualizar", mensagemErro(e));
+      toast.error(traduzir("Não foi possível atualizar"), mensagemErro(e));
     } finally {
       // A linha seguinte muda de posição: não deixe o segundo clique atingir outro alerta.
       liberar.current = window.setTimeout(() => { trava.current = false; setMarcando(null); }, 500);
@@ -148,34 +151,32 @@ function AlertBell() {
       <button
         className="bell__btn btn--raised"
         onClick={openPanel}
-        aria-label={`Alertas${count ? `, ${count} novos` : ""}`}
+        aria-label={traduzir("Alertas{0}",{0:count ? `, ${count} novos` : ""})}
         aria-expanded={open}
       >
         <Icon name="bell" size={20} />
         {count > 0 && <span className="bell__badge" aria-hidden="true" />}
       </button>
       {open && (
-        <div className="bell__panel" role="dialog" aria-label="Central de alertas">
-          <p className="bell__title">Central de alertas</p>
-          {marcando !== null && <p className="muted" role="status">Marcando alerta como visto…</p>}
+        <div className="bell__panel" role="dialog" aria-label={traduzir("Central de alertas")}>
+          <p className="bell__title">{" "}{traduzir("Central de alertas")}{" "}</p>
+          {marcando !== null && <p className="muted" role="status">{" "}{traduzir("Marcando alerta como visto…")}{" "}</p>}
           {loading ? (
             <p className="muted" style={{ padding: "12px 0" }}>
-              Carregando…
-            </p>
+              {" "}{traduzir("Carregando…")}{" "}</p>
           ) : alerts.length === 0 ? (
             <p className="muted" style={{ padding: "12px 0" }}>
-              Nada em aberto. Tudo tranquilo por aqui.
-            </p>
+              {" "}{traduzir("Nada em aberto. Tudo tranquilo por aqui.")}{" "}</p>
           ) : (
             <ul className="bell__list">
               {alerts.map((a) => (
                 <li key={a.id} className="bell__item">
                   <div className="bell__item-body">
-                    <p className="bell__msg">{a.mensagem}</p>
+                    <p className="bell__msg">{traduzir(a.mensagem)}</p>
                     <p className="bell__time">{fmtDateTime(a.dataGeracao)}</p>
                   </div>
                   <button className="bell__seen btn--raised" disabled={marcando !== null} onClick={() => markSeen(a.id)}>
-                    {marcando === a.id ? "Marcando…" : "Marcar como visto"}
+                    {marcando === a.id ? traduzir("Marcando…") : traduzir("Marcar como visto")}
                   </button>
                 </li>
               ))}
@@ -203,8 +204,8 @@ export function Layout({ children }: { children: ReactNode }) {
     if (!user) return;
     if (isAdmin || user.perfil === "NUTRICIONISTA") void prefetchar(`/api/dashboard/resumo?${new URLSearchParams({ inicio: diasAtrasISO(30), fim: hojeISO() })}`);
     if (isAdmin || isCozinha) {
-      void prefetchar("/api/estoque");
-      void prefetchar("/api/balancos");
+      void prefetchar("/api/estoque/pagina?q=&somenteBaixo=false&somenteAbertos=false&situacao=TODOS&page=0&size=25");
+      void prefetchar("/api/balancos/pagina?page=0&size=25");
       void prefetchar("/api/produtos-abertos?finalizado=false");
     }
   }, [user, isAdmin, isCozinha]);
@@ -212,22 +213,22 @@ export function Layout({ children }: { children: ReactNode }) {
   if (!user) return null;
   const perfil = user.perfil;
   const nav = buildNav(perfil);
-  const showBell = isAdmin || isCozinha;
+  const showBell = isAdmin || isCozinha || user.perfil === "OPERACIONAL";
 
   return (
     <div className="shell">
       <button
         className="shell__scrim"
-        aria-label="Fechar menu"
+        aria-label={traduzir("Fechar menu")}
         onClick={() => setNavOpen(false)}
         tabIndex={navOpen ? 0 : -1}
       />
       <aside className={`sidebar ${navOpen ? "sidebar--open" : ""}`}>
         <Brand />
-        <nav className="sidebar__nav" aria-label="Navegação principal">
+        <nav className="sidebar__nav" aria-label={traduzir("Navegação principal")}>
           {nav.map((g) => (
-            <div key={g.heading} className="navgroup">
-              <p className="navgroup__heading">{g.heading}</p>
+            <div key={traduzir(g.heading)} className="navgroup">
+              <p className="navgroup__heading">{traduzir(g.heading)}</p>
               <ul className="navgroup__list">
                 {g.items.map((it) => (
                   <li key={it.to}>
@@ -240,7 +241,7 @@ export function Layout({ children }: { children: ReactNode }) {
                       }
                     >
                       <Icon name={it.icon} size={18} />
-                      <span>{it.label}</span>
+                      <span>{traduzir(it.label)}</span>
                     </NavLink>
                   </li>
                 ))}
@@ -263,7 +264,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <RoleLabel perfil={perfil} />
             </div>
           </div>
-          <button className="sidebar__logout btn--raised" onClick={() => void logout()} aria-label="Sair da conta">
+          <button className="sidebar__logout btn--raised" onClick={() => void logout()} aria-label={traduzir("Sair da conta")}>
             <Icon name="logout" size={18} />
           </button>
         </div>
@@ -274,25 +275,26 @@ export function Layout({ children }: { children: ReactNode }) {
           <button
             className="topbar__menu btn--raised"
             onClick={() => setNavOpen((o) => !o)}
-            aria-label={navOpen ? "Fechar menu" : "Abrir menu"}
+            aria-label={navOpen ? traduzir("Fechar menu") : traduzir("Abrir menu")}
             aria-expanded={navOpen}
           >
             <Icon name="menu" size={22} />
           </button>
           <div className="topbar__spacer" />
           {user.restauranteNome && (
-            <p className="topbar__store" title={`Loja: ${user.restauranteNome}`}>
+            <p className="topbar__store" title={traduzir("Loja: {0}",{0:user.restauranteNome})}>
               <Icon name="store" size={16} />
               <span>{user.restauranteNome}</span>
             </p>
           )}
           {showBell && <AlertBell />}
+          <Configuracoes />
         </header>
         <main className="main__content">
           <div className="main__inner">
             {falhaCache && <div className="alertbanner" role="status">
-              Não foi possível atualizar algumas informações. Os dados já carregados continuam disponíveis.{" "}
-              <Button size="sm" variant="ghost" onClick={tentarNovamenteCache}>Tentar novamente</Button>
+              {" "}{traduzir("Não foi possível atualizar algumas informações. Os dados já carregados continuam disponíveis.")}{" "}
+              <Button size="sm" variant="ghost" onClick={tentarNovamenteCache}>{" "}{traduzir("Tentar novamente")}{" "}</Button>
             </div>}
             {children}
           </div>

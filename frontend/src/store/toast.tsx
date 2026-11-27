@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import {
   createContext,
   useCallback,
@@ -59,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         className="toast-region"
         aria-live="polite"
         aria-relevant="additions"
-        aria-label="Notificações"
+        aria-label={traduzir("Notificações")}
       >
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast--${t.tone}`} role="status">
@@ -67,14 +68,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <Icon name={t.tone === "success" ? "check-circle" : t.tone === "error" ? "alert-circle" : t.tone === "warning" ? "alert-triangle" : "info"} size={20} />
             </span>
             <div className="toast__body">
-              <p className="toast__title">{t.title}</p>
-              {t.message && <p className="toast__msg">{t.message}</p>}
+              <p className="toast__title">{traduzir(t.title)}</p>
+              {t.message && <p className="toast__msg">{traduzir(t.message)}</p>}
             </div>
             <button
               type="button"
               className="toast__close"
               onClick={() => dismiss(t.id)}
-              aria-label="Fechar notificação"
+              aria-label={traduzir("Fechar notificação")}
             >
               <Icon name="x" size={16} />
             </button>

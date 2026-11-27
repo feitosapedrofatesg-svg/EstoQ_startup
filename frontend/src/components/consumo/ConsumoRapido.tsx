@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { mensagemErro } from "../../lib/api";
 import { useMemo, useRef, useState } from "react";
 import { useFetch } from "../../lib/hooks";
@@ -49,12 +50,12 @@ export function ConsumoRapido({ produtoInicial, onDone }: { produtoInicial: stri
     : produto.saldoDisponivelConsumo;
   const ajustar = (produto: EstoqueDTO, delta: number) => {
     const valor = Math.max(0, Math.round(((escolhas[produto.produtoId]?.quantidade ?? 0) + delta) * 1000) / 1000);
-    if (valor > limite(produto)) return setErro(`${produto.produtoNome}: quantidade maior que o saldo consumível.`);
+    if (valor > limite(produto)) return setErro(traduzir("{0}: quantidade maior que o saldo consumível.",{0:produto.produtoNome}));
     mudar(produto.produtoId, { quantidade: valor });
   };
   const conferir = () => {
     const invalido = selecionados.find(p => escolhas[p.produtoId].quantidade > p.saldoDisponivelConsumo);
-    if (invalido) return setErro(`${invalido.produtoNome}: o saldo mudou. Revise a quantidade.`);
+    if (invalido) return setErro(traduzir("{0}: o saldo mudou. Revise a quantidade.",{0:invalido.produtoNome}));
     if (selecionados.length) {
       setRevisao(selecionados.map(produto => ({ ...escolhas[produto.produtoId], produto })));
       setErro(""); setConferindo(true);
@@ -92,15 +93,15 @@ export function ConsumoRapido({ produtoInicial, onDone }: { produtoInicial: stri
 
   return <div className="consumo-rapido">
     {(erro || error) && <p className="alertbanner alertbanner--bad" role="alert">{erro || error}</p>}
-    <TextoPorToque id="consumo-busca" label="Buscar produto" placeholder="Buscar produto…" value={busca} onValue={setBusca}
-      hint="Toque duas vezes para digitar. Você também pode escolher pela categoria." />
-    <div className="consumo-categorias" aria-label="Filtrar por categoria">
+    <TextoPorToque id="consumo-busca" label={traduzir("Buscar produto")} placeholder={traduzir("Buscar produto…")} value={busca} onValue={setBusca}
+      hint={traduzir("Toque duas vezes para digitar. Você também pode escolher pela categoria.")} />
+    <div className="consumo-categorias" aria-label={traduzir("Filtrar por categoria")}>
       {["", ...categorias].map(nome => <Button key={nome} size="sm" variant={categoria === nome ? "accent" : "outline"}
-        aria-pressed={categoria === nome} onClick={() => setCategoria(nome)}>{nome || "Todas"}</Button>)}
-      {busca && <Button size="sm" variant="ghost" onClick={() => setBusca("")}>Limpar busca</Button>}
+        aria-pressed={categoria === nome} onClick={() => setCategoria(nome)}>{nome || traduzir("Todas")}</Button>)}
+      {busca && <Button size="sm" variant="ghost" onClick={() => setBusca("")}>{" "}{traduzir("Limpar busca")}{" "}</Button>}
     </div>
-    <Checkbox label="Somente selecionados" checked={somenteSelecionados} onChange={setSomenteSelecionados} />
-    {loading && !estoque ? <p className="muted">Carregando…</p> : !visiveis.length ? <EmptyState title="Nenhum produto encontrado" text="Troque a categoria ou limpe a busca." /> :
+    <Checkbox label={traduzir("Somente selecionados")} checked={somenteSelecionados} onChange={setSomenteSelecionados} />
+    {loading && !estoque ? <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p> : !visiveis.length ? <EmptyState title={traduzir("Nenhum produto encontrado")} text={traduzir("Troque a categoria ou limpe a busca.")} /> :
       <div className="consumo-produtos">{visiveis.map(produto => {
         const escolha = escolhas[produto.produtoId] ?? vazio();
         const atalhos = passos(produto.unidadeMedida);
@@ -113,44 +114,44 @@ export function ConsumoRapido({ produtoInicial, onDone }: { produtoInicial: stri
           <div><strong>{produto.produtoNome}</strong><p className="consumo-produto__meta">
             <span className="muted">{produto.categoriaNome}</span>
             <Badge tone={indisponivel ? "bad" : "good"}>
-              {indisponivel ? "Sem saldo" : `Disponível: ${fmtNum(produto.saldoDisponivelConsumo)} ${produto.unidadeMedida.toLowerCase()}`}
+              {indisponivel ? traduzir("Sem saldo") : traduzir("Disponível: {0} {1}",{0:fmtNum(produto.saldoDisponivelConsumo),1:produto.unidadeMedida.toLowerCase()})}
             </Badge>
           </p></div>
           <div className="consumo-controles">
-            <Button variant="outline" disabled={incerto || enviando || escolha.quantidade <= 0} aria-label={`Diminuir ${produto.produtoNome}`} onClick={() => ajustar(produto, -passo)}>−</Button>
-            <Button variant={selecionado ? "accent" : "outline"} className="consumo-quantidade" disabled={incerto || enviando || indisponivel} aria-label={`Quantidade de ${produto.produtoNome}`} onClick={() => setPainel(produto)}>{fmtNum(escolha.quantidade)} {produto.unidadeMedida.toLowerCase()}</Button>
-            <Button variant="outline" disabled={incerto || enviando || indisponivel} aria-label={`Aumentar ${produto.produtoNome}`} onClick={() => ajustar(produto, passo)}>+</Button>
+            <Button variant="outline" disabled={incerto || enviando || escolha.quantidade <= 0} aria-label={traduzir("Diminuir {0}",{0:produto.produtoNome})} onClick={() => ajustar(produto, -passo)}>−</Button>
+            <Button variant={selecionado ? "accent" : "outline"} className="consumo-quantidade" disabled={incerto || enviando || indisponivel} aria-label={traduzir("Quantidade de {0}",{0:produto.produtoNome})} onClick={() => setPainel(produto)}>{fmtNum(escolha.quantidade)} {produto.unidadeMedida.toLowerCase()}</Button>
+            <Button variant="outline" disabled={incerto || enviando || indisponivel} aria-label={traduzir("Aumentar {0}",{0:produto.produtoNome})} onClick={() => ajustar(produto, passo)}>+</Button>
           </div>
           <div className="consumo-atalhos">{atalhos.map(qtd => <Button key={qtd} size="sm" variant="ghost" disabled={incerto || enviando || indisponivel} onClick={() => ajustar(produto, qtd)}>+{fmtNum(qtd)} {produto.unidadeMedida.toLowerCase()}</Button>)}</div>
-          <div className="consumo-detalhes"><Button variant="ghost" size="sm" disabled={incerto || enviando} onClick={() => setDetalhe(produto)}>Lote e observação</Button>
-            {escolha.quantidade > 0 && <Button variant="ghost" size="sm" disabled={incerto || enviando} onClick={() => mudar(produto.produtoId, { quantidade: 0 })}>Remover</Button>}</div>
-          {indisponivel && <p className="field__hint">Sem saldo consumível.</p>}
+          <div className="consumo-detalhes"><Button variant="ghost" size="sm" disabled={incerto || enviando} onClick={() => setDetalhe(produto)}>{" "}{traduzir("Lote e observação")}{" "}</Button>
+            {escolha.quantidade > 0 && <Button variant="ghost" size="sm" disabled={incerto || enviando} onClick={() => mudar(produto.produtoId, { quantidade: 0 })}>{" "}{traduzir("Remover")}{" "}</Button>}</div>
+          {indisponivel && <p className="field__hint">{" "}{traduzir("Sem saldo consumível.")}{" "}</p>}
         </section>;
       })}</div>}
-    <div className="consumo-confirmacao"><span>{selecionados.length} {selecionados.length === 1 ? "produto selecionado" : "produtos selecionados"}</span>
-      <Button icon="check" disabled={!selecionados.length || enviando} onClick={conferir}>Registrar consumo de {selecionados.length} {selecionados.length === 1 ? "item" : "itens"}</Button></div>
+    <div className="consumo-confirmacao"><span>{selecionados.length} {selecionados.length === 1 ? traduzir("produto selecionado") : traduzir("produtos selecionados")}</span>
+      <Button icon="check" disabled={!selecionados.length || enviando} onClick={conferir}>{" "}{traduzir("Registrar consumo de")}{" "}{selecionados.length} {selecionados.length === 1 ? traduzir("item") : traduzir("itens")}</Button></div>
     {painel && <PainelQuantidade produto={painel.produtoNome} unidade={painel.unidadeMedida}
       quantidade={escolhas[painel.produtoId]?.quantidade ?? 0} limite={limite(painel)}
       onConfirmar={quantidade => mudar(painel.produtoId, { quantidade })} onClose={() => setPainel(null)} />}
-    {detalhe && <Modal open title={`Detalhes de ${detalhe.produtoNome}`} onClose={() => setDetalhe(null)} footer={<Button onClick={() => setDetalhe(null)}>Pronto</Button>}>
-      <p className="muted">Sem lote manual, o sistema usa primeiro os lotes válidos com vencimento mais próximo.</p>
-      <Field label="Lote (opcional)" htmlFor="consumo-lote"><Select id="consumo-lote" disabled={carregandoLotes}
+    {detalhe && <Modal open title={traduzir("Detalhes de {0}",{0:detalhe.produtoNome})} onClose={() => setDetalhe(null)} footer={<Button onClick={() => setDetalhe(null)}>{" "}{traduzir("Pronto")}{" "}</Button>}>
+      <p className="muted">{" "}{traduzir("Sem lote manual, o sistema usa primeiro os lotes válidos com vencimento mais próximo.")}{" "}</p>
+      <Field label={traduzir("Lote (opcional)")} htmlFor="consumo-lote"><Select id="consumo-lote" disabled={carregandoLotes}
         value={escolhas[detalhe.produtoId]?.loteId ?? ""} onChange={e => { const id = e.target.value; const lote = lotes?.find(l => String(l.id) === id);
           mudar(detalhe.produtoId, { loteId: id, versionLote: lote?.version ?? null, saldoLote: lote?.quantidadeAtual ?? null }); }}>
-        <option value="">{carregandoLotes ? "Carregando lotes…" : "Escolha automática"}</option>
-        {(lotes ?? []).filter(l => l.disponivel && !l.vencido).map(l => <option key={l.id} value={l.id}>{l.codigo} · saldo {fmtNum(l.quantidadeAtual)} {l.unidadeMedida.toLowerCase()}</option>)}
+        <option value="">{carregandoLotes ? traduzir("Carregando lotes…") : traduzir("Escolha automática")}</option>
+        {(lotes ?? []).filter(l => l.disponivel && !l.vencido).map(l => <option key={l.id} value={l.id}>{l.codigo}{" "}{traduzir("· saldo")}{" "}{fmtNum(l.quantidadeAtual)} {l.unidadeMedida.toLowerCase()}</option>)}
       </Select></Field>
-      <Button variant="ghost" onClick={() => mudar(detalhe.produtoId, { loteId: "", versionLote: null, saldoLote: null })}>Usar lote automático</Button>
-      <TextoPorToque id="consumo-observacao" label="Observação (opcional)" maxLength={500} value={escolhas[detalhe.produtoId]?.observacao ?? ""} onValue={observacao => mudar(detalhe.produtoId, { observacao })} />
+      <Button variant="ghost" onClick={() => mudar(detalhe.produtoId, { loteId: "", versionLote: null, saldoLote: null })}>{" "}{traduzir("Usar lote automático")}{" "}</Button>
+      <TextoPorToque id="consumo-observacao" label={traduzir("Observação (opcional)")} maxLength={500} value={escolhas[detalhe.produtoId]?.observacao ?? ""} onValue={observacao => mudar(detalhe.produtoId, { observacao })} />
     </Modal>}
-    {conferindo && <Modal open title="Conferir itens do consumo" width="lg" onClose={() => { if (!bloqueio.current && !incerto) setConferindo(false); }} footer={<>
-      <Button variant="ghost" disabled={enviando || incerto} onClick={() => setConferindo(false)}>Voltar para editar</Button>
-      <Button variant="outline" icon="printer" disabled={enviando} onClick={imprimir}>Imprimir lista</Button>
-      <Button icon="check" loading={enviando} onClick={() => void registrar()}>{incerto ? "Tentar novamente" : "Confirmar consumo"}</Button>
+    {conferindo && <Modal open title={traduzir("Conferir itens do consumo")} width="lg" onClose={() => { if (!bloqueio.current && !incerto) setConferindo(false); }} footer={<>
+      <Button variant="ghost" disabled={enviando || incerto} onClick={() => setConferindo(false)}>{" "}{traduzir("Voltar para editar")}{" "}</Button>
+      <Button variant="outline" icon="printer" disabled={enviando} onClick={imprimir}>{" "}{traduzir("Imprimir lista")}{" "}</Button>
+      <Button icon="check" loading={enviando} onClick={() => void registrar()}>{incerto ? traduzir("Tentar novamente") : traduzir("Confirmar consumo")}</Button>
     </>}>
-      {erro && <p className="alertbanner alertbanner--bad" role="alert">{erro}</p>}
-      <p>Confira os itens. O estoque só será alterado ao confirmar.</p>
-      <DataTable headers={["Produto", "Quantidade", "Unidade"]}>{revisao.map(item => <tr key={item.produto.produtoId}><td>{item.produto.produtoNome}</td><td>{fmtNum(item.quantidade)}</td><td>{item.produto.unidadeMedida.toLowerCase()}</td></tr>)}</DataTable>
+      {erro && <p className="alertbanner alertbanner--bad" role="alert">{traduzir(erro)}</p>}
+      <p>{" "}{traduzir("Confira os itens. O estoque só será alterado ao confirmar.")}{" "}</p>
+      <DataTable headers={[traduzir("Produto"), traduzir("Quantidade"), traduzir("Unidade")]}>{revisao.map(item => <tr key={item.produto.produtoId}><td>{item.produto.produtoNome}</td><td>{fmtNum(item.quantidade)}</td><td>{item.produto.unidadeMedida.toLowerCase()}</td></tr>)}</DataTable>
     </Modal>}
   </div>;
 }

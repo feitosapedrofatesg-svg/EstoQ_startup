@@ -1,16 +1,17 @@
+import { traduzir } from "../lib/i18n";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 export function LinksPublicos() {
-  return <nav className="public-links" aria-label="Informações do EstoQ">
-    <Link to="/sobre">Sobre o EstoQ</Link>
+  return <nav className="public-links" aria-label={traduzir("Informações do EstoQ")}>
+    <Link to="/sobre">{" "}{traduzir("Sobre o EstoQ")}{" "}</Link>
   </nav>;
 }
 
 export function CabecalhoPublico() {
   return <header className="public-page__header">
-    <Link to="/" aria-label="EstoQ — página inicial"><img src="/logo_estoq_oficial.png" width={160} height={90} alt="EstoQ" /></Link>
-    <Link className="btn btn--ink" to="/login">Entrar</Link>
+    <Link to="/" aria-label={traduzir("EstoQ — página inicial")}><img src="/logo_estoq_oficial.png" width={160} height={90} alt={traduzir("EstoQ")} /></Link>
+    <Link className="btn btn--ink" to="/login">{" "}{traduzir("Entrar")}{" "}</Link>
   </header>;
 }
 

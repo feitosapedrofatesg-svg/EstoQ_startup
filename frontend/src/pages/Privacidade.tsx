@@ -1,8 +1,9 @@
 import { PaginaPublica } from "../components/PaginaPublica";
 
 export function Privacidade() {
-  return <PaginaPublica>
+  return <PaginaPublica><article lang="pt-BR" data-documento="privacidade">
     <h1>Política de Privacidade</h1>
+    <p className="muted">Idioma deste documento: português (Brasil). Não há tradução oficial disponível neste escopo.</p>
     <p className="muted">Atualizada em 25 de outubro de 2026.</p>
     <p>Esta página explica o tratamento de dados na aplicação EstoQ, voltada ao controle de estoque e CMV de restaurantes.
       O contato do responsável pela aplicação é <a href="mailto:estoq.sistema@gmail.com">estoq.sistema@gmail.com</a>.</p>
@@ -55,5 +56,5 @@ export function Privacidade() {
       <p>Você também pode remover a autorização do EstoQ nas configurações da sua conta Google.
         Isso é diferente de solicitar a exclusão dos registros já cadastrados no EstoQ.</p>
     </section>
-  </PaginaPublica>;
+  </article></PaginaPublica>;
 }

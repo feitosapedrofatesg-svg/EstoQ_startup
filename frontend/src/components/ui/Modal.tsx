@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { Icon } from "../Icon";
@@ -85,7 +86,7 @@ export function Modal({
           <h2 className="modal__title" id={labelledBy ?? id}>
             {title}
           </h2>
-          <button className="modal__x btn--raised" onClick={onClose} aria-label="Fechar janela">
+          <button className="modal__x btn--raised" onClick={onClose} aria-label={traduzir("Fechar janela")}>
             <Icon name="x" size={18} />
           </button>
         </div>

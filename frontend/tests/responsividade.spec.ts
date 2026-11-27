@@ -14,15 +14,15 @@ async function prepararTelas(page: Page, perfil = "ADMIN") {
   });
   await page.route("**/api/**", async route => {
     const path = new URL(route.request().url()).pathname;
-    const json = (value: unknown) => route.fulfill({ json: value });
+    const json = (value: any) => route.fulfill({ json: path.endsWith("/pagina")?{content:value,totalPages:1,totalElements:value.length,number:0,size:25,valorTotal:123456.78}:value });
     if (path === "/api/auth/me") return json({ id: 1, nome: "Responsável", email: "teste@teste.com", perfil,
       restauranteId: perfil === "PLATAFORMA" ? null : 1,
       restauranteNome: "Restaurante com nome completo e identificação da unidade" });
-    if (path === "/api/estoque") return json([{ produtoId: 1, produtoNome: NOME, categoriaNome: "Grãos e ingredientes",
+    if (path === "/api/estoque" || path === "/api/estoque/pagina") return json([{ produtoId: 1, produtoNome: NOME, categoriaNome: "Grãos e ingredientes",
       unidadeMedida: "KG", saldoAtual: 12345.678, saldoDisponivelConsumo: 12000,
       valorEstoque: 123456.78, estoqueMinimo: 10, estoqueMedio: 15, estoqueMaximo: 20,
       abaixoDoMinimo: false, possuiItensAbertos: true }]);
-    if (path === "/api/lotes") return json([{ id: 1, version: 1, codigo: "LOTE-COM-IDENTIFICACAO-LONGA-DO-FORNECEDOR",
+    if (path === "/api/lotes" || path === "/api/lotes/pagina") return json([{ id: 1, version: 1, codigo: "LOTE-COM-IDENTIFICACAO-LONGA-DO-FORNECEDOR",
       produtoId: 1, produtoNome: NOME, unidadeMedida: "KG", quantidadeInicial: 15000,
       quantidadeAtual: 12345.678, dataEntrada: "2026-10-12", dataValidade: "2026-11-12", precoUnitario: 10 }]);
     if (path === "/api/movimentacoes") return json([{ id: 1, tipo: "DESPERDICIO", dataHora: "2026-10-12T19:26:00",
@@ -34,7 +34,7 @@ async function prepararTelas(page: Page, perfil = "ADMIN") {
       dataAbertura: "2026-10-12T19:26:00", quantidadeAberta: 10, quantidadeUtilizada: 2,
       quantidadeRestante: 8, finalizado: false }]);
     if (path === "/api/balancos/proximo") return json([{ id: 1, version: 1, periodicidade: "MENSAL", diaExecucao: 15, proximaExecucao: "2026-10-15" }]);
-    if (path === "/api/balancos") return json([{ id: 1, version: 1, tipo: "GERAL", status: "EM_ANDAMENTO",
+    if (path === "/api/balancos" || path === "/api/balancos/pagina") return json([{ id: 1, version: 1, tipo: "GERAL", status: "EM_ANDAMENTO",
       dataHora: "2026-10-12T19:26:00", usuarioNome: "Responsável pela cozinha", itens: [{ id: 1, version: 1,
         produtoId: 1, produtoNome: NOME, unidadeMedida: "KG", quantidadeSistema: 12345.678,
         quantidadeFisica: null, diferenca: null, ajusteAplicado: false }] }]);

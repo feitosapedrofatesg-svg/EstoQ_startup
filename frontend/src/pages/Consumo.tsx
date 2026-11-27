@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
 import { useEffect, useMemo, useState } from "react";
@@ -9,6 +10,7 @@ import {
   Button,
   DataTable,
   EmptyState,
+  Field, Input,
 } from "../components/UI";
 import { fmtNum, fmtDate, fmtDateTime, fmtMoney, hojeISO } from "../lib/format";
 import type {
@@ -42,7 +44,8 @@ export function Consumo() {
     refresh: refreshAbertos,
   } = useFetch<ProdutoAbertoDTO[]>("/api/produtos-abertos?finalizado=false");
 
-  const hoje = hojeISO();
+  const [dia,setDia]=useState(hojeISO());
+  const hoje = dia;
   const { data: registros, loading: loadingRegistros, refresh: refreshRegistros, setData: setRegistros } =
     useFetch<MovimentacaoDTO[]>(
       `/api/movimentacoes?tipo=CONSUMO&dataInicio=${hoje}&dataFim=${hoje}`
@@ -70,47 +73,45 @@ export function Consumo() {
   return (
     <>
       <PageHeader
-        title="Consumo"
-        subtitle="O que a cozinha usou do estoque. Abra a embalagem e registre a baixa."
+        title={traduzir("Consumo")}
+        subtitle={traduzir("O que a cozinha usou do estoque. Abra a embalagem e registre a baixa.")}
         actions={
           <Button icon="box-open" onClick={() => setShowOpen(true)}>
-            Abrir embalagem
-          </Button>
+            {" "}{traduzir("Abrir embalagem")}{" "}</Button>
         }
       />
 
-      <Card title="Novo consumo" className="consumo-card">
+      <Card title={traduzir("Novo consumo")} className="consumo-card">
         <ConsumoRapido
           produtoInicial={produtoParam}
           onDone={(resultado) => {
             setPagina(0);
-            setRegistros(atuais => [...resultado.movimentacoes, ...(atuais ?? []).filter(m => !resultado.movimentacoes.some(novo => novo.id === m.id))]
+            if(dia===hojeISO())setRegistros(atuais => [...resultado.movimentacoes, ...(atuais ?? []).filter(m => !resultado.movimentacoes.some(novo => novo.id === m.id))]
               .sort((a, b) => b.dataHora.localeCompare(a.dataHora) || b.id - a.id));
             recarregar();
-            toast.success("Consumo registrado");
+            toast.success(traduzir("Consumo registrado"));
           }}
         />
       </Card>
 
-      <Card title="Embalagens abertas">
+      <Card title={traduzir("Embalagens abertas")}>
         {erroAbertos && <div className="alertbanner alertbanner--bad">{erroAbertos}</div>}
         {loadingAbertos && !abertos ? (
-          <p className="muted">Carregando…</p>
+          <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>
         ) : abertos && abertos.length === 0 ? (
           <EmptyState
-            title="Nenhuma embalagem aberta"
-            text="Ao abrir um pacote, bolsa ou vasilhame, registre aqui para controlar o aproveitamento."
+            title={traduzir("Nenhuma embalagem aberta")}
+            text={traduzir("Ao abrir um pacote, bolsa ou vasilhame, registre aqui para controlar o aproveitamento.")}
             icon="box-open"
             action={
               <Button variant="outline" icon="box-open" onClick={() => setShowOpen(true)}>
-                Abrir a primeira
-              </Button>
+                {" "}{traduzir("Abrir a primeira")}{" "}</Button>
             }
           />
         ) : (
           <DataTable
-            caption="Embalagens abertas na cozinha"
-            headers={["Produto", "Lote / validade", "Aberta", "Já usado", "Resta", "Ações"]}
+            caption={traduzir("Embalagens abertas na cozinha")}
+            headers={[traduzir("Produto"), traduzir("Lote / validade"), traduzir("Aberta"), traduzir("Já usado"), traduzir("Resta"), traduzir("Ações")]}
           >
             {abertos?.map((p) => (
               <tr key={p.id}>
@@ -119,7 +120,7 @@ export function Consumo() {
                 </td>
                 <td>
                   <span className="cell-sub">
-                    Lote {fmtLote(p.loteCodigo, p.loteFabricante)} · vence {fmtDate(p.dataValidade)}
+                    {" "}{traduzir("Lote")}{" "}{fmtLote(p.loteCodigo, p.loteFabricante)}{" "}{traduzir("· vence")}{" "}{fmtDate(p.dataValidade)}
                   </span>
                 </td>
                 <td className="muted-cell">{fmtDateTime(p.dataAbertura)}</td>
@@ -134,8 +135,7 @@ export function Consumo() {
                 <td>
                   <div className="td-actions">
                     <Button size="sm" variant="outline" onClick={() => setAlvo(p)}>
-                      Consumir
-                    </Button>
+                      {" "}{traduzir("Consumir")}{" "}</Button>
                   </div>
                 </td>
               </tr>
@@ -145,42 +145,43 @@ export function Consumo() {
       </Card>
 
       <Card
-        title="Consumo de hoje"
+        title={traduzir("Consumo do dia")}
         actions={
           <div className="filters">
+            <Field label={traduzir("Dia do consumo")} htmlFor="consumo-dia"><Input id="consumo-dia" type="date" value={dia} onChange={e=>{if(e.target.value){setDia(e.target.value);setPagina(0);}}} /></Field>
             <span className="muted">
-              Custo registrado: <strong>{fmtMoney(custoHoje)}</strong>
+              {" "}{traduzir("Custo registrado:")}{" "}<strong>{fmtMoney(custoHoje)}</strong>
             </span>
             <Button variant="outline" size="sm" icon="printer" disabled={!registros?.length || loadingRegistros} onClick={() => {
-              const consolidados = new Map<string, { produto: string; quantidade: number; unidade: string }>();
+              const consolidados = new Map<string, { produto: string; quantidade: number; unidade: string; custo: number }>();
               for (const movimento of registros ?? []) {
                 const unidade = movimento.unidadeMedida ?? estoque?.find(p => p.produtoId === movimento.produtoId)?.unidadeMedida;
-                if (!unidade) { toast.error("Não foi possível imprimir", "Atualize a lista para recuperar a unidade dos produtos."); return; }
+                if (!unidade) { toast.error(traduzir("Não foi possível imprimir"), traduzir("Atualize a lista para recuperar a unidade dos produtos.")); return; }
                 const chave = `${movimento.produtoId}|${unidade}`;
-                const linha = consolidados.get(chave) ?? { produto: movimento.produtoNome, quantidade: 0, unidade };
+                const linha = consolidados.get(chave) ?? { produto: movimento.produtoNome, quantidade: 0, unidade, custo:0 };
                 linha.quantidade = Math.round((linha.quantidade + movimento.quantidade) * 1000) / 1000;
+                linha.custo=Math.round((linha.custo+(movimento.custoConsumo ?? 0))*100)/100;
                 consolidados.set(chave, linha);
               }
               try { imprimirConsumo(user?.restauranteNome ?? "Restaurante", hoje, [...consolidados.values()].sort((a, b) => a.produto.localeCompare(b.produto))); }
-              catch (e) { toast.error("Não foi possível imprimir", mensagemErro(e)); }
-            }}>Imprimir lista do dia</Button>
+              catch (e) { toast.error(traduzir("Não foi possível imprimir"), mensagemErro(e)); }
+            }}>{" "}{traduzir("Imprimir lista do dia")}{" "}</Button>
             <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refreshRegistros()}>
-              Atualizar
-            </Button>
+              {" "}{traduzir("Atualizar")}{" "}</Button>
           </div>
         }
       >
         {loadingRegistros && !registros ? (
-          <p className="muted">Carregando…</p>
+          <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>
         ) : registros && registros.length === 0 ? (
           <EmptyState
-            title="Nenhum consumo registrado hoje"
-            text="Use o formulário acima para registrar o que foi usado."
+            title={traduzir("Nenhum consumo registrado neste dia")}
+            text={traduzir("Use o formulário acima para registrar o que foi usado.")}
             icon="clipboard-list"
           />
         ) : (
           <>
-            <DataTable caption="Consumos registrados hoje" headers={["Quando", "Produto", "Lote", "Quantidade", "Custo"]}>
+            <DataTable caption={traduzir("Consumos registrados no dia")} headers={[traduzir("Quando"), traduzir("Produto"), traduzir("Lote"), traduzir("Quantidade"), traduzir("Custo")]}>
               {registrosVisiveis.map((m) => (
                 <tr key={m.id}>
                   <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
@@ -205,7 +206,7 @@ export function Consumo() {
           onDone={() => {
             setShowOpen(false);
             recarregar();
-            toast.success("Embalagem aberta e lançada");
+            toast.success(traduzir("Embalagem aberta e lançada"));
           }}
         />
       )}
@@ -218,7 +219,7 @@ export function Consumo() {
           onDone={() => {
             setAlvo(null);
             recarregar();
-            toast.success("Consumo da embalagem registrado");
+            toast.success(traduzir("Consumo da embalagem registrado"));
           }}
         />
       )}

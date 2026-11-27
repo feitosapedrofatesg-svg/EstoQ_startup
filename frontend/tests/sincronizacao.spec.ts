@@ -39,7 +39,7 @@ async function prepararBalanco(page: Page) {
       const item = estado.balanco.itens[0]; item.quantidadeFisica = corpo.quantidadeFisica; item.version++;
       return route.fulfill({ json: item });
     }
-    return route.fulfill({ json: [estado.balanco] });
+    return route.fulfill({ json: caminho === "/api/balancos/pagina" ? {content:[estado.balanco],number:0,size:25,totalPages:1,totalElements:1} : [estado.balanco] });
   });
   await page.goto("/balanco");
   await page.getByRole("button", { name: "Maximizar balanço #1", exact: true }).click();
@@ -52,10 +52,10 @@ test("aviso de estoque atualiza imediatamente e agrupa avisos próximos", async 
   const estado = await preparar(page);
   await page.goto("/estoque");
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
-  const antes = estado.consultas.filter(p => p === "/api/estoque").length;
+  const antes = estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length;
   estado.saldo = 7;
   await avisar(page, ["ESTOQUE"]); await avisar(page, ["ESTOQUE"]); await avisar(page, ["CATALOGO"]);
-  await expect.poll(() => estado.consultas.filter(p => p === "/api/estoque").length).toBe(antes + 1);
+  await expect.poll(() => estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length).toBe(antes + 1);
   await expect(page.getByRole("row").filter({ hasText: "Ingrediente do restaurante A" })).toContainText("7");
 });
 
@@ -114,13 +114,13 @@ test("reconexão recupera dados e troca de restaurante ignora conexão antiga", 
   await expect(page.getByRole("row").filter({ hasText: "Ingrediente do restaurante A" })).toContainText("4");
   await entrarNaLojaB(page);
   await expect(page.getByText("Ingrediente do restaurante B", { exact: true })).toBeVisible();
-  const antes = estado.consultas.filter(p => p === "/api/estoque").length;
+  const antes = estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length;
   const fechada = await page.evaluate(() => {
     const antiga = (window as any).fontesTeste[0]; antiga.emitir("alteracao", ["ESTOQUE"]); return antiga.fechada;
   });
   expect(fechada).toBe(true);
   await page.waitForTimeout(400);
-  expect(estado.consultas.filter(p => p === "/api/estoque").length).toBe(antes);
+  expect(estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length).toBe(antes);
 });
 
 test("aba oculta fecha o canal e conexão perdida permite reconectar", async ({ page }) => {
@@ -146,7 +146,7 @@ test("avisos durante consulta lenta aguardam uma única atualização posterior"
   await controlarAvisos(page); const estado = await preparar(page);
   await page.goto("/estoque");
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
-  const consultas = () => estado.consultas.filter(p => p === "/api/estoque").length;
+  const consultas = () => estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length;
   const antes = consultas();
   await avisar(page, [], "conectado");
   await page.waitForTimeout(400);

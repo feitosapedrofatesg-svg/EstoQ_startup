@@ -1,3 +1,4 @@
+import { ACEITES_CADASTRO, prepararDocumentos, confirmarDocumentos } from "./fixtures";
 import { test, expect, type Page } from "@playwright/test";
 import { preparar } from "./fixtures";
 
@@ -41,9 +42,10 @@ test("novo cadastro Google envia somente os nomes e abre a cozinha sem pedir sen
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Seu nome", exact: true })).toHaveValue("Pessoa Google");
   await page.getByLabel("Nome da cozinha").fill("Cozinha Google");
+  await confirmarDocumentos(page);
   await page.getByRole("button", { name: "Criar minha cozinha" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  expect(envios).toEqual([{ nomeLoja: "Cozinha Google", nomeResponsavel: "Pessoa Google" }]);
+  expect(envios).toEqual([{ ...ACEITES_CADASTRO, nomeLoja: "Cozinha Google", nomeResponsavel: "Pessoa Google" }]);
   expect(await page.evaluate(() => Object.keys(localStorage).some(k => /google|token/i.test(k)))).toBe(false);
 });
 
@@ -114,3 +116,5 @@ test("Google e conclusão de cadastro cabem no celular e no desktop", async ({ p
     }
   }
 });
+
+test.beforeEach(async({page})=>{await prepararDocumentos(page);});

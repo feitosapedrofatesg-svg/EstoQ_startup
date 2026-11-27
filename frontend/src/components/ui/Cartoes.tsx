@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useId, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../Icon";
@@ -28,13 +29,13 @@ export function ListToggle({
       className="list-toggle"
       aria-expanded={expanded}
       aria-controls={controls}
-      aria-label={`${expanded ? "Minimizar" : "Maximizar"} ${label}`}
+      aria-label={`${traduzir(expanded ? "Minimizar" : "Maximizar")} ${traduzir(label)}`}
       onClick={onToggle}
     >
       <span className={`list-toggle__icon${expanded ? " list-toggle__icon--open" : ""}`} aria-hidden="true">
         <Icon name="chevron-down" size={20} />
       </span>
-      {expanded ? "Minimizar" : "Maximizar"} {subject}
+      {expanded ? traduzir("Minimizar") : traduzir("Maximizar")} {traduzir(subject)}
     </Button>
   );
 }

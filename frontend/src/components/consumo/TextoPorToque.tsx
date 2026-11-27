@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Field, Input } from "../UI";
@@ -9,7 +10,7 @@ export function TextoPorToque({ id, label, value, onValue, placeholder, hint, ma
 }) {
   const [digitando, setDigitando] = useState(false);
   const ultimoToque = useRef<number | null>(null);
-  return <Field label={label} htmlFor={id} hint={hint ?? "Toque duas vezes para digitar."}>
+  return <Field label={label} htmlFor={id} hint={hint ?? traduzir("Toque duas vezes para digitar.")}>
     <Input id={id} value={value} placeholder={placeholder} maxLength={maxLength}
       readOnly={!digitando} inputMode={digitando ? "text" : "none"} onChange={e => onValue(e.target.value)}
       onBlur={() => { setDigitando(false); ultimoToque.current = null; }}

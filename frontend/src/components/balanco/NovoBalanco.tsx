@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { mensagemErro } from "../../lib/api";
 import { useState } from "react";
 
@@ -48,31 +49,29 @@ export function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: 
     <Modal
       open
       onClose={onClose}
-      title="Novo balanço"
+      title={traduzir("Novo balanço")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
+            {" "}{traduzir("Cancelar")}{" "}</Button>
           <Button
             onClick={() => void submit()}
             loading={submitting}
             disabled={tipo === "PARCIAL" && selected.size === 0}
           >
-            Criar balanço
-          </Button>
+            {" "}{traduzir("Criar balanço")}{" "}</Button>
         </>
       }
     >
-      <Field label="Abrangência" htmlFor="bal-tipo">
+      <Field label={traduzir("Abrangência")} htmlFor="bal-tipo">
         <Select id="bal-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoBalanco)}>
-          <option value="GERAL">Geral — todos os produtos ativos</option>
-          <option value="PARCIAL">Parcial — por categoria(s) de alimento</option>
+          <option value="GERAL">{" "}{traduzir("Geral — todos os produtos ativos")}{" "}</option>
+          <option value="PARCIAL">{" "}{traduzir("Parcial — por categoria(s) de alimento")}{" "}</option>
         </Select>
       </Field>
       {tipo === "PARCIAL" && (
         <div className="bal-tipo-cats">
-          {cats.length === 0 && <p className="muted" style={{ marginTop: 8 }}>Carregando categorias…</p>}
+          {cats.length === 0 && <p className="muted" style={{ marginTop: 8 }}>{" "}{traduzir("Carregando categorias…")}{" "}</p>}
           {cats.map((c) => (
             <label key={c.id} className="bal-tipo-cat">
               <input
@@ -85,17 +84,15 @@ export function NovoBalanco({ onClose, onDone }: { onClose: () => void; onDone: 
           ))}
           {cats.length > 0 && (
             <p className="muted" style={{ marginTop: 8 }}>
-              Selecione uma ou mais categorias. Só os itens dessas categorias entrarão no balanço.
-            </p>
+              {" "}{traduzir("Selecione uma ou mais categorias. Só os itens dessas categorias entrarão no balanço.")}{" "}</p>
           )}
         </div>
       )}
       <p className="muted" style={{ marginTop: 8 }}>
-        Depois de criar, use "Iniciar contagem" para gerar a lista de itens.
-      </p>
+        {" "}{traduzir("Depois de criar, use \"Iniciar contagem\" para gerar a lista de itens.")}{" "}</p>
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
+          {traduzir(error)}
         </div>
       )}
     </Modal>

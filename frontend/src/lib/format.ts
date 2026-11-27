@@ -1,37 +1,25 @@
-const BRL = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-const NUM = new Intl.NumberFormat("pt-BR", {
-  maximumFractionDigits: 3,
-});
-
-const PCT = new Intl.NumberFormat("pt-BR", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
+import { idiomaAtual, t } from "./i18n";
 
 export function fmtMoney(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  return BRL.format(v);
+  return new Intl.NumberFormat(idiomaAtual(),{style:"currency",currency:"BRL"}).format(v);
 }
 
 export function fmtNum(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  return NUM.format(v);
+  return new Intl.NumberFormat(idiomaAtual(),{maximumFractionDigits:3}).format(v);
 }
 
 export function fmtPct(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  return `${PCT.format(v)}%`;
+  return `${new Intl.NumberFormat(idiomaAtual(),{minimumFractionDigits:1,maximumFractionDigits:1}).format(v)}%`;
 }
 
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso.length <= 10 ? `${iso}T00:00:00` : iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR");
+  return d.toLocaleDateString(idiomaAtual());
 }
 
 export function fmtDateTime(iso: string | null | undefined): string {
@@ -41,7 +29,8 @@ export function fmtDateTime(iso: string | null | undefined): string {
   const temFuso = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(iso);
   const d = new Date(temFuso ? iso : `${iso}Z`);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("pt-BR", {
+  return d.toLocaleString(idiomaAtual(), {
+    timeZone:"America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -67,35 +56,26 @@ export function fmtDiaSemana(dia: string): string {
     SATURDAY: "Sábado",
     SUNDAY: "Domingo",
   };
-  return map[dia] ?? dia;
+  return t(map[dia] ?? dia);
 }
 
 export function fmtDataHoje(): string {
-  return new Date().toLocaleDateString("pt-BR", {
+  return new Date().toLocaleDateString(idiomaAtual(), {
+    timeZone:"America/Sao_Paulo",
     weekday: "long",
     day: "2-digit",
     month: "long",
   });
 }
 
-// Data no fuso LOCAL do navegador, não em UTC. toISOString() converte para
-// UTC e, no Brasil (UTC-3), entre 21h e meia-noite devolve o dia seguinte —
-// o que deslocava os filtros padrão de Movimentações e Relatórios.
-function dataLocalISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
+// O dia operacional segue o mesmo fuso do servidor, inclusive fora do Brasil.
+function dataLocalISO(d:Date):string {
+  const partes=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);
+  const valor=(tipo:string)=>partes.find(p=>p.type===tipo)?.value;
+  return `${valor("year")}-${valor("month")}-${valor("day")}`;
 }
-
-export function hojeISO(): string {
-  return dataLocalISO(new Date());
-}
-
-export function diasAtrasISO(dias: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - dias);
-  return dataLocalISO(d);
-}
+export function hojeISO():string {return dataLocalISO(new Date());}
+export function diasAtrasISO(dias:number):string {const d=new Date(`${hojeISO()}T12:00:00-03:00`);d.setUTCDate(d.getUTCDate()-dias);return dataLocalISO(d);}
 
 // Aceita as duas grafias que aparecem em digitação livre no pt-BR.
 // A ambiguidade do "." é resolvida pelo número de dígitos à direita dele:
@@ -103,7 +83,7 @@ export function diasAtrasISO(dias: number): string {
 //   "1.5"      -> 1.5    (1 dígito à direita  => decimal)
 //   "10.50"    -> 10.5   (2 dígitos à direita => decimal)
 //   "1.234,56" -> 1234.56 (vírgula presente   => decimal, ponto é milhar)
-export function parseDecimal(s: string): number | null {
+export function parseDecimal(s: string, idioma = "pt-BR"): number | null {
   const t = s.trim();
   if (!t) return null;
 
@@ -111,7 +91,9 @@ export function parseDecimal(s: string): number | null {
   const hasDot = t.includes(".");
   let normalized: string;
 
-  if (hasComma && hasDot) {
+  if (idioma === "en") {
+    normalized = t.replace(/,/g, "");
+  } else if (hasComma && hasDot) {
     // Vírgula manda: ponto é separador de milhar.
     normalized = t.replace(/\./g, "").replace(",", ".");
   } else if (hasComma) {
@@ -130,5 +112,5 @@ export function parseDecimal(s: string): number | null {
 }
 
 export function fmtLote(codigo: string | null | undefined, fabricante?: string | null): string {
-  return `${codigo ?? "—"}${fabricante ? ` · fabricante ${fabricante}` : ""}`;
+  return `${codigo ?? "—"}${fabricante ? ` · ${t("fabricante")} ${fabricante}` : ""}`;
 }

@@ -1,3 +1,5 @@
+import { traduzir } from "../lib/i18n";
+import { Etiquetas } from "../components/Etiquetas";
 import { fmtLote } from "../lib/format";
 import { mensagemErro } from "../lib/api";
 import { useEffect, useMemo, useState } from "react";
@@ -61,6 +63,7 @@ export function Movimentacoes() {
   const usuarioId = params.get("usuario") ?? "";
   const [inicio, setInicio] = useState(diasAtrasISO(30));
   const [fim, setFim] = useState(hojeISO());
+  const [etiqueta,setEtiqueta]=useState<number|null>(null);
   const [showRegister, setShowRegister] = useState(false);
   const [pagina, setPagina] = useState(0);
 
@@ -107,7 +110,7 @@ export function Movimentacoes() {
     const options = [
       { value: "", label: "Todos os usuários" },
       ...(usuarios ?? []).map(u => ({ value: String(u.id), label: u.nome,
-        sub: `${u.email} · ${PERFIL_LABEL[u.perfil]}${u.ativo ? "" : " · Inativo"}` })),
+        sub: `${u.email} · ${traduzir(PERFIL_LABEL[u.perfil])}${u.ativo ? "" : ` · ${traduzir("Inativo")}`}` })),
     ];
     if (usuarioId && !options.some(o => o.value === usuarioId)) {
       options.push({ value: usuarioId, label: `Usuário #${usuarioId}` });
@@ -140,44 +143,44 @@ export function Movimentacoes() {
   return (
     <>
       <PageHeader
-        title="Movimentações"
-        subtitle="Tudo o que sai e entra do estoque, com histórico completo."
+        title={traduzir("Movimentações")}
+        subtitle={traduzir("Tudo o que sai e entra do estoque, com histórico completo.")}
         actions={
           // Entrada é exclusiva do ADMIN (SecurityConfig). Consumo e desperdício
           // têm telas próprias.
           isAdmin && (
             <>
-              <LinkButton to="/notas-fiscais" variant="outline" icon="arrows">Importar nota fiscal</LinkButton>
-              <Button icon="plus" onClick={() => setShowRegister(true)}>Registrar entrada</Button>
+              <LinkButton to="/notas-fiscais" variant="outline" icon="arrows">{" "}{traduzir("Importar nota fiscal")}{" "}</LinkButton>
+              <Button icon="plus" onClick={() => setShowRegister(true)}>{" "}{traduzir("Registrar entrada")}{" "}</Button>
             </>
           )
         }
       />
 
-      {error && <div className="alertbanner alertbanner--bad">{error}</div>}
+      {error && <div className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
 
       <div className="mini-stats">
         <div className="mini-stat">
-          <span>Compras no período</span>
+          <span>{" "}{traduzir("Compras no período")}{" "}</span>
           <strong>{fmtMoney(totalPeriodo.compras)}</strong>
         </div>
         <div className="mini-stat">
-          <span>Consumo registrado</span>
+          <span>{" "}{traduzir("Consumo registrado")}{" "}</span>
           <strong>{fmtMoney(totalPeriodo.custoConsumo)}</strong>
         </div>
         <div className="mini-stat">
-          <span>Desperdício (prejuízo)</span>
+          <span>{" "}{traduzir("Desperdício (prejuízo)")}{" "}</span>
           <strong className="text-bad">{fmtMoney(totalPeriodo.prejuizo)}</strong>
         </div>
       </div>
 
       <Card
-        title="Histórico"
+        title={traduzir("Histórico")}
         className="movimentacoes-historico"
         actions={
           <div className="filters">
             <Segmented
-              label="Filtrar por tipo"
+              label={traduzir("Filtrar por tipo")}
               value={tipo}
               onChange={setTipo}
               items={[
@@ -189,50 +192,49 @@ export function Movimentacoes() {
               ]}
             />
             <div className="movimentacoes-usuario">
-              <SearchSelect label="Usuário" htmlFor="mv-usuario" options={usuarioOpts} value={usuarioId}
-                onValue={setUsuario} placeholder={loadingUsuarios ? "Carregando usuários…" : "Todos os usuários"} />
+              <SearchSelect label={traduzir("Usuário")} htmlFor="mv-usuario" options={usuarioOpts} value={usuarioId}
+                onValue={setUsuario} placeholder={loadingUsuarios ? traduzir("Carregando usuários…") : traduzir("Todos os usuários")} />
             </div>
             <div className="filters__dates">
-              <Field label="De" htmlFor="mv-inicio">
+              <Field label={traduzir("De")} htmlFor="mv-inicio">
                 <Input id="mv-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
               </Field>
-              <Field label="Até" htmlFor="mv-fim">
+              <Field label={traduzir("Até")} htmlFor="mv-fim">
                 <Input id="mv-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
               </Field>
             </div>
             <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
-              Atualizar
-            </Button>
+              {" "}{traduzir("Atualizar")}{" "}</Button>
           </div>
         }
       >
         {erroUsuarios && <div className="alertbanner alertbanner--bad" role="alert">
-          Não foi possível carregar os usuários. O filtro selecionado foi mantido.{" "}
-          <Button size="sm" variant="ghost" onClick={() => void refreshUsuarios()}>Tentar carregar usuários</Button>
+          {" "}{traduzir("Não foi possível carregar os usuários. O filtro selecionado foi mantido.")}{" "}
+          <Button size="sm" variant="ghost" onClick={() => void refreshUsuarios()}>{" "}{traduzir("Tentar carregar usuários")}{" "}</Button>
         </div>}
         {loading && !data ? (
-          <p className="muted">Carregando…</p>
+          <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>
         ) : data && data.length === 0 ? (
           <EmptyState
-            title={usuarioId ? "Nenhuma movimentação para este usuário no período" : "Nenhuma movimentação no período"}
+            title={usuarioId ? traduzir("Nenhuma movimentação para este usuário no período") : traduzir("Nenhuma movimentação no período")}
             text={
-              usuarioId ? "Altere o usuário, o tipo ou as datas para consultar outros registros." : isAdmin
-                ? "Use o botão Registrar entrada para lançar compras e produtos que entraram no estoque."
-                : "Consulte as telas de Consumo e Desperdício para registrar as saídas do estoque."
+              usuarioId ? traduzir("Altere o usuário, o tipo ou as datas para consultar outros registros.") : isAdmin
+                ? traduzir("Use o botão Registrar entrada para lançar compras e produtos que entraram no estoque.")
+                : traduzir("Consulte as telas de Consumo e Desperdício para registrar as saídas do estoque.")
             }
             icon="clipboard-list"
           />
         ) : (
           <>
             <DataTable
-              caption="Movimentações do estoque"
-              headers={["Quando", "Tipo", "Produto", "Lote", "Quantidade", "Valor", "Motivo", "Usuário"]}
+              caption={traduzir("Movimentações do estoque")}
+              headers={[traduzir("Quando"), traduzir("Tipo"), traduzir("Produto"), traduzir("Lote"), traduzir("Quantidade"), traduzir("Valor"), traduzir("Motivo"), traduzir("Usuário"), ""]}
             >
               {movimentacoesVisiveis.map((m) => (
                 <tr key={m.id}>
                   <td className="muted-cell">{fmtDateTime(m.dataHora)}</td>
                   <td>
-                    <Badge tone={TIPO_TONE[m.tipo]}>{TIPO_LABEL[m.tipo]}</Badge>
+                    <Badge tone={TIPO_TONE[m.tipo]}>{traduzir(TIPO_LABEL[m.tipo])}</Badge>
                   </td>
                   <td>
                     <strong>{m.produtoNome}</strong>
@@ -259,9 +261,10 @@ export function Movimentacoes() {
                   </td>
                   <td className="muted-cell">
                     {m.tipo === "AJUSTE"
-                      ? m.usuarioContagemNome || "Não identificado"
-                      : m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}
+                      ? m.usuarioContagemNome || traduzir("Não identificado")
+                      : m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || traduzir("Não identificado")}
                   </td>
+                  <td>{m.tipo==="ENTRADA" && m.loteId && <Button size="sm" variant="outline" icon="printer" onClick={()=>setEtiqueta(m.loteId)}>{" "}{traduzir("Imprimir etiqueta")}{" "}</Button>}</td>
                 </tr>
               ))}
             </DataTable>
@@ -270,15 +273,17 @@ export function Movimentacoes() {
         )}
       </Card>
 
+      {etiqueta && <Etiquetas loteId={etiqueta} onClose={()=>setEtiqueta(null)} />}
       {showRegister && (
         <RegisterEntrada
           initialProduto={produtoId}
           produtoOpts={produtoOpts}
           onClose={() => setShowRegister(false)}
-          onDone={() => {
+          onDone={(resultado) => {
+            setEtiqueta(resultado.movimentacoes[0]?.loteId ?? null);
             setShowRegister(false);
             void refresh();
-            toast.success("Entrada registrada");
+            toast.success(traduzir("Entrada registrada"));
           }}
         />
       )}
@@ -287,18 +292,20 @@ export function Movimentacoes() {
 }
 
 /** Entrada de mercadoria: só o ADMIN lança (POST /api/entradas). */
-function RegisterEntrada({
-  initialProduto,
+export function RegisterEntrada({
+  initialProduto = "",
   produtoOpts,
   onClose,
   onDone,
 }: {
-  initialProduto: string;
-  produtoOpts: { value: string; label: string; sub?: string }[];
+  initialProduto?: string;
+  produtoOpts?: { value: string; label: string; sub?: string }[];
   onClose: () => void;
-  onDone: () => void;
+  onDone: (resultado:MovimentacaoResultadoDTO) => void;
 }) {
   const [produtoId, setProdutoId] = useState(initialProduto);
+  const {data: estoqueEntrada}=useFetch<EstoqueDTO[]>(produtoOpts ? null : "/api/estoque");
+  const opcoesEntrada=produtoOpts ?? (estoqueEntrada ?? []).map(p=>({value:String(p.produtoId),label:p.produtoNome,sub:p.unidadeMedida}));
   const [quantidade, setQuantidade] = useState<number | null>(null);
   const [observacao, setObservacao] = useState("");
   const [loteFabricante, setLoteFabricante] = useState("");
@@ -344,7 +351,7 @@ function RegisterEntrada({
     setSubmitting(true);
     setError(null);
     try {
-      await api.post<MovimentacaoResultadoDTO>("/api/entradas", {
+      const resultado=await api.post<MovimentacaoResultadoDTO>("/api/entradas", {
         produtoId: Number(produtoId),
         quantidade,
         valorTotalPago: semCusto ? 0 : valorTotalPago ?? 0,
@@ -355,7 +362,7 @@ function RegisterEntrada({
         observacao: observacao || null,
         loteFabricante: loteFabricante.trim() || null,
       });
-      onDone();
+      onDone(resultado);
     } catch (e) {
       setError(mensagemErro(e));
     } finally {
@@ -375,52 +382,50 @@ function RegisterEntrada({
     <Modal
       open
       onClose={onClose}
-      title="Registrar entrada"
+      title={traduzir("Registrar entrada")}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
+            {" "}{traduzir("Cancelar")}{" "}</Button>
           <Button onClick={() => void submit()} loading={submitting} icon="check">
-            Registrar entrada
-          </Button>
+            {" "}{traduzir("Registrar entrada")}{" "}</Button>
         </>
       }
     >
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
+          {traduzir(error)}
         </div>
       )}
 
       <SearchSelect
-        label="Produto"
-        options={produtoOpts}
+        label={traduzir("Produto")}
+        options={opcoesEntrada}
         value={produtoId}
         onValue={(v) => {
           setProdutoId(v);
           setError(null);
         }}
-        placeholder="Buscar produto…"
+        placeholder={traduzir("Buscar produto…")}
         required
       />
 
-      <Field label="Lote do fabricante (opcional)" htmlFor="entrada-lote-fabricante">
-        <Input id="entrada-lote-fabricante" maxLength={50} value={loteFabricante} onChange={e => setLoteFabricante(e.target.value)} placeholder="Número impresso na embalagem" />
+      <Field label={traduzir("Lote do fabricante (opcional)")} htmlFor="entrada-lote-fabricante">
+        <Input id="entrada-lote-fabricante" maxLength={50} value={loteFabricante} onChange={e => setLoteFabricante(e.target.value)} placeholder={traduzir("Número impresso na embalagem")} />
       </Field>
-      <Field label="Como informar a compra" htmlFor="entrada-modo">
+      <Field label={traduzir("Como informar a compra")} htmlFor="entrada-modo">
         <Select id="entrada-modo" value={porEmbalagem ? "embalagem" : "direta"} onChange={e => { setPorEmbalagem(e.target.value === "embalagem"); setQuantidade(null); }}>
-          <option value="direta">Quantidade direta</option><option value="embalagem">Por embalagem</option>
+          <option value="direta">{" "}{traduzir("Quantidade direta")}{" "}</option><option value="embalagem">{" "}{traduzir("Por embalagem")}{" "}</option>
         </Select>
       </Field>
       <div className="form-grid-2">
         <NumberField
-          label={porEmbalagem ? "Quantidade de embalagens" : "Quantidade"}
+          label={porEmbalagem ? traduzir("Quantidade de embalagens") : traduzir("Quantidade")}
           value={quantidade}
           onValue={setQuantidade}
           min={0}
-          placeholder="Ex.: 5"
+          placeholder={traduzir("Ex.: 5")}
           suffix={porEmbalagem ? "embalagens" : unidadeCompra}
           error={error && quantidade && quantidade <= 0 ? error : null}
         />
@@ -428,30 +433,30 @@ function RegisterEntrada({
           disabled={porEmbalagem}
           value={porEmbalagem ? "UN" : unidadeCompra}
           onChange={(e) => setUnidadeCompra(e.target.value as UnidadeMedida)}
-          aria-label="Unidade da compra"
+          aria-label={traduzir("Unidade da compra")}
         >
           {(porEmbalagem ? ["UN"] : compativeis(unidadeEstoque)).map((u) => (
             <option key={u} value={u}>
-              {u === "UN" ? "Unidade (UN)" : u}
+              {u === "UN" ? traduzir("Unidade (UN)") : u}
             </option>
           ))}
         </Select>
       </div>
       {porEmbalagem && <div className="form-grid-2">
-        <NumberField label="Conteúdo de cada embalagem" value={conteudoEmbalagem} onValue={setConteudoEmbalagem} min={0} suffix={unidadeConteudo} />
-        <Select aria-label="Unidade do conteúdo" value={unidadeConteudo} onChange={e => setUnidadeConteudo(e.target.value as UnidadeMedida)}>
+        <NumberField label={traduzir("Conteúdo de cada embalagem")} value={conteudoEmbalagem} onValue={setConteudoEmbalagem} min={0} suffix={unidadeConteudo} />
+        <Select aria-label={traduzir("Unidade do conteúdo")} value={unidadeConteudo} onChange={e => setUnidadeConteudo(e.target.value as UnidadeMedida)}>
           {compativeis(unidadeEstoque).map(u => <option key={u} value={u}>{u}</option>)}
         </Select>
       </div>}
-      {totalEntrada !== null && <p><strong>Entrada: {fmtNum(totalEntrada)} {unidadeEstoque}</strong></p>}
-      {porEmbalagem && unidadeEstoque === "UN" && <p className="muted">Informe unidades por embalagem: 1 para item avulso ou a quantidade de itens por pacote/caixa. Não informe peso ou volume.</p>}
-      <Field label="Valor total pago (R$)" htmlFor="ent-valor" required={!semCusto}>
+      {totalEntrada !== null && <p><strong>{" "}{traduzir("Entrada:")}{" "}{fmtNum(totalEntrada)} {unidadeEstoque}</strong></p>}
+      {porEmbalagem && unidadeEstoque === "UN" && <p className="muted">{" "}{traduzir("Informe unidades por embalagem: 1 para item avulso ou a quantidade de itens por pacote/caixa. Não informe peso ou volume.")}{" "}</p>}
+      <Field label={traduzir("Valor total pago (R$)")} htmlFor="ent-valor" required={!semCusto}>
         <div className="input-group">
           <input
             id="ent-valor"
             className="input"
             inputMode="decimal"
-            placeholder="Ex.: 120,00"
+            placeholder={traduzir("Ex.: 120,00")}
             disabled={semCusto}
             value={valorTotalPago === null ? "" : String(valorTotalPago).replace(".", ",")}
             onChange={(e) => {
@@ -459,12 +464,12 @@ function RegisterEntrada({
               setValorTotalPago(n);
             }}
           />
-          <span className="input-group__suffix">R$</span>
+          <span className="input-group__suffix">{" "}{traduzir("R$")}{" "}</span>
         </div>
       </Field>
-      <Checkbox checked={semCusto} onChange={setSemCusto} label="Entrada sem custo (doação, produção interna)" />
+      <Checkbox checked={semCusto} onChange={setSemCusto} label={traduzir("Entrada sem custo (doação, produção interna)")} />
       <div className="form-grid-2">
-        <Field label="Validade (opcional)" htmlFor="ent-validade">
+        <Field label={traduzir("Validade (opcional)")} htmlFor="ent-validade">
           <Input
             id="ent-validade"
             type="date"
@@ -472,10 +477,10 @@ function RegisterEntrada({
             onChange={(e) => setDataValidade(e.target.value)}
           />
         </Field>
-        <Field label="Observação" htmlFor="ent-obs">
+        <Field label={traduzir("Observação")} htmlFor="ent-obs">
           <Input
             id="ent-obs"
-            placeholder="Fornecedor, nota, lote…"
+            placeholder={traduzir("Fornecedor, nota, lote…")}
             value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
           />

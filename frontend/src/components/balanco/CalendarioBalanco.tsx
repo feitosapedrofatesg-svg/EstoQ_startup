@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useState } from "react";
 
 
@@ -56,11 +57,11 @@ function MonthCalendar({
   return (
     <div className="month-cal">
       <header className="month-cal__nav">
-        <Button type="button" variant="ghost" size="sm" icon="chevron-left" onClick={() => go(-1)} aria-label="Mês anterior" />
+        <Button type="button" variant="ghost" size="sm" icon="chevron-left" onClick={() => go(-1)} aria-label={traduzir("Mês anterior")} />
         <span className="month-cal__title">
           {MONTH_NAMES[viewMonth]} {viewYear}
         </span>
-        <Button type="button" variant="ghost" size="sm" icon="chevron-right" onClick={() => go(1)} aria-label="Próximo mês" />
+        <Button type="button" variant="ghost" size="sm" icon="chevron-right" onClick={() => go(1)} aria-label={traduzir("Próximo mês")} />
       </header>
       <div className="month-cal__weekdays" role="row">
         {WEEKDAY_LABELS.map((w) => (
@@ -87,8 +88,8 @@ function MonthCalendar({
       </div>
       <p className="mini-cal__hint">
         {value !== null
-          ? `Executa todo dia ${value}`
-          : "Selecione um dia do mês (1–28)"}
+          ? traduzir("Executa todo dia {0}",{0:value})
+          : traduzir("Selecione um dia do mês (1–28)")}
       </p>
     </div>
   );
@@ -106,7 +107,7 @@ export function MiniCalendar({
   if (periodicidade === "SEMANAL") {
     return (
       <div className="mini-cal">
-        <div className="mini-cal__week" role="group" aria-label="Dia da semana">
+        <div className="mini-cal__week" role="group" aria-label={traduzir("Dia da semana")}>
           {WEEK_DAYS.map((d) => (
             <button
               key={d.value}
@@ -114,13 +115,13 @@ export function MiniCalendar({
               aria-pressed={value === d.value}
               onClick={() => onChange(d.value)}
             >
-              {d.label}
+              {traduzir(d.label)}
             </button>
           ))}
         </div>
         {value !== null && (
           <span className="mini-cal__hint">
-            Toda {WEEK_DAYS.find((d) => d.value === value)?.label.toLowerCase()}
+            {" "}{traduzir("Toda")}{" "}{WEEK_DAYS.find((d) => d.value === value)?.label.toLowerCase()}
           </span>
         )}
       </div>

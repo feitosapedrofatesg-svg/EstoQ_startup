@@ -163,7 +163,7 @@ test("impressão diária consolida consumos de diferentes lotes e embalagens", a
   await expect(popup.locator("tbody tr")).toHaveCount(1);
   await expect(popup.locator("tbody")).toContainText("0,5");
   await expect(popup.locator("tbody")).toContainText("kg");
-  await expect(popup.locator("body")).not.toContainText("R$");
+  await expect(popup.locator("body")).toContainText("R$");
 });
 
 test("falha de conexão conserva a chave e o pedido para reenvio", async ({ page }) => {

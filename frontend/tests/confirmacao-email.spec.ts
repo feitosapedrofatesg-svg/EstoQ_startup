@@ -1,3 +1,4 @@
+import { ACEITES_CADASTRO, prepararDocumentos, confirmarDocumentos } from "./fixtures";
 import { test, expect, type Page } from "@playwright/test";
 import { preparar } from "./fixtures";
 
@@ -48,6 +49,7 @@ test("cadastro pendente vai para confirmação e mantém e-mail preenchido", asy
   await publico(page);
   await page.route("**/api/registro", route => route.fulfill({ status: 201, json: { confirmacaoEmailPendente: true } }));
   await page.goto("/registro");
+    await confirmarDocumentos(page);
   await page.locator("#reg-loja").fill("Cozinha teste");
   await page.locator("#reg-nome").fill("Pessoa teste");
   await page.locator("#reg-email").fill("pessoa@teste.local");
@@ -70,3 +72,5 @@ test("login pendente explica confirmação e oferece reenvio", async ({ page }) 
   await page.getByRole("link", { name: "Reenviar confirmação de e-mail" }).click();
   await expect(page.getByRole("textbox", { name: "E-mail", exact: true })).toHaveValue("pessoa@teste.local");
 });
+
+test.beforeEach(async({page})=>{await prepararDocumentos(page);});

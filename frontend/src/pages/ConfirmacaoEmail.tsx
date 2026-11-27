@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button, Field, Input } from "../components/UI";
@@ -6,13 +7,13 @@ import { api, mensagemErro } from "../lib/api";
 function PaginaEmail({ titulo, children }: { titulo: string; children: ReactNode }) {
   return <div className="login">
     <div className="login__side">
-      <div className="login__brand"><img className="login__logo" src="/logo_login.png" alt="estoQ" width={260} height={173} /></div>
-      <blockquote className="login__quote"><p className="login__quote-text">O acesso da sua equipe começa por um e-mail confirmado.</p></blockquote>
+      <div className="login__brand"><img className="login__logo" src="/logo_login.png" alt={traduzir("estoQ")} width={260} height={173} /></div>
+      <blockquote className="login__quote"><p className="login__quote-text">{" "}{traduzir("O acesso da sua equipe começa por um e-mail confirmado.")}{" "}</p></blockquote>
     </div>
     <div className="login__panel"><div className="login__form">
       <h1 className="login__title" style={{ fontSize: "clamp(1.5rem, 6vw, 2rem)" }}>{titulo}</h1>
       {children}
-      <p className="login__signup"><Link to="/login" className="login__signup-link">Voltar para entrar</Link></p>
+      <p className="login__signup"><Link to="/login" className="login__signup-link">{" "}{traduzir("Voltar para entrar")}{" "}</Link></p>
     </div></div>
   </div>;
 }
@@ -37,12 +38,12 @@ export function ConfirmarEmail() {
   }
 
   return <PaginaEmail titulo={confirmado ? "E-mail confirmado" : "Confirmar e-mail"}>
-    {confirmado ? <p role="status">Seu e-mail foi confirmado. Agora você pode entrar na sua conta.</p> : <>
-      <p className="login__subtitle">Pressione o botão para confirmar este endereço. O link vale por 24 horas e pode ser usado uma vez.</p>
-      {erro && <div className="login__error" role="alert">{erro}</div>}
-      {token ? <Button block onClick={confirmar} loading={loading}>Confirmar e-mail</Button>
-        : <p role="alert">Abra o link recebido por e-mail ou solicite outro abaixo.</p>}
-      <p className="login__signup"><Link className="login__signup-link" to="/verificar-email">Solicitar outro link</Link></p>
+    {confirmado ? <p role="status">{" "}{traduzir("Seu e-mail foi confirmado. Agora você pode entrar na sua conta.")}{" "}</p> : <>
+      <p className="login__subtitle">{" "}{traduzir("Pressione o botão para confirmar este endereço. O link vale por 24 horas e pode ser usado uma vez.")}{" "}</p>
+      {erro && <div className="login__error" role="alert">{traduzir(erro)}</div>}
+      {token ? <Button block onClick={confirmar} loading={loading}>{" "}{traduzir("Confirmar e-mail")}{" "}</Button>
+        : <p role="alert">{" "}{traduzir("Abra o link recebido por e-mail ou solicite outro abaixo.")}{" "}</p>}
+      <p className="login__signup"><Link className="login__signup-link" to="/verificar-email">{" "}{traduzir("Solicitar outro link")}{" "}</Link></p>
     </>}
   </PaginaEmail>;
 }
@@ -70,14 +71,14 @@ export function VerificarEmail() {
   }
 
   return <PaginaEmail titulo="Confira seu e-mail">
-    <p className="login__subtitle">Para entrar, confirme o endereço pelo link recebido. Confira também o spam. Se precisar de outro link, informe o e-mail abaixo.</p>
+    <p className="login__subtitle">{" "}{traduzir("Para entrar, confirme o endereço pelo link recebido. Confira também o spam. Se precisar de outro link, informe o e-mail abaixo.")}{" "}</p>
     <form onSubmit={reenviar}>
-      {erro && <div className="login__error" role="alert">{erro}</div>}
+      {erro && <div className="login__error" role="alert">{traduzir(erro)}</div>}
       {mensagem && <p role="status">{mensagem}</p>}
-      <Field label="E-mail" htmlFor="confirmacao-email" required>
+      <Field label={traduzir("E-mail")} htmlFor="confirmacao-email" required>
         <Input id="confirmacao-email" type="email" autoComplete="email" maxLength={254} required value={email} onChange={e => setEmail(e.target.value)} />
       </Field>
-      <Button type="submit" block loading={loading} disabled={aguardar}>{aguardar ? "Aguarde 1 minuto para reenviar" : "Reenviar link de confirmação"}</Button>
+      <Button type="submit" block loading={loading} disabled={aguardar}>{aguardar ? traduzir("Aguarde 1 minuto para reenviar") : traduzir("Reenviar link de confirmação")}</Button>
     </form>
   </PaginaEmail>;
 }

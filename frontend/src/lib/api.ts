@@ -1,9 +1,10 @@
+import { traduzir, idiomaAtual } from "./i18n";
 import { invalidarAposGravacao } from "./cache";
 import { sessaoAtual } from "./sessao";
 import type { ErrorResponse } from "./types";
 
 export function mensagemErro(erro: unknown): string {
-  return erro instanceof Error ? erro.message : "Não foi possível concluir a operação.";
+  return erro instanceof Error ? traduzir(erro.message) : "Não foi possível concluir a operação.";
 }
 
 export class ApiError extends Error {
@@ -63,7 +64,7 @@ async function parseError(res: Response): Promise<ApiError> {
     body = null;
   }
   const message = body?.message || body?.title || friendlyStatus(res.status);
-  return new ApiError(res.status, message, body?.title, body?.motive);
+  return new ApiError(res.status, traduzir(message), body?.title, body?.motive);
 }
 
 async function isCsrfFailure(res: Response): Promise<boolean> {
@@ -90,7 +91,7 @@ async function request<T>(
   options: GetOptions = {}
 ): Promise<T> {
   const sessao = sessaoAtual();
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", "Accept-Language": idiomaAtual() };
 
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
@@ -156,7 +157,7 @@ export const api = {
 
   async blob(path: string): Promise<Blob> {
     const sessao = sessaoAtual();
-    const res = await fetch(path, { credentials: "include", headers: { Accept: "application/pdf, text/csv" } });
+    const res = await fetch(path, { credentials: "include", headers: { Accept: "application/pdf, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Accept-Language": idiomaAtual() } });
     conferirSessao(sessao);
     if (res.status === 401) window.dispatchEvent(new CustomEvent("estoq:unauthorized"));
     if (!res.ok) throw await parseError(res);

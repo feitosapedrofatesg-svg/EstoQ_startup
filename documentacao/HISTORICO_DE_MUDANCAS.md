@@ -1,5 +1,23 @@
 # Histórico de mudanças do EstoQ
 
+## 27/11/2026 — operação, impressão e configurações
+
+Adicionado o perfil OPERACIONAL (Cozinha + entrada), sem migração de usuários.
+Estoque, lista de balanços e lotes de desperdício recebem paginação no servidor.
+A situação próxima do vencimento reutiliza o prazo existente de cada produto.
+A exportação do estoque passa a uma Planilha XLSX com dados tipados e filtros completos.
+Consumo permite consultar o dia, conferir o custo histórico e imprimir a lista completa.
+Entradas permitem prévia, impressão e reimpressão de etiquetas pelo navegador.
+
+Configurações ao lado do sino concentram sete temas, fonte, três idiomas, documentos
+e suporte. Preferências são da conta, com Claro/100%/pt-BR iniciais. O cadastro exige
+duas confirmações e registra responsável, versões e horário do servidor atomicamente.
+Termos solicitados pelo responsável foram redigidos como minuta em português, para revisão
+antes de produção. V19, V20 e V21 são aditivas, sem apagar dados ou inventar aceites.
+
+Entrega autorizada até homologacao, seguindo dev → homologacao. A main fica preservada.
+Detalhes e limitações em [MELHORIAS_2026_11_27.md](MELHORIAS_2026_11_27.md).
+
 ## 02/11/2026 — limpeza por unidade
 
 Materiais de limpeza e higiene usam UN no catálogo, na API e nas notas fiscais.

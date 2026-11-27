@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { estoquePorUnidade } from "../lib/estoquePorUnidade";
 import { useEffect, useState } from "react";
@@ -78,17 +79,17 @@ export function Catalogo() {
       if (kind === "cat") {
         await api.del(`/api/categorias/${id}`);
         setDelCat(null);
-        toast.success("Categoria removida");
+        toast.success(traduzir("Categoria removida"));
         void refreshCats();
         void refreshTodasCats();
       } else {
         await api.del(`/api/produtos/${id}`);
         setDelProd(null);
-        toast.success("Produto removido");
+        toast.success(traduzir("Produto removido"));
         void refreshProds();
       }
     } catch (e) {
-      toast.error("Não foi possível remover", mensagemErro(e));
+      toast.error(traduzir("Não foi possível remover"), mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -97,17 +98,15 @@ export function Catalogo() {
   return (
     <>
       <PageHeader
-        title="Catálogo"
-        subtitle="Produtos, categorias e parâmetros que alimentam o controle de estoque."
+        title={traduzir("Catálogo")}
+        subtitle={traduzir("Produtos, categorias e parâmetros que alimentam o controle de estoque.")}
         actions={
           isAdmin && (
             <>
               <LinkButton to="/notas-fiscais" variant="outline" icon="arrows">
-                Importar nota fiscal
-              </LinkButton>
+                {" "}{traduzir("Importar nota fiscal")}{" "}</LinkButton>
               <Button icon="plus" onClick={() => setProdModal({ open: true, prod: null })}>
-                Novo produto
-              </Button>
+                {" "}{traduzir("Novo produto")}{" "}</Button>
             </>
           )
         }
@@ -128,10 +127,10 @@ export function Catalogo() {
           <div className="filterbar">
             <Input
               type="search"
-              placeholder="Buscar no catálogo…"
+              placeholder={traduzir("Buscar no catálogo…")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              aria-label="Buscar no catálogo"
+              aria-label={traduzir("Buscar no catálogo")}
             />
             {isAdmin && (
               <Button
@@ -140,26 +139,25 @@ export function Catalogo() {
                 icon="plus"
                 onClick={() => setCatModal({ open: true, cat: null })}
               >
-                Nova categoria
-              </Button>
+                {" "}{traduzir("Nova categoria")}{" "}</Button>
             )}
           </div>
         }
       >
-        {error && <div role="alert" className="alertbanner alertbanner--bad">{error}</div>}
+        {error && <div role="alert" className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
         {loading ? (
-          <p className="muted">Carregando…</p>
+          <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>
         ) : tab === "produtos" ? (
           prodRows.length === 0 ? (
             <EmptyState
-              title="Nenhum produto"
-              text="Cadastre os produtos que sua cozinha usa para começar a controlar o estoque."
-              action={isAdmin && <Button icon="plus" onClick={() => setProdModal({ open: true, prod: null })}>Cadastrar produto</Button>}
+              title={traduzir("Nenhum produto")}
+              text={traduzir("Cadastre os produtos que sua cozinha usa para começar a controlar o estoque.")}
+              action={isAdmin && <Button icon="plus" onClick={() => setProdModal({ open: true, prod: null })}>{" "}{traduzir("Cadastrar produto")}{" "}</Button>}
             />
           ) : (
             <DataTable
-              caption="Produtos cadastrados"
-              headers={["Produto", "Categoria", "Unidade", "Código", "Saldo", "Situação", ""]}
+              caption={traduzir("Produtos cadastrados")}
+              headers={[traduzir("Produto"), traduzir("Categoria"), traduzir("Unidade"), traduzir("Código"), traduzir("Saldo"), traduzir("Situação"), ""]}
             >
               {prodRows.map((p) => (
                 <tr key={p.id}>
@@ -169,17 +167,16 @@ export function Catalogo() {
                     </Button>
                   </td>
                   <td className="muted-cell">{p.categoriaNome ?? catById.get(p.categoriaId)?.nome ?? "—"}</td>
-                  <td>{p.unidadeMedida === "UN" ? "Unidade" : p.unidadeMedida}</td>
+                  <td>{p.unidadeMedida === "UN" ? traduzir("Unidade") : p.unidadeMedida}</td>
                   <td className="muted-cell">{p.codigoBarras ?? "—"}</td>
                   <td>{p.saldoAtual ? `${fmtNum(p.saldoAtual)} ${p.unidadeMedida}` : "0"}</td>
-                  <td>{p.ativo ? <StatusBadge label="Ativo" tone="good" /> : <StatusBadge label="Inativo" tone="neutral" />}</td>
+                  <td>{p.ativo ? <StatusBadge label={traduzir("Ativo")} tone="good" /> : <StatusBadge label={traduzir("Inativo")} tone="neutral" />}</td>
                   <td>
                     {isAdmin && (
                       <div className="td-actions">
                         <Button size="sm" variant="ghost" icon="edit" onClick={() => setProdModal({ open: true, prod: p })}>
-                          Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" icon="trash" onClick={() => setDelProd(p)} aria-label={`Remover ${p.nome}`} />
+                          {" "}{traduzir("Editar")}{" "}</Button>
+                        <Button size="sm" variant="ghost" icon="trash" onClick={() => setDelProd(p)} aria-label={traduzir("Remover {0}",{0:p.nome})} />
                       </div>
                     )}
                   </td>
@@ -189,17 +186,17 @@ export function Catalogo() {
           )
         ) : (
           (cats ?? []).length === 0 ? (
-            <EmptyState title="Nenhuma categoria" text="Categorias organizam o catálogo." />
+            <EmptyState title={traduzir("Nenhuma categoria")} text={traduzir("Categorias organizam o catálogo.")} />
           ) : (
-            <DataTable caption="Categorias" headers={["Categoria", "Descrição"]}>
+            <DataTable caption={traduzir("Categorias")} headers={[traduzir("Categoria"), traduzir("Descrição")]}>
               {(cats ?? []).map((c) => (
                 <tr key={c.id}>
                   <td>
                     {c.nome}
                     {isAdmin && (
                       <span className="td-actions" style={{ marginInlineStart: 8 }}>
-                        <Button size="sm" variant="ghost" icon="edit" onClick={() => setCatModal({ open: true, cat: c })} aria-label={`Editar ${c.nome}`} />
-                        <Button size="sm" variant="ghost" icon="trash" onClick={() => setDelCat(c)} aria-label={`Remover ${c.nome}`} />
+                        <Button size="sm" variant="ghost" icon="edit" onClick={() => setCatModal({ open: true, cat: c })} aria-label={traduzir("Editar {0}",{0:c.nome})} />
+                        <Button size="sm" variant="ghost" icon="trash" onClick={() => setDelCat(c)} aria-label={traduzir("Remover {0}",{0:c.nome})} />
                       </span>
                     )}
                   </td>
@@ -223,7 +220,7 @@ export function Catalogo() {
           }}
         />
       )}
-      {prodModal.open && (loadingParam || errorParam || !todasCats || errorTodasCats || (isAdmin && prodModal.prod && (!parametro || parametro.produtoId !== prodModal.prod.id)) ? <div role="alert">{errorParam ?? errorTodasCats ?? "Carregando dados do produto…"}</div> : (
+      {prodModal.open && (loadingParam || errorParam || !todasCats || errorTodasCats || (isAdmin && prodModal.prod && (!parametro || parametro.produtoId !== prodModal.prod.id)) ? <div role="alert">{errorParam ?? errorTodasCats ?? traduzir("Carregando dados do produto…")}</div> : (
         <ProdutoForm
           prod={prodModal.prod}
           cats={todasCats ?? []}
@@ -238,20 +235,20 @@ export function Catalogo() {
       ))}
       <Confirm
         open={!!delCat}
-        title="Remover categoria"
-        message={`A categoria "${delCat?.nome}" será removida. Produtos nela precisam de outra categoria.`}
+        title={traduzir("Remover categoria")}
+        message={traduzir("A categoria \"{0}\" será removida. Produtos nela precisam de outra categoria.",{0:delCat?.nome})}
         danger
-        confirmLabel="Remover"
+        confirmLabel={traduzir("Remover")}
         loading={busy === "cat" + delCat?.id}
         onConfirm={() => delCat && void doDelete("cat", delCat.id)}
         onClose={() => setDelCat(null)}
       />
       <Confirm
         open={!!delProd}
-        title="Remover produto"
-        message={`O produto "${delProd?.nome}" será desativado. Histórico de movimentações é preservado.`}
+        title={traduzir("Remover produto")}
+        message={traduzir("O produto \"{0}\" será desativado. Histórico de movimentações é preservado.",{0:delProd?.nome})}
         danger
-        confirmLabel="Remover"
+        confirmLabel={traduzir("Remover")}
         loading={busy === "prod" + delProd?.id}
         onConfirm={() => delProd && void doDelete("prod", delProd.id)}
         onClose={() => setDelProd(null)}
@@ -268,7 +265,7 @@ function CategoriaForm({ cat, onClose, onDone }: { cat: CategoriaDTO | null; onC
   const toast = useToast();
 
   const submit = async () => {
-    if (!nome.trim()) return setError("Dê um nome à categoria.");
+    if (!nome.trim()) return setError(traduzir("Dê um nome à categoria."));
     setSubmitting(true);
     setError(null);
     try {
@@ -288,20 +285,20 @@ function CategoriaForm({ cat, onClose, onDone }: { cat: CategoriaDTO | null; onC
     <Modal
       open
       onClose={onClose}
-      title={cat ? `Editar categoria` : "Nova categoria"}
+      title={cat ? traduzir("Editar categoria") : traduzir("Nova categoria")}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancelar</Button>
-          <Button onClick={() => void submit()} loading={submitting}>Salvar</Button>
+          <Button variant="ghost" onClick={onClose} disabled={submitting}>{" "}{traduzir("Cancelar")}{" "}</Button>
+          <Button onClick={() => void submit()} loading={submitting}>{" "}{traduzir("Salvar")}{" "}</Button>
         </>
       }
     >
-      {error && <div className="alertbanner alertbanner--bad" role="alert">{error}</div>}
-      <Field label="Nome" required>
-        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Hortifruti" />
+      {error && <div className="alertbanner alertbanner--bad" role="alert">{traduzir(error)}</div>}
+      <Field label={traduzir("Nome")} required>
+        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={traduzir("Ex.: Hortifruti")} />
       </Field>
-      <Field label="Descrição (opcional)">
-        <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Para que serve essa categoria…" />
+      <Field label={traduzir("Descrição (opcional)")}>
+        <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder={traduzir("Para que serve essa categoria…")} />
       </Field>
     </Modal>
   );
@@ -344,8 +341,8 @@ function ProdutoForm({
   const catOpts = cats.map((c) => ({ value: String(c.id), label: c.nome, sub: c.descricao ?? undefined }));
 
   const submit = async () => {
-    if (!nome.trim()) return setError("Dê um nome ao produto.");
-    if (!categoriaId) return setError("Escolha a categoria.");
+    if (!nome.trim()) return setError(traduzir("Dê um nome ao produto."));
+    if (!categoriaId) return setError(traduzir("Escolha a categoria."));
     setSubmitting(true);
     setError(null);
     try {
@@ -391,47 +388,46 @@ function ProdutoForm({
     <Modal
       open
       onClose={onClose}
-      title={prod ? `Editar ${prod.nome}` : "Novo produto"}
+      title={prod ? traduzir("Editar {0}",{0:prod.nome}) : traduzir("Novo produto")}
       width="lg"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancelar</Button>
-          <Button onClick={() => void submit()} loading={submitting}>Salvar produto</Button>
+          <Button variant="ghost" onClick={onClose} disabled={submitting}>{" "}{traduzir("Cancelar")}{" "}</Button>
+          <Button onClick={() => void submit()} loading={submitting}>{" "}{traduzir("Salvar produto")}{" "}</Button>
         </>
       }
     >
-      {error && <div className="alertbanner alertbanner--bad" role="alert">{error}</div>}
+      {error && <div className="alertbanner alertbanner--bad" role="alert">{traduzir(error)}</div>}
       <div className="form-grid-2">
-        <Field label="Nome" htmlFor="produto-nome" required>
-          <Input id="produto-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Tomate italiano" />
+        <Field label={traduzir("Nome")} htmlFor="produto-nome" required>
+          <Input id="produto-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder={traduzir("Ex.: Tomate italiano")} />
         </Field>
-        <Field label="Unidade de medida" required>
+        <Field label={traduzir("Unidade de medida")} required>
           <Select value={unidadeMedida} disabled={porUnidade} onChange={(e) => setUnidadeMedida(e.target.value as UnidadeMedida)}>
             {UNIDADES.map((u) => (
-              <option key={u} value={u}>{u === "UN" ? "Unidade (UN)" : u}</option>
+              <option key={u} value={u}>{u === "UN" ? traduzir("Unidade (UN)") : u}</option>
             ))}
           </Select>
         </Field>
       </div>
-      <SearchSelect label="Categoria" options={catOpts} value={categoriaId} onValue={setCategoriaId} placeholder="Escolha a categoria…" required />
-      {porUnidade && <p className="muted">Bebidas e limpeza são contadas em unidades. Ex.: 6 esponjas = 6 UN. Peso e volume ficam apenas no nome da embalagem.</p>}
-      <Field label="Código de barras (opcional)">
-        <Input value={codigoBarras} onChange={(e) => setCodigoBarras(e.target.value)} placeholder="Ex.: 7891234567890" />
+      <SearchSelect label={traduzir("Categoria")} options={catOpts} value={categoriaId} onValue={setCategoriaId} placeholder={traduzir("Escolha a categoria…")} required />
+      {porUnidade && <p className="muted">{" "}{traduzir("Bebidas e limpeza são contadas em unidades. Ex.: 6 esponjas = 6 UN. Peso e volume ficam apenas no nome da embalagem.")}{" "}</p>}
+      <Field label={traduzir("Código de barras (opcional)")}>
+        <Input value={codigoBarras} onChange={(e) => setCodigoBarras(e.target.value)} placeholder={traduzir("Ex.: 7891234567890")} />
       </Field>
 
       {allowParams && (
         <>
-          <h3 className="section-title">Parâmetros de estoque</h3>
+          <h3 className="section-title">{" "}{traduzir("Parâmetros de estoque")}{" "}</h3>
           <p className="muted section-sub">
-            Base para os alertas de reposição e estoque baixo. Novos produtos começam com os níveis em 3 na unidade de cadastro. Use 0 no mínimo para não sinalizar estoque baixo.
-          </p>
+            {" "}{traduzir("Base para os alertas de reposição e estoque baixo. Novos produtos começam com os níveis em 3 na unidade de cadastro. Use 0 no mínimo para não sinalizar estoque baixo.")}{" "}</p>
           <div className="form-grid-3">
-            <NumberField label="Estoque mínimo" htmlFor="produto-estoque-minimo" value={minimo} onValue={setMinimo} min={0} placeholder="Ex.: 3" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
-            <NumberField label="Estoque médio" htmlFor="produto-estoque-medio" value={medio} onValue={setMedio} min={0} placeholder="Ex.: 4" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
-            <NumberField label="Estoque máximo" htmlFor="produto-estoque-maximo" value={maximo} onValue={setMaximo} min={0} placeholder="Ex.: 8" suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
-            <NumberField label="Consumo diário manual (sem histórico)" value={consumo} onValue={setConsumo} min={0} placeholder="Ex.: 0,4" suffix={unidadeMedida === "UN" ? "UN/dia" : `${unidadeMedida}/dia`} />
-            <NumberField label="Tempo de reposição (dias)" value={diasReposicao} onValue={setDiasReposicao} min={0} placeholder="Ex.: 2" />
-            <NumberField label="Dias de alerta de validade" value={diasAlerta} onValue={setDiasAlerta} min={0} placeholder="Ex.: 7" />
+            <NumberField label={traduzir("Estoque mínimo")} htmlFor="produto-estoque-minimo" value={minimo} onValue={setMinimo} min={0} placeholder={traduzir("Ex.: 3")} suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
+            <NumberField label={traduzir("Estoque médio")} htmlFor="produto-estoque-medio" value={medio} onValue={setMedio} min={0} placeholder={traduzir("Ex.: 4")} suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
+            <NumberField label={traduzir("Estoque máximo")} htmlFor="produto-estoque-maximo" value={maximo} onValue={setMaximo} min={0} placeholder={traduzir("Ex.: 8")} suffix={unidadeMedida === "UN" ? "UN" : unidadeMedida} />
+            <NumberField label={traduzir("Consumo diário manual (sem histórico)")} value={consumo} onValue={setConsumo} min={0} placeholder={traduzir("Ex.: 0,4")} suffix={unidadeMedida === "UN" ? "UN/dia" : `${unidadeMedida}/dia`} />
+            <NumberField label={traduzir("Tempo de reposição (dias)")} value={diasReposicao} onValue={setDiasReposicao} min={0} placeholder={traduzir("Ex.: 2")} />
+            <NumberField label={traduzir("Dias de alerta de validade")} value={diasAlerta} onValue={setDiasAlerta} min={0} placeholder={traduzir("Ex.: 7")} />
           </div>
         </>
       )}

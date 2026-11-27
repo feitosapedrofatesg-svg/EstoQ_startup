@@ -29,6 +29,8 @@ export async function preparar(page: Page, perfil = "ADMIN") {
     const path = url.pathname;
     if (route.request().method() === "GET") estado.consultas.push(path + url.search);
     const json = (body: any) => route.fulfill({ json: body });
+    if(path==="/api/documentos")return json({termos:"2026-11-27-minuta-1",privacidade:"2026-10-25",termosEmRevisao:true});
+    if(path==="/api/auth/preferencias")return json({tema:"original",fonte:100,idioma:"pt-BR"});
     if (path === "/api/auth/csrf") return json({ token: "teste", headerName: "X-CSRF-TOKEN" });
     if (path === "/api/auth/me") return usuario ? json(usuario) : route.fulfill({ status: 401, json: { message: "Sessão expirada" } });
     if (path === "/api/auth/logout") { usuario = null; return route.fulfill({ status: 204 }); }
@@ -40,7 +42,7 @@ export async function preparar(page: Page, perfil = "ADMIN") {
     if (path === "/api/categorias") return json(paginar(categorias, url));
     if (path === "/api/usuarios") return json(paginar(usuarios, url));
     if (path.startsWith("/api/parametros-estoque/por-produto/")) return json({ id: 1000, version: 0, produtoId: Number(path.split("/").at(-1)), diasAlertaVencimento: 7 });
-    if (path === "/api/estoque") {
+    if (path === "/api/estoque" || path === "/api/estoque/pagina") {
       if (estado.falharEstoque) return route.fulfill({ status: 503, json: { message: "Servidor indisponível no teste" } });
       if (estado.expirarSessao) { usuario = null; return route.fulfill({ status: 401, json: { message: "Sessão expirada" } }); }
       const restaurante = usuario?.restauranteId;
@@ -49,15 +51,16 @@ export async function preparar(page: Page, perfil = "ADMIN") {
         abaixoDoMinimo: false, possuiItensAbertos: false }];
       if (estado.atrasarEstoqueA && restaurante === 1) {
         return new Promise<void>(resolve => estado.pendentes.push(async () => { if (estado.respostaAntiga401) await route.fulfill({ status: 401, json: { message: "Sessão anterior expirada" } });
-          else await json(resposta); resolve(); }));
+          else await json(path.endsWith("/pagina")?{...paginar(resposta.map(x=>({...x,nome:x.produtoNome})),url),valorTotal:10}:resposta); resolve(); }));
       }
-      return json(resposta);
+      return json(path.endsWith("/pagina") ? {...paginar(resposta.map(x=>({...x,nome:x.produtoNome})),url),valorTotal:10}:resposta);
     }
     if (path === "/api/notas-fiscais/1/confirmar") {
       estado.confirmacoes.push(route.request().postDataJSON());
       return json({ ...nota, confirmada: true });
     }
     if (path === "/api/notas-fiscais/1") return json(nota);
+    if(path==="/api/balancos/pagina"||path==="/api/lotes/pagina")return json(paginar([],url));
     return json([]);
   });
   return estado;
@@ -80,3 +83,7 @@ export async function entrarNaLojaB(page: Page) {
   await page.getByRole("link", { name: "Estoque", exact: true }).click();
 }
 
+
+export const ACEITES_CADASTRO={aceitouTermos:true,cientePrivacidade:true,versaoTermos:"2026-11-27-minuta-1",versaoPrivacidade:"2026-10-25"};
+export async function prepararDocumentos(page:Page){await page.route("**/api/documentos",r=>r.fulfill({json:{termos:ACEITES_CADASTRO.versaoTermos,privacidade:ACEITES_CADASTRO.versaoPrivacidade,termosEmRevisao:true}}));}
+export async function confirmarDocumentos(page:Page){await page.getByRole("checkbox",{name:"Li e aceito os Termos de Uso.",exact:true}).check();await page.getByRole("checkbox",{name:"Li e estou ciente da Política de Privacidade.",exact:true}).check();}

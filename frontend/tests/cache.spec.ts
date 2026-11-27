@@ -10,7 +10,7 @@ test("revisitar estoque e páginas do catálogo reutiliza os dados sem novas con
   const estado = await preparar(page);
   await page.goto("/estoque");
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
-  expect(estado.consultas.filter(p => p === "/api/estoque")).toHaveLength(1);
+  expect(estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?"))).toHaveLength(1);
   await navegar(page, "Catálogo");
   await expect(page.getByRole("button", { name: "Produto 001", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Próxima", exact: true }).click();
@@ -33,7 +33,7 @@ test("revisitar estoque e páginas do catálogo reutiliza os dados sem novas con
   await navegar(page, "Estoque");
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
   await expect(page.getByText("Carregando estoque…")).toHaveCount(0);
-  expect(estado.consultas.filter(p => p === "/api/estoque")).toHaveLength(1);
+  expect(estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?"))).toHaveLength(1);
 });
 
 test("consultas operacionais atualizam em 15 segundos e cadastros em um minuto", async ({ page }) => {
@@ -42,7 +42,7 @@ test("consultas operacionais atualizam em 15 segundos e cadastros em um minuto",
   await page.goto("/estoque");
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
   await page.clock.fastForward(15_100);
-  await expect.poll(() => estado.consultas.filter(p => p === "/api/estoque").length).toBe(2);
+  await expect.poll(() => estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length).toBe(2);
   await navegar(page, "Catálogo");
   await expect(page.getByRole("button", { name: "Produto 001", exact: true })).toBeVisible();
   const consultas = () => estado.consultas.filter(p => p.startsWith("/api/produtos?") && p.includes("size=50")).length;
@@ -82,7 +82,7 @@ test("gravação atualiza listas abertas e descarta uma leitura anterior à oper
     const { api } = await import(modulo);
     await api.post("/api/consumos", {});
   });
-  await expect.poll(() => estado.consultas.filter(p => p === "/api/estoque").length).toBe(3);
+  await expect.poll(() => estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length).toBe(3);
   const linha = page.getByRole("row").filter({ hasText: "Ingrediente do restaurante A" });
   await expect(linha).toContainText("2");
   for (const liberar of estado.pendentes) await liberar();
@@ -91,7 +91,7 @@ test("gravação atualiza listas abertas e descarta uma leitura anterior à oper
   const salvo = await page.evaluate(async () => {
     const modulo = "/src/lib/cache.ts";
     const { lerCache, chaveCache } = await import(modulo);
-    return lerCache(chaveCache("/api/estoque")).data[0].saldoAtual;
+    return lerCache(chaveCache("/api/estoque/pagina?q=&somenteBaixo=false&somenteAbertos=false&situacao=TODOS&page=0&size=25")).data.content[0].saldoAtual;
   });
   expect(salvo).toBe(2);
 });
@@ -125,12 +125,12 @@ test("sem conexão pausa consultas e atualiza quando a conexão retorna", async 
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
   await page.evaluate(() => Object.defineProperty(navigator, "onLine", { configurable: true, get: () => false }));
   await page.clock.fastForward(30_100);
-  expect(estado.consultas.filter(p => p === "/api/estoque")).toHaveLength(1);
+  expect(estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?"))).toHaveLength(1);
   await page.evaluate(() => {
     Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
     window.dispatchEvent(new Event("online"));
   });
-  await expect.poll(() => estado.consultas.filter(p => p === "/api/estoque").length).toBe(2);
+  await expect.poll(() => estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length).toBe(2);
 });
 
 test("aba oculta pausa consultas e atualiza ao recuperar visibilidade", async ({ page }) => {
@@ -140,10 +140,10 @@ test("aba oculta pausa consultas e atualiza ao recuperar visibilidade", async ({
   await expect(page.getByText("Ingrediente do restaurante A", { exact: true })).toBeVisible();
   await page.evaluate(() => Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" }));
   await page.clock.fastForward(30_100);
-  expect(estado.consultas.filter(p => p === "/api/estoque")).toHaveLength(1);
+  expect(estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?"))).toHaveLength(1);
   await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  await expect.poll(() => estado.consultas.filter(p => p === "/api/estoque").length).toBe(2);
+  await expect.poll(() => estado.consultas.filter(p => p.startsWith("/api/estoque/pagina?")).length).toBe(2);
 });

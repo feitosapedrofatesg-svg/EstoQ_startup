@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { Icon } from "../Icon";
@@ -103,7 +104,7 @@ export function SearchSelect({
           aria-expanded={open}
         >
           <span className={`searchselect__value ${!value ? "searchselect__value--placeholder" : ""}`}>
-            {value ? selected?.label ?? value : (placeholder ?? "Escolha um item")}
+            {value ? selected?.label ?? value : (placeholder ?? traduzir("Escolha um item"))}
             {value && selected?.sub ? <span className="searchselect__sub">{selected.sub}</span> : null}
           </span>
           <Icon name="chevron-down" size={16} className="searchselect__chevron" />
@@ -120,13 +121,13 @@ export function SearchSelect({
                   setActive(0);
                 }}
                 onKeyDown={onInputKey}
-                placeholder="Digite para buscar…"
-                aria-label={`Buscar ${label}`}
+                placeholder={traduzir("Digite para buscar…")}
+                aria-label={traduzir("Buscar {0}",{0:label})}
               />
             </div>
             <ul className="searchselect__list">
               {filtered.length === 0 && (
-                <li className="searchselect__empty">Nada encontrado.</li>
+                <li className="searchselect__empty">{" "}{traduzir("Nada encontrado.")}{" "}</li>
               )}
               {filtered.map((o, i) => (
                 <li

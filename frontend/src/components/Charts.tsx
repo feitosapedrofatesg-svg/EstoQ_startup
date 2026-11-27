@@ -1,3 +1,4 @@
+import { traduzir, idiomaAtual } from "../lib/i18n";
 interface Bar {
   label: string;
   value: number;
@@ -73,7 +74,7 @@ export function HBars({
   ariaLabel: string;
   tone?: "bad";
 }) {
-  if (rows.length === 0) return <p className="muted">Sem dados para exibir.</p>;
+  if (rows.length === 0) return <p className="muted">{" "}{traduzir("Sem dados para exibir.")}{" "}</p>;
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
     <div className="hbars" role="img" aria-label={ariaLabel}>
@@ -112,7 +113,7 @@ export function CmvGauge({
 
   return (
     <div className="gauge">
-      <div className="gauge__track" role="img" aria-label={`${label}: ${percentual ?? "—"}%, meta ${ideal ?? "—"}%`}>
+      <div className="gauge__track" role="img" aria-label={traduzir("{0}: {1}%, meta {2}%",{0:label,1:percentual ?? "—",2:ideal ?? "—"})}>
         <div
           className={`gauge__fill ${within ? "gauge__fill--good" : "gauge__fill--bad"}`}
           style={{ width: `${pct}%` }}
@@ -123,10 +124,10 @@ export function CmvGauge({
       </div>
       <div className="gauge__legend">
         <span>
-          Atual: <strong>{percentual != null ? `${percentual.toLocaleString("pt-BR")}%` : "—"}</strong>
+          {" "}{traduzir("Atual:")}{" "}<strong>{percentual != null ? `${percentual.toLocaleString(idiomaAtual())}%` : "—"}</strong>
         </span>
         <span>
-          Meta: <strong>{ideal != null ? `${ideal.toLocaleString("pt-BR")}%` : "—"}</strong>
+          {" "}{traduzir("Meta:")}{" "}<strong>{ideal != null ? `${ideal.toLocaleString(idiomaAtual())}%` : "—"}</strong>
         </span>
       </div>
     </div>

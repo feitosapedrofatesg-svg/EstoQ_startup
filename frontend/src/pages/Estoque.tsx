@@ -1,5 +1,9 @@
+import { traduzir } from "../lib/i18n";
+import { api, downloadBlob } from "../lib/api";
+import { Paginacao } from "../components/Paginacao";
+import { idiomaAtual } from "../lib/i18n";
 import { fmtLote } from "../lib/format";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/auth";
 import { useFetch } from "../lib/hooks";
@@ -7,6 +11,7 @@ import {
   PageHeader,
   Card,
   Input,
+  Select,
   Checkbox,
   DataTable,
   StatusBadge,
@@ -15,7 +20,7 @@ import {
   EmptyState,
   LinkButton,
 } from "../components/UI";
-import { fmtMoney, fmtNum, fmtDate, hojeISO } from "../lib/format";
+import { fmtMoney, fmtNum, fmtDate } from "../lib/format";
 import type { EstoqueDTO, LoteDTO } from "../lib/types";
 
 function saldo(v: number | null | undefined, unidade: string): string {
@@ -26,93 +31,88 @@ function saldo(v: number | null | undefined, unidade: string): string {
 export function Estoque() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data, loading, error, refresh } = useFetch<EstoqueDTO[]>("/api/estoque");
+
 
   const [q, setQ] = useState("");
   const [soBaixo, setSoBaixo] = useState(false);
   const [soAbertos, setSoAbertos] = useState(false);
   const [sel, setSel] = useState<EstoqueDTO | null>(null);
 
-  const rows = useMemo(() => {
-    if (!data) return [];
-    const query = q.trim().toLowerCase();
-    return data.filter((it) => {
-      if (soBaixo && !it.abaixoDoMinimo) return false;
-      if (soAbertos && !it.possuiItensAbertos) return false;
-      if (!query) return true;
-      return (
-        it.produtoNome.toLowerCase().includes(query) ||
-        it.categoriaNome.toLowerCase().includes(query)
-      );
-    });
-  }, [data, q, soBaixo, soAbertos]);
+  const [pagina,setPagina]=useState(0);
+  const [tamanho,setTamanho]=useState(25);
+  const [situacao,setSituacao]=useState("TODOS");
+  const qs=new URLSearchParams({q,somenteBaixo:String(soBaixo),somenteAbertos:String(soAbertos),situacao});
+  const {data,loading,error,refresh}=useFetch<import("../lib/types").Page<EstoqueDTO> & {valorTotal:number}>(`/api/estoque/pagina?${qs}&page=${pagina}&size=${tamanho}`);
+  const rows=data?.content ?? [];
+  useEffect(()=>setPagina(0),[q,soBaixo,soAbertos,situacao,tamanho]);
+  useEffect(()=>{if(data && pagina>0 && pagina>=data.totalPages)setPagina(Math.max(0,data.totalPages-1));},[data,pagina]);
+  const exportar=async()=>{try {const arquivo=await api.blob(`/api/estoque/planilha?${qs}&idioma=${idiomaAtual()}`);downloadBlob(arquivo,"estoQ-estoque.xlsx");}catch(e){window.alert(e instanceof Error?e.message:"Não foi possível exportar.");}};
 
   return (
     <>
       <PageHeader
-        title="Estoque"
-        subtitle="Saldo atual por produto, sempre calculado pelos lotes."
+        title={traduzir("Estoque")}
+        subtitle={traduzir("Saldo atual por produto, sempre calculado pelos lotes.")}
         actions={
-          user && (user.perfil === "ADMIN" || user.perfil === "COZINHA") ? (
+          user && (user.perfil === "ADMIN" || user.perfil === "COZINHA" || user.perfil === "OPERACIONAL") ? (
             <>
               <LinkButton to="/consumo" icon="check-circle" className="btn--raised">
-                Registrar consumo
-              </LinkButton>
+                {" "}{traduzir("Registrar consumo")}{" "}</LinkButton>
               <LinkButton to="/desperdicio" icon="trash" className="btn--raised">
-                Registrar desperdício
-              </LinkButton>
+                {" "}{traduzir("Registrar desperdício")}{" "}</LinkButton>
             </>
           ) : (
             <Link to="/relatorios" className="btn btn--outline">
-              Ver relatórios
-            </Link>
+              {" "}{traduzir("Ver relatórios")}{" "}</Link>
           )
         }
       />
 
       <Card
-        title="Produtos e saldos"
+        title={traduzir("Produtos e saldos")}
         actions={
           <div className="filterbar">
             <label className="search">
-              <span className="visually-hidden">Buscar produto</span>
+              <span className="visually-hidden">{" "}{traduzir("Buscar produto")}{" "}</span>
               <Input
                 type="search"
-                placeholder="Buscar produto…"
+                placeholder={traduzir("Buscar produto…")}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                aria-label="Buscar produto por nome ou categoria"
+                aria-label={traduzir("Buscar produto por nome ou categoria")}
               />
             </label>
+            <Select aria-label={traduzir("Situação do estoque")} value={situacao} onChange={e=>setSituacao(e.target.value)}><option value="TODOS">{" "}{traduzir("Todas as situações")}{" "}</option><option value="VENCIDO">{" "}{traduzir("Vencido")}{" "}</option><option value="PROXIMO">{" "}{traduzir("Próximo do vencimento")}{" "}</option></Select>
             <div className="filterbar__checks">
-              <Checkbox checked={soBaixo} onChange={setSoBaixo} label="Só abaixo do mínimo" />
-              <Checkbox checked={soAbertos} onChange={setSoAbertos} label="Com embalagem aberta" />
+              <Checkbox checked={soBaixo} onChange={setSoBaixo} label={traduzir("Só abaixo do mínimo")} />
+              <Checkbox checked={soAbertos} onChange={setSoAbertos} label={traduzir("Com embalagem aberta")} />
             </div>
             <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
-              Atualizar
-            </Button>
+              {" "}{traduzir("Atualizar")}{" "}</Button>
           </div>
         }
       >
-        {error && <div className="alertbanner alertbanner--bad">{error}</div>}
+        {user?.perfil === "ADMIN" && <Button variant="outline" icon="download" onClick={()=>void exportar()}>{" "}{traduzir("Planilha")}{" "}</Button>}
+        {data && <p className="muted">{data.totalElements}{" "}{traduzir("registros · Valor em estoque:")}{" "}{fmtMoney(data.valorTotal)}</p>}
+        {error && <div className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
         {loading && !data ? (
-          <p className="muted">Carregando estoque…</p>
-        ) : data && data.length === 0 ? (
+          <p className="muted">{" "}{traduzir("Carregando estoque…")}{" "}</p>
+        ) : data && data.totalElements === 0 ? (
           <EmptyState
-            title="Nenhum produto no estoque ainda"
-            text="Cadastre produtos no Catálogo e registre a primeira entrada."
-            action={<LinkButton to="/catalogo" icon="plus">Ir para o Catálogo</LinkButton>}
+            title={traduzir("Nenhum produto no estoque ainda")}
+            text={traduzir("Cadastre produtos no Catálogo e registre a primeira entrada.")}
+            action={<LinkButton to="/catalogo" icon="plus">{" "}{traduzir("Ir para o Catálogo")}{" "}</LinkButton>}
           />
         ) : rows.length === 0 ? (
           <EmptyState
-            title="Nada com esses filtros"
-            text="Ajuste a busca ou desmarque os filtros para ver mais itens."
+            title={traduzir("Nada com esses filtros")}
+            text={traduzir("Ajuste a busca ou desmarque os filtros para ver mais itens.")}
             icon="search"
           />
         ) : (
           <DataTable
-            caption="Saldo do estoque por produto"
-            headers={["Produto", "Categoria", "Saldo", "Valor em estoque", "Mínimo", "Situação"]}
+            caption={traduzir("Saldo do estoque por produto")}
+            headers={[traduzir("Produto"), traduzir("Categoria"), traduzir("Saldo"), traduzir("Valor em estoque"), traduzir("Mínimo"), traduzir("Situação")]}
           >
             {rows.map((it) => (
               <tr key={it.produtoId} className="row-click" onClick={() => setSel(it)}>
@@ -129,10 +129,12 @@ export function Estoque() {
                 <td className="muted-cell">{saldo(it.estoqueMinimo, it.unidadeMedida)}</td>
                 <td>
                   <span className="td-badges">
-                    {it.abaixoDoMinimo && <StatusBadge label="Abaixo do mínimo" tone="warn" />}
-                    {it.possuiItensAbertos && <StatusBadge label="Embalagem aberta" tone="accent" />}
-                    {!it.abaixoDoMinimo && !it.possuiItensAbertos && (
-                      <StatusBadge label="Ok" tone="good" />
+                    {it.possuiLotesVencidos && <StatusBadge label={traduzir("Vencido")} tone="bad" />}
+                    {it.proximoVencimento && <StatusBadge label={traduzir("Próximo do vencimento")} tone="warn" />}
+                    {it.abaixoDoMinimo && <StatusBadge label={traduzir("Abaixo do mínimo")} tone="warn" />}
+                    {it.possuiItensAbertos && <StatusBadge label={traduzir("Embalagem aberta")} tone="accent" />}
+                    {!it.abaixoDoMinimo && !it.possuiItensAbertos && !it.possuiLotesVencidos && !it.proximoVencimento && (
+                      <StatusBadge label={traduzir("Ok")} tone="good" />
                     )}
                   </span>
                 </td>
@@ -140,6 +142,7 @@ export function Estoque() {
             ))}
           </DataTable>
         )}
+        <Paginacao dados={data} pagina={pagina} alterar={setPagina} itensPorPagina={tamanho} alterarTamanho={setTamanho} />
       </Card>
 
       {sel && (
@@ -183,28 +186,26 @@ function ProdutoDetalhe({
       }
       width="lg"
       footer={
-        user && (user.perfil === "ADMIN" || user.perfil === "COZINHA") ? (
+        user && (user.perfil === "ADMIN" || user.perfil === "COZINHA" || user.perfil === "OPERACIONAL") ? (
           <Button icon="check-circle" onClick={onRegistrarConsumo}>
-            Registrar consumo
-          </Button>
+            {" "}{traduzir("Registrar consumo")}{" "}</Button>
         ) : (
           <Button variant="ghost" onClick={onClose}>
-            Fechar
-          </Button>
+            {" "}{traduzir("Fechar")}{" "}</Button>
         )
       }
     >
       <div className="detail-summary">
         <div>
-          <span className="detail-summary__label">Saldo físico</span>
+          <span className="detail-summary__label">{" "}{traduzir("Saldo físico")}{" "}</span>
           <strong>{saldo(produto.saldoAtual, produto.unidadeMedida)}</strong>
         </div>
         <div>
-          <span className="detail-summary__label">Valor em estoque</span>
+          <span className="detail-summary__label">{" "}{traduzir("Valor em estoque")}{" "}</span>
           <strong>{fmtMoney(produto.valorEstoque)}</strong>
         </div>
         <div>
-          <span className="detail-summary__label">Faixa ideal</span>
+          <span className="detail-summary__label">{" "}{traduzir("Faixa ideal")}{" "}</span>
           <strong>
             {saldo(produto.estoqueMinimo, produto.unidadeMedida)} –{" "}
             {saldo(produto.estoqueMaximo, produto.unidadeMedida)}
@@ -214,24 +215,21 @@ function ProdutoDetalhe({
 
       <div className="form-actions" style={{ justifyContent: "flex-end", marginTop: 0 }}>
         <LinkButton to={`/desperdicio?produto=${produto.produtoId}`} icon="trash" className="btn--raised">
-          Registrar desperdício
-        </LinkButton>
+          {" "}{traduzir("Registrar desperdício")}{" "}</LinkButton>
       </div>
 
-      <Card title="Lotes">
-      {loading && <p className="muted">Carregando lotes…</p>}
+      <Card title={traduzir("Lotes")}>
+      {loading && <p className="muted">{" "}{traduzir("Carregando lotes…")}{" "}</p>}
       {lotes && lotes.length === 0 && (
-        <EmptyState title="Sem lotes" text="Registre uma entrada para criar o primeiro lote deste produto." />
+        <EmptyState title={traduzir("Sem lotes")} text={traduzir("Registre uma entrada para criar o primeiro lote deste produto.")} />
       )}
       {lotes && lotes.length > 0 && (
         <DataTable
-          caption={`Lotes de ${produto.produtoNome}`}
-          headers={["Código", "Entrada", "Validade", "Quantidade", "Preço unit.", "Situação"]}
+          caption={traduzir("Lotes de {0}",{0:produto.produtoNome})}
+          headers={[traduzir("Código"), traduzir("Entrada"), traduzir("Validade"), traduzir("Quantidade"), traduzir("Preço unit."), traduzir("Situação")]}
         >
           {lotes.map((l) => {
-            const dias = l.diasParaVencimento;
-            const hoje = hojeISO();
-            const proximo = l.dataValidade && l.dataValidade <= hoje ? false : dias !== null && dias <= 7;
+            const proximo = l.proximoVencimento;
             return (
               <tr key={l.id}>
                 <td>
@@ -247,10 +245,10 @@ function ProdutoDetalhe({
                 <td>{fmtMoney(l.precoUnitario)}</td>
                 <td>
                   <span className="td-badges">
-                    {l.vencido && <StatusBadge label="Vencido" tone="bad" />}
-                    {!l.vencido && proximo && <StatusBadge label="Vence logo" tone="warn" />}
+                    {l.vencido && <StatusBadge label={traduzir("Vencido")} tone="bad" />}
+                    {!l.vencido && proximo && <StatusBadge label={traduzir("Próximo do vencimento")} tone="warn" />}
                     {!l.vencido && !proximo && l.disponivel && (
-                      <StatusBadge label="Disponível" tone="good" />
+                      <StatusBadge label={traduzir("Disponível")} tone="good" />
                     )}
                   </span>
                 </td>
@@ -260,8 +258,7 @@ function ProdutoDetalhe({
         </DataTable>
       )}
       <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
-        Atualizar lotes
-      </Button>
+        {" "}{traduzir("Atualizar lotes")}{" "}</Button>
       </Card>
     </Modal>
   );

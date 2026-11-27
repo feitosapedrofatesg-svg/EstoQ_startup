@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { useState } from "react";
 import { useFetch } from "../lib/hooks";
@@ -39,7 +40,7 @@ export function Plataforma() {
       toast.success(r.ativo ? `${r.nome} suspensa` : `${r.nome} reativada`);
       void refresh();
     } catch (e) {
-      toast.error(`Não foi possível ${acao}`, mensagemErro(e));
+      toast.error(traduzir("Não foi possível {0}",{0:acao}), mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -48,22 +49,22 @@ export function Plataforma() {
   return (
     <>
       <PageHeader
-        title="Restaurantes"
-        subtitle="Cozinhas cadastradas na plataforma. Suspender bloqueia o acesso de toda a equipe na hora."
+        title={traduzir("Restaurantes")}
+        subtitle={traduzir("Cozinhas cadastradas na plataforma. Suspender bloqueia o acesso de toda a equipe na hora.")}
       />
 
-      <Card collapsible title="Cozinhas">
-        {error && <div className="alertbanner alertbanner--bad">{error}</div>}
-        {loading && !data && <p className="muted">Carregando…</p>}
+      <Card collapsible title={traduzir("Cozinhas")}>
+        {error && <div className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
+        {loading && !data && <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>}
         {!loading && restaurantes.length === 0 ? (
           <EmptyState
-            title="Nenhuma cozinha ainda"
-            text="Quando uma cozinha criar a própria conta, ela aparece aqui."
+            title={traduzir("Nenhuma cozinha ainda")}
+            text={traduzir("Quando uma cozinha criar a própria conta, ela aparece aqui.")}
           />
         ) : (
           <DataTable
-            caption="Cozinhas cadastradas"
-            headers={["Nome", "Criada em", "Usuários", "Situação", ""]}
+            caption={traduzir("Cozinhas cadastradas")}
+            headers={[traduzir("Nome"), traduzir("Criada em"), traduzir("Usuários"), traduzir("Situação"), ""]}
           >
             {restaurantes.map((r) => (
               <tr key={r.id}>
@@ -74,9 +75,9 @@ export function Plataforma() {
                 <td className="muted-cell">{r.totalUsuarios}</td>
                 <td>
                   {r.ativo ? (
-                    <StatusBadge label="Ativa" tone="good" />
+                    <StatusBadge label={traduzir("Ativa")} tone="good" />
                   ) : (
-                    <StatusBadge label="Suspensa" tone="bad" />
+                    <StatusBadge label={traduzir("Suspensa")} tone="bad" />
                   )}
                 </td>
                 <td>
@@ -87,13 +88,12 @@ export function Plataforma() {
                       icon={r.ativo ? "x" : "check"}
                       loading={busy === "situacao" + r.id}
                       onClick={() => void alternarSituacao(r)}
-                      aria-label={r.ativo ? `Suspender ${r.nome}` : `Reativar ${r.nome}`}
+                      aria-label={r.ativo ? traduzir("Suspender {0}",{0:r.nome}) : traduzir("Reativar {0}",{0:r.nome})}
                     >
-                      {r.ativo ? "Suspender" : "Reativar"}
+                      {r.ativo ? traduzir("Suspender") : traduzir("Reativar")}
                     </Button>
                     <Button size="sm" variant="ghost" icon="edit" onClick={() => setRedefinir(r)}>
-                      Redefinir senha
-                    </Button>
+                      {" "}{traduzir("Redefinir senha")}{" "}</Button>
                   </div>
                 </td>
               </tr>
@@ -101,8 +101,7 @@ export function Plataforma() {
           </DataTable>
         )}
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
-          Atualizar
-        </Button>
+          {" "}{traduzir("Atualizar")}{" "}</Button>
       </Card>
 
       {redefinir && (
@@ -136,18 +135,18 @@ function RedefinirSenhaModal({
 
   const submit = async () => {
     if (senha.length < 8) {
-      setError("A nova senha precisa ter ao menos 8 caracteres.");
+      setError(traduzir("A nova senha precisa ter ao menos 8 caracteres."));
       return;
     }
     if (senha !== confirmarSenha) {
-      setError("As senhas não conferem.");
+      setError(traduzir("As senhas não conferem."));
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
       await api.post(`/api/plataforma/restaurantes/${restaurante.id}/redefinir-admin`, { senha });
-      toast.success(`Senha do administrador de ${restaurante.nome} redefinida`);
+      toast.success(traduzir("Senha do administrador de {0} redefinida",{0:restaurante.nome}));
       onDone();
     } catch (e) {
       setError(mensagemErro(e));
@@ -160,44 +159,41 @@ function RedefinirSenhaModal({
     <Modal
       open
       onClose={onClose}
-      title={`Redefinir senha — ${restaurante.nome}`}
+      title={traduzir("Redefinir senha — {0}",{0:restaurante.nome})}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
+            {" "}{traduzir("Cancelar")}{" "}</Button>
           <Button onClick={() => void submit()} loading={submitting}>
-            Salvar nova senha
-          </Button>
+            {" "}{traduzir("Salvar nova senha")}{" "}</Button>
         </>
       }
     >
       <div className="alertbanner alertbanner--warn" role="note">
-        Isso altera a senha do administrador da cozinha na hora. Avise o responsável.
-      </div>
+        {" "}{traduzir("Isso altera a senha do administrador da cozinha na hora. Avise o responsável.")}{" "}</div>
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
+          {traduzir(error)}
         </div>
       )}
-      <Field label="Nova senha do administrador" htmlFor="plataforma-senha" required hint="Ao menos 8 caracteres.">
+      <Field label={traduzir("Nova senha do administrador")} htmlFor="plataforma-senha" required hint={traduzir("Ao menos 8 caracteres.")}>
         <Input
           id="plataforma-senha"
           type="password"
           autoComplete="new-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          placeholder="Senha com 8+ caracteres"
+          placeholder={traduzir("Senha com 8+ caracteres")}
         />
       </Field>
-      <Field label="Confirmar senha" htmlFor="plataforma-confirmar-senha" required>
+      <Field label={traduzir("Confirmar senha")} htmlFor="plataforma-confirmar-senha" required>
         <Input
           id="plataforma-confirmar-senha"
           type="password"
           autoComplete="new-password"
           value={confirmarSenha}
           onChange={(e) => setConfirmarSenha(e.target.value)}
-          placeholder="Repita a senha"
+          placeholder={traduzir("Repita a senha")}
         />
       </Field>
     </Modal>

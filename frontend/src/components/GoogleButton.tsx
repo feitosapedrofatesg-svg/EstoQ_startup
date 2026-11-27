@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
@@ -15,8 +16,7 @@ export function GoogleButton() {
   return <div className="login__google">
     <a className="google-button" href="/api/oauth2/authorization/google">
       <img src="/google-g.png" width={20} height={20} alt="" />
-      Continuar com Google
-    </a>
-    <div className="login__divider"><span>ou use seu e-mail</span></div>
+      {" "}{traduzir("Continuar com Google")}{" "}</a>
+    <div className="login__divider"><span>{" "}{traduzir("ou use seu e-mail")}{" "}</span></div>
   </div>;
 }

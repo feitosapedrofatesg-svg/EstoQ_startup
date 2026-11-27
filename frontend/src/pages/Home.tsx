@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CabecalhoPublico, RodapePublico } from "../components/PaginaPublica";
@@ -120,29 +121,27 @@ export function Home() {
         <img className="home-hero__foto" src="/fotos/passe.jpg" alt="" aria-hidden="true" width={1500} height={1000} />
         <div className="home-hero__veu" aria-hidden="true" />
         <div className="home-hero__conteudo">
-          <h1>Menos desperdício, mais lucro.</h1>
+          <h1>{" "}{traduzir("Menos desperdício, mais lucro.")}{" "}</h1>
           <p>
-            O EstoQ mostra o que entra, o que sai e o que sobra na sua cozinha:
-            estoque, validade, CMV e balanço no mesmo lugar.
-          </p>
+            {" "}{traduzir("O EstoQ mostra o que entra, o que sai e o que sobra na sua cozinha: estoque, validade, CMV e balanço no mesmo lugar.")}{" "}</p>
           <div className="public-page__actions home-hero__acoes">
-            <Link className="btn btn--accent btn--lg" to="/login">Entrar</Link>
-            <Link className="btn btn--outline btn--lg" to="/registro">Cadastrar minha cozinha</Link>
+            <Link className="btn btn--accent btn--lg" to="/login">{" "}{traduzir("Entrar")}{" "}</Link>
+            <Link className="btn btn--outline btn--lg" to="/registro">{" "}{traduzir("Cadastrar minha cozinha")}{" "}</Link>
           </div>
-          <p className="home-hero__nota">Entre com e-mail e senha ou com sua conta Google.</p>
+          <p className="home-hero__nota">{" "}{traduzir("Entre com e-mail e senha ou com sua conta Google.")}{" "}</p>
         </div>
       </section>
 
       <div className="home__painel">
         <figure className="home-painel">
           <Carrossel slides={TELAS} rotulo="Telas do EstoQ" intervalo={5000} />
-          <figcaption>Telas do EstoQ: catálogo, movimentações, desperdício, balanço, relatórios de CMV e alertas.</figcaption>
+          <figcaption>{" "}{traduzir("Telas do EstoQ: catálogo, movimentações, desperdício, balanço, relatórios de CMV e alertas.")}{" "}</figcaption>
         </figure>
       </div>
 
       <section className="home-razao" aria-labelledby="titulo-razao">
         <div className="home__barra">
-          <h2 id="titulo-razao">O que você encontra dentro</h2>
+          <h2 id="titulo-razao">{" "}{traduzir("O que você encontra dentro")}{" "}</h2>
           <ul className="razao">
             {RAZAO.map((item) => {
               const aberto = aberta === item.nome;
@@ -177,7 +176,7 @@ export function Home() {
 
       <section className="home-cenarios" aria-labelledby="titulo-cenarios">
         <div className="home__barra">
-          <h2 id="titulo-cenarios">Do caminhão à geladeira</h2>
+          <h2 id="titulo-cenarios">{" "}{traduzir("Do caminhão à geladeira")}{" "}</h2>
           <ul className="cenario">
             {CENARIOS.map((c) => (
               <li key={c.titulo} className="cenario__item">
@@ -189,19 +188,17 @@ export function Home() {
               </li>
             ))}
           </ul>
-          <p className="home__creditos">Fotos de cozinhas e bancas: Rawpixel e StockSnap, domínio público (CC0).</p>
+          <p className="home__creditos">{" "}{traduzir("Fotos de cozinhas e bancas: Rawpixel e StockSnap, domínio público (CC0).")}{" "}</p>
         </div>
       </section>
 
       <section className="home-ponto" aria-labelledby="titulo-ponto">
         <div className="home__barra home-ponto__grid">
           <div className="home-ponto__conta">
-            <h2 id="titulo-ponto">Quanto vale um ponto de CMV</h2>
+            <h2 id="titulo-ponto">{" "}{traduzir("Quanto vale um ponto de CMV")}{" "}</h2>
             <p>
-              CMV é o custo da mercadoria vendida. Cada ponto percentual que você
-              reduz equivale a aproximadamente 1% do faturamento do mês.
-            </p>
-            <label className="home-ponto__rotulo" htmlFor="faturamento">Faturamento mensal</label>
+              {" "}{traduzir("CMV é o custo da mercadoria vendida. Cada ponto percentual que você reduz equivale a aproximadamente 1% do faturamento do mês.")}{" "}</p>
+            <label className="home-ponto__rotulo" htmlFor="faturamento">{" "}{traduzir("Faturamento mensal")}{" "}</label>
             <input
               className="home-ponto__controle"
               id="faturamento"
@@ -215,32 +212,30 @@ export function Home() {
             <output className="home-ponto__faturamento" htmlFor="faturamento">{moeda(faturamento)}</output>
           </div>
           <div className="home-ponto__resultado">
-            <p className="home-ponto__rotulo">1 ponto percentual de CMV</p>
+            <p className="home-ponto__rotulo">{" "}{traduzir("1 ponto percentual de CMV")}{" "}</p>
             <p className="home-ponto__numero">{moeda(ponto)}</p>
-            <p className="home-ponto__periodo">por mês · {moeda(ponto * 12)} por ano</p>
+            <p className="home-ponto__periodo">{" "}{traduzir("por mês ·")}{" "}{moeda(ponto * 12)}{" "}{traduzir("por ano")}{" "}</p>
           </div>
         </div>
         <div className="home__barra">
           <figure className="home-ponto__print">
             <img src="/print/cmv-painel.jpg" width={1600} height={772}
-              alt="Painel do EstoQ com o CMV do período, a comparação com a meta e os alertas do dia"
+              alt={traduzir("Painel do EstoQ com o CMV do período, a comparação com a meta e os alertas do dia")}
               loading="lazy" decoding="async" />
           </figure>
         </div>
         <div className="home__barra">
           <p className="home__creditos">
-            A conta é faturamento × 1%. Para virar economia de verdade, o que deixou
-            de ir ao lixo precisa ser aproveitado ou reduzir as compras de amanhã.
-          </p>
+            {" "}{traduzir("A conta é faturamento × 1%. Para virar economia de verdade, o que deixou de ir ao lixo precisa ser aproveitado ou reduzir as compras de amanhã.")}{" "}</p>
         </div>
       </section>
 
       <section className="home-fecho">
         <div className="home__barra home-fecho__conteudo">
-          <p className="home-fecho__frase">Abra a sua cozinha no EstoQ.</p>
+          <p className="home-fecho__frase">{" "}{traduzir("Abra a sua cozinha no EstoQ.")}{" "}</p>
           <div className="public-page__actions">
-            <Link className="btn btn--accent btn--lg" to="/login">Entrar</Link>
-            <Link className="btn btn--outline btn--lg" to="/registro">Cadastrar minha cozinha</Link>
+            <Link className="btn btn--accent btn--lg" to="/login">{" "}{traduzir("Entrar")}{" "}</Link>
+            <Link className="btn btn--outline btn--lg" to="/registro">{" "}{traduzir("Cadastrar minha cozinha")}{" "}</Link>
           </div>
         </div>
       </section>

@@ -19,6 +19,7 @@ async function prepararVazio(page: Page, perfil = "ADMIN", falhar = false) {
       estado.balanco.version++;
       return route.fulfill({ json: estado.balanco });
     }
+    if(path === "/api/balancos/pagina") return route.fulfill({json:{content:[estado.balanco],totalPages:1,totalElements:1,number:0,size:25}});
     if (path === "/api/balancos") return route.fulfill({ json: [estado.balanco] });
     return route.fulfill({ json: [] });
   });

@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "../store/auth";
@@ -22,11 +23,12 @@ import type { Page, Perfil, UsuarioResponseDTO } from "../lib/types";
 import { PERFIL_LABEL } from "../lib/perfis";
 import { useToast } from "../store/toast";
 
-const PERFIS: Perfil[] = ["ADMIN", "COZINHA", "NUTRICIONISTA"];
+const PERFIS: Perfil[] = ["ADMIN", "COZINHA", "OPERACIONAL", "NUTRICIONISTA"];
 
 const PERFIL_TONE: Record<Perfil, "neutral" | "accent" | "info" | "good"> = {
   ADMIN: "neutral",
   COZINHA: "accent",
+  OPERACIONAL: "accent",
   NUTRICIONISTA: "info",
   PLATAFORMA: "good",
 };
@@ -66,7 +68,7 @@ export function Usuarios() {
       toast.success(u.ativo ? "Usuário desativado" : "Usuário ativado");
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível atualizar", mensagemErro(e));
+      toast.error(traduzir("Não foi possível atualizar"), mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -78,10 +80,10 @@ export function Usuarios() {
     try {
       await api.del(`/api/usuarios/${del.id}`);
       setDel(null);
-      toast.success("Usuário removido");
+      toast.success(traduzir("Usuário removido"));
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível remover", mensagemErro(e));
+      toast.error(traduzir("Não foi possível remover"), mensagemErro(e));
     } finally {
       setBusy("");
     }
@@ -90,66 +92,64 @@ export function Usuarios() {
   return (
     <>
       <PageHeader
-        title="Usuários"
-        subtitle="Quem acessa o estoQ e o que cada perfil pode fazer."
+        title={traduzir("Usuários")}
+        subtitle={traduzir("Quem acessa o estoQ e o que cada perfil pode fazer.")}
         actions={
           <Button icon="plus" onClick={() => setModal({ open: true, u: null })}>
-            Novo usuário
-          </Button>
+            {" "}{traduzir("Novo usuário")}{" "}</Button>
         }
       />
 
       <Card
-        title="Equipe"
+        title={traduzir("Equipe")}
         actions={
           <Input
             type="search"
-            placeholder="Buscar por nome ou e-mail…"
+            placeholder={traduzir("Buscar por nome ou e-mail…")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar usuário"
+            aria-label={traduzir("Buscar usuário")}
           />
         }
       >
-        {error && <div className="alertbanner alertbanner--bad">{error}</div>}
-        {loading && !data && <p className="muted">Carregando…</p>}
+        {error && <div className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
+        {loading && !data && <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>}
         {!loading && users.length === 0 ? (
           <EmptyState
-            title="Nenhum usuário"
-            text="Adicione os perfis que vão operar o sistema: Administrador, Operacional e Nutricionista."
+            title={traduzir("Nenhum usuário")}
+            text={traduzir("Adicione os perfis que vão operar o sistema: Administrador, Operacional e Nutricionista.")}
           />
         ) : (
-          <DataTable caption="Usuários do sistema" headers={["Nome", "E-mail", "Perfil", "Situação", "Criado em", ""]}>
+          <DataTable caption={traduzir("Usuários do sistema")} headers={[traduzir("Nome"), traduzir("E-mail"), traduzir("Perfil"), traduzir("Situação"), traduzir("Criado em"), ""]}>
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>
                   <strong>{u.nome}</strong>
-                  {u.id === user?.id && <span className="cell-sub">é você</span>}
+                  {u.id === user?.id && <span className="cell-sub">{" "}{traduzir("é você")}{" "}</span>}
                 </td>
-                <td className="muted-cell">{u.email}{u.googleVinculado && <span className="cell-sub">Acesso com Google</span>}{u.confirmacaoEmailPendente && <small className="muted" style={{ display: "block" }}>Confirmação de e-mail pendente</small>}</td>
+                <td className="muted-cell">{u.email}{u.googleVinculado && <span className="cell-sub">{" "}{traduzir("Acesso com Google")}{" "}</span>}{u.confirmacaoEmailPendente && <small className="muted" style={{ display: "block" }}>{" "}{traduzir("Confirmação de e-mail pendente")}{" "}</small>}</td>
                 <td>
-                  <StatusBadge tone={PERFIL_TONE[u.perfil]}>{PERFIL_LABEL[u.perfil]}</StatusBadge>
+                  <StatusBadge tone={PERFIL_TONE[u.perfil]}>{traduzir(PERFIL_LABEL[u.perfil])}</StatusBadge>
                 </td>
                 <td>
                   {u.ativo ? (
-                    <StatusBadge label="Ativo" tone="good" />
+                    <StatusBadge label={traduzir("Ativo")} tone="good" />
                   ) : (
-                    <StatusBadge label="Inativo" tone="neutral" />
+                    <StatusBadge label={traduzir("Inativo")} tone="neutral" />
                   )}
                 </td>
                 <td className="muted-cell">{fmtDateTime(u.dataHoraCriacao)}</td>
                 <td>
                   <div className="td-actions">
                     <Button size="sm" variant="ghost" icon="edit" onClick={() => setModal({ open: true, u })}>
-                      Editar
-                    </Button>
+                      {" "}{traduzir("Editar")}{" "}</Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       icon={u.ativo ? "x" : "check"}
                       loading={busy === "toggle" + u.id}
                       onClick={() => void toggleAtivo(u)}
-                      aria-label={u.ativo ? `Desativar ${u.nome}` : `Ativar ${u.nome}`}
+                      aria-label={u.ativo ? traduzir("Desativar {0}",{0:u.nome}) : traduzir("Ativar {0}",{0:u.nome})}
                     />
                   </div>
                 </td>
@@ -159,8 +159,7 @@ export function Usuarios() {
         )}
         <Paginacao dados={data} pagina={pagina} alterar={setPagina} />
         <Button variant="ghost" size="sm" icon="refresh" onClick={() => void refresh()}>
-          Atualizar
-        </Button>
+          {" "}{traduzir("Atualizar")}{" "}</Button>
       </Card>
 
       {modal.open && (
@@ -176,10 +175,10 @@ export function Usuarios() {
 
       <Confirm
         open={!!del}
-        title="Remover usuário"
-        message={`Desativar "${del?.nome}"? Ela/e não conseguirá mais entrar no sistema. O histórico fica preservado.`}
+        title={traduzir("Remover usuário")}
+        message={traduzir("Desativar \"{0}\"? Ela/e não conseguirá mais entrar no sistema. O histórico fica preservado.",{0:del?.nome})}
         danger
-        confirmLabel="Desativar"
+        confirmLabel={traduzir("Desativar")}
         loading={busy === "del" + del?.id}
         onConfirm={() => void remover()}
         onClose={() => setDel(null)}
@@ -207,13 +206,13 @@ function UsuarioForm({
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
-    if (!nome.trim()) return setError("Informe o nome.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Informe um e-mail válido.");
-    if (!u && senha.length < 8) return setError("A senha precisa ter ao menos 8 caracteres.");
-    if (u && senha && senha.length < 8) return setError("A senha precisa ter ao menos 8 caracteres.");
-    if (senha !== confirmarSenha) return setError("As senhas não conferem.");
+    if (!nome.trim()) return setError(traduzir("Informe o nome."));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError(traduzir("Informe um e-mail válido."));
+    if (!u && senha.length < 8) return setError(traduzir("A senha precisa ter ao menos 8 caracteres."));
+    if (u && senha && senha.length < 8) return setError(traduzir("A senha precisa ter ao menos 8 caracteres."));
+    if (senha !== confirmarSenha) return setError(traduzir("As senhas não conferem."));
     if (u?.googleVinculado && u.possuiSenha === false && email.trim().toLowerCase() !== u.email.toLowerCase() && !senha)
-      return setError("Defina uma senha para alterar o e-mail de uma conta que entra somente com Google.");
+      return setError(traduzir("Defina uma senha para alterar o e-mail de uma conta que entra somente com Google."));
     setSubmitting(true);
     setError(null);
     try {
@@ -226,7 +225,7 @@ function UsuarioForm({
           senha: senha || null,
           ativo: u.ativo,
         });
-        toast.success("Usuário atualizado", atualizado?.confirmacaoEmailPendente ? "O usuário precisa confirmar o e-mail para entrar. Pode solicitar outro link na tela de acesso." : undefined);
+        toast.success(traduzir("Usuário atualizado"), atualizado?.confirmacaoEmailPendente ? "O usuário precisa confirmar o e-mail para entrar. Pode solicitar outro link na tela de acesso." : undefined);
       } else {
         const criado = await api.post<UsuarioResponseDTO>("/api/usuarios", {
           nome: nome.trim(),
@@ -234,7 +233,7 @@ function UsuarioForm({
           senha,
           perfil,
         });
-        toast.success("Usuário criado", criado?.confirmacaoEmailPendente ? "O usuário precisa confirmar o e-mail para entrar." : undefined);
+        toast.success(traduzir("Usuário criado"), criado?.confirmacaoEmailPendente ? "O usuário precisa confirmar o e-mail para entrar." : undefined);
       }
       onDone();
     } catch (e) {
@@ -248,56 +247,54 @@ function UsuarioForm({
     <Modal
       open
       onClose={onClose}
-      title={u ? `Editar ${u.nome}` : "Novo usuário"}
+      title={u ? traduzir("Editar {0}",{0:u.nome}) : traduzir("Novo usuário")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
+            {" "}{traduzir("Cancelar")}{" "}</Button>
           <Button onClick={() => void submit()} loading={submitting}>
-            Salvar
-          </Button>
+            {" "}{traduzir("Salvar")}{" "}</Button>
         </>
       }
     >
       {error && (
         <div className="alertbanner alertbanner--bad" role="alert">
-          {error}
+          {traduzir(error)}
         </div>
       )}
-      <Field label="Nome" required>
-        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome e sobrenome" />
+      <Field label={traduzir("Nome")} required>
+        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={traduzir("Nome e sobrenome")} />
       </Field>
-      <Field label="E-mail" required hint={u?.googleVinculado ? "Alterar o e-mail desvincula o Google. Se o acesso for somente pelo Google, defina também uma senha." : undefined}>
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@restaurante.com" />
+      <Field label={traduzir("E-mail")} required hint={u?.googleVinculado ? traduzir("Alterar o e-mail desvincula o Google. Se o acesso for somente pelo Google, defina também uma senha.") : undefined}>
+        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={traduzir("pessoa@restaurante.com")} />
       </Field>
-      <Field label="Perfil" required>
+      <Field label={traduzir("Perfil")} required>
         <Select value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}>
           {PERFIS.map((p) => (
             <option key={p} value={p}>
-              {PERFIL_LABEL[p]} — {p === "ADMIN" ? "tudo" : p === "COZINHA" ? "estoque e operação diária" : "CMV e relatórios"}
+              {traduzir(PERFIL_LABEL[p])} — {p === "ADMIN" ? traduzir("tudo") : p === "OPERACIONAL" ? traduzir("cozinha e entrada de itens") : p === "COZINHA" ? traduzir("estoque e operação diária") : traduzir("CMV e relatórios")}
             </option>
           ))}
         </Select>
       </Field>
-      <Field label={u ? "Nova senha (deixe vazio para manter)" : "Senha"} htmlFor="usuario-senha" required={!u} hint="Ao menos 8 caracteres.">
+      <Field label={u ? traduzir("Nova senha (deixe vazio para manter)") : traduzir("Senha")} htmlFor="usuario-senha" required={!u} hint={traduzir("Ao menos 8 caracteres.")}>
         <Input
           id="usuario-senha"
           type="password"
           autoComplete="new-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          placeholder={u ? "••••••••" : "Senha com 8+ caracteres"}
+          placeholder={u ? "••••••••" : traduzir("Senha com 8+ caracteres")}
         />
       </Field>
-      <Field label="Confirmar senha" htmlFor="usuario-confirmar-senha" required={!u || senha.length > 0}>
+      <Field label={traduzir("Confirmar senha")} htmlFor="usuario-confirmar-senha" required={!u || senha.length > 0}>
         <Input
           id="usuario-confirmar-senha"
           type="password"
           autoComplete="new-password"
           value={confirmarSenha}
           onChange={(e) => setConfirmarSenha(e.target.value)}
-          placeholder="Repita a senha"
+          placeholder={traduzir("Repita a senha")}
         />
       </Field>
     </Modal>

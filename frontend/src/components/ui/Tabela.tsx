@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { type ReactNode } from "react";
 
 
@@ -25,7 +26,7 @@ export function DataTable({
           <tr>
             {headers.map((h, i) => (
               <th key={i} scope="col">
-                {h}
+                {typeof h === "string" ? traduzir(h) : h}
               </th>
             ))}
           </tr>

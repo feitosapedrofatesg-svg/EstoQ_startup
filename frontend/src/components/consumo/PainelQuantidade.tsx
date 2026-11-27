@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useState } from "react";
 import { Button, Modal } from "../UI";
 
@@ -20,20 +21,20 @@ export function PainelQuantidade({ produto, unidade, quantidade, limite, onConfi
   };
   const confirmar = () => {
     const valor = Number((texto || "0").replace(",", "."));
-    if (!Number.isFinite(valor) || valor > limite) return setErro("A quantidade ultrapassa o saldo disponível.");
+    if (!Number.isFinite(valor) || valor > limite) return setErro(traduzir("A quantidade ultrapassa o saldo disponível."));
     onConfirmar(valor); onClose();
   };
-  return <Modal open title={`Quantidade de ${produto}`} width="sm" onClose={onClose}
-    footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button onClick={confirmar}>Aplicar quantidade</Button></>}>
-    <output className="consumo-numero" aria-live="polite" aria-label="Quantidade escolhida">{texto || "0"} {unidade.toLowerCase()}</output>
-    {erro && <p role="alert" className="field__error">{erro}</p>}
+  return <Modal open title={traduzir("Quantidade de {0}",{0:produto})} width="sm" onClose={onClose}
+    footer={<><Button variant="ghost" onClick={onClose}>{" "}{traduzir("Cancelar")}{" "}</Button><Button onClick={confirmar}>{" "}{traduzir("Aplicar quantidade")}{" "}</Button></>}>
+    <output className="consumo-numero" aria-live="polite" aria-label={traduzir("Quantidade escolhida")}>{texto || "0"} {unidade.toLowerCase()}</output>
+    {erro && <p role="alert" className="field__error">{traduzir(erro)}</p>}
     <div className="consumo-teclado" onKeyDown={evento => {
       if (/^\d$/.test(evento.key) || evento.key === "," || evento.key === ".") { evento.preventDefault(); digitar(evento.key === "." ? "," : evento.key); }
       if (evento.key === "Backspace") { evento.preventDefault(); digitar("apagar"); }
     }}>
       {["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "apagar"].map(tecla =>
-        <Button key={tecla} variant="outline" aria-label={tecla === "apagar" ? "Apagar último dígito" : tecla === "," ? "Vírgula decimal" : tecla} onClick={() => digitar(tecla)}>{tecla === "apagar" ? "⌫" : tecla}</Button>)}
-      <Button variant="ghost" onClick={() => digitar("limpar")}>Limpar</Button>
+        <Button key={tecla} variant="outline" aria-label={tecla === "apagar" ? traduzir("Apagar último dígito") : tecla === "," ? traduzir("Vírgula decimal") : tecla} onClick={() => digitar(tecla)}>{tecla === "apagar" ? "⌫" : tecla}</Button>)}
+      <Button variant="ghost" onClick={() => digitar("limpar")}>{" "}{traduzir("Limpar")}{" "}</Button>
     </div>
   </Modal>;
 }

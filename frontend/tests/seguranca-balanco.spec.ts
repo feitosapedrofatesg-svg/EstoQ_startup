@@ -5,11 +5,11 @@ test("impressão do balanço exibe nomes como texto e não executa HTML", async 
   await context.addInitScript(() => { window.print = () => {}; });
   await preparar(page);
   const nome = '<img src=x onerror="window.opener.injetado=true">';
-  await page.route("**/api/balancos", route => route.fulfill({ json: [{ id: 1, version: 0,
+  await page.route("**/api/balancos/pagina?**", route => route.fulfill({ json: {number:0,size:25,totalPages:1,totalElements:1,content:[{ id: 1, version: 0,
     tipo: "PARCIAL", status: "CONCLUIDO", categoriaNomes: [nome], usuarioNome: nome,
     dataHora: "2026-10-17T12:00:00", itens: [{ id: 1, version: 0, produtoId: 1,
       produtoNome: nome, unidadeMedida: "KG", quantidadeSistema: 2, quantidadeFisica: 2,
-      diferenca: 0, ajusteAplicado: true }] }] }));
+      diferenca: 0, ajusteAplicado: true }] }]} }));
   await page.goto("/balanco");
   const aberta = page.waitForEvent("popup");
   await page.getByRole("button", { name: "Imprimir balanço 1", exact: true }).click();

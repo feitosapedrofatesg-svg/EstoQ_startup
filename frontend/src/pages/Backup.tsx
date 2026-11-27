@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { useState } from "react";
 import { useFetch } from "../lib/hooks";
@@ -24,10 +25,10 @@ export function Backup() {
     try {
       const { blob, filename } = await api.blobPost("/api/backups");
       downloadBlob(blob, filename);
-      toast.success("Backup gerado e baixado");
+      toast.success(traduzir("Backup gerado e baixado"));
       void refresh();
     } catch (e) {
-      toast.error("Não foi possível gerar o backup", mensagemErro(e));
+      toast.error(traduzir("Não foi possível gerar o backup"), mensagemErro(e));
     } finally {
       setBusy(null);
     }
@@ -39,7 +40,7 @@ export function Backup() {
       const blob = await api.blob(`/api/backups/${encodeURIComponent(nome)}`);
       downloadBlob(blob, nome);
     } catch (e) {
-      toast.error("Não foi possível baixar", mensagemErro(e));
+      toast.error(traduzir("Não foi possível baixar"), mensagemErro(e));
     } finally {
       setBusy(null);
     }
@@ -48,41 +49,36 @@ export function Backup() {
   return (
     <>
       <PageHeader
-        title="Backup completo da plataforma"
-        subtitle="Cópia completa dos dados de todos os restaurantes, exclusiva da administração da plataforma."
+        title={traduzir("Backup completo da plataforma")}
+        subtitle={traduzir("Cópia completa dos dados de todos os restaurantes, exclusiva da administração da plataforma.")}
         actions={
           <Button icon="download" loading={busy === "novo"} onClick={() => void gerar()}>
-            Gerar backup agora
-          </Button>
+            {" "}{traduzir("Gerar backup agora")}{" "}</Button>
         }
       />
 
       <AlertBanner tone="info">
         <p>
-          O backup é <strong>baixado automaticamente para sua máquina</strong> ao clicar em "Gerar".
-          No Render free os arquivos no servidor são temporários (somem a cada reinício) — sempre
-          baixe o dump na hora. Para restaurar, use o procedimento com{" "}
-          <code>pg_restore</code> descrito no README do projeto.
-        </p>
+          {" "}{traduzir("O backup é")}{" "}<strong>{" "}{traduzir("baixado automaticamente para sua máquina")}{" "}</strong> {" "}{traduzir("ao clicar em \"Gerar\". No Render free os arquivos no servidor são temporários (somem a cada reinício) — sempre baixe o dump na hora. Para restaurar, use o procedimento com")}{" "}
+          <code>{" "}{traduzir("pg_restore")}{" "}</code> {" "}{traduzir("descrito no README do projeto.")}{" "}</p>
       </AlertBanner>
 
-      <Card title="Backups salvos">
-        {error && <div className="alertbanner alertbanner--bad">{error}</div>}
+      <Card title={traduzir("Backups salvos")}>
+        {error && <div className="alertbanner alertbanner--bad">{traduzir(error)}</div>}
         {loading && !data ? (
-          <p className="muted">Carregando…</p>
+          <p className="muted">{" "}{traduzir("Carregando…")}{" "}</p>
         ) : data && data.length === 0 ? (
           <EmptyState
-            title="Nenhum backup ainda"
-            text="Gere uma cópia completa para proteger os dados da plataforma."
+            title={traduzir("Nenhum backup ainda")}
+            text={traduzir("Gere uma cópia completa para proteger os dados da plataforma.")}
             icon="archive"
             action={
               <Button variant="outline" icon="download" onClick={() => void gerar()}>
-                Gerar backup
-              </Button>
+                {" "}{traduzir("Gerar backup")}{" "}</Button>
             }
           />
         ) : (
-          <DataTable caption="Backups do banco de dados" headers={["Arquivo", "Tamanho", "Gerado em", ""]}>
+          <DataTable caption={traduzir("Backups do banco de dados")} headers={[traduzir("Arquivo"), traduzir("Tamanho"), traduzir("Gerado em"), ""]}>
             {data?.map((b) => (
               <tr key={b.nome}>
                 <td>
@@ -98,8 +94,7 @@ export function Backup() {
                     loading={busy === b.nome}
                     onClick={() => void baixar(b.nome)}
                   >
-                    Baixar
-                  </Button>
+                    {" "}{traduzir("Baixar")}{" "}</Button>
                 </td>
               </tr>
             ))}

@@ -36,6 +36,7 @@ test("balanço zerado aceita o saldo do sistema e libera a confirmação", async
   await page.route("**/api/balancos**", async route => {
     const caminho = new URL(route.request().url()).pathname;
     if (caminho === "/api/balancos/proximo") return route.fulfill({ json: [] });
+    if(caminho === "/api/balancos/pagina") return route.fulfill({json:{content:[estado.balanco],totalPages:1,totalElements:1,number:0,size:25}});
     if (caminho === "/api/balancos" && route.request().method() === "GET") {
       return route.fulfill({ json: [estado.balanco] });
     }

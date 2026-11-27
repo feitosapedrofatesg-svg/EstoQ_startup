@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { mensagemErro } from "../../lib/api";
 import { useState } from "react";
 
@@ -40,32 +41,32 @@ export function ConfigBalanco({
     try {
       if (config) {
         await api.put(`/api/configuracoes-balanco/${config.id}`, body);
-        toast.success("Agendamento atualizado");
+        toast.success(traduzir("Agendamento atualizado"));
       } else {
         await api.post("/api/configuracoes-balanco", body);
-        toast.success("Agendamento criado");
+        toast.success(traduzir("Agendamento criado"));
       }
       onDone();
     } catch (e) {
-      toast.error("Não foi possível salvar", mensagemErro(e));
+      toast.error(traduzir("Não foi possível salvar"), mensagemErro(e));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Card title="Agendamento do balanço" bodyClassName="config-form">
+    <Card title={traduzir("Agendamento do balanço")} bodyClassName="config-form">
       <div className="form-grid-2">
-        <Field label="Frequência">
+        <Field label={traduzir("Frequência")}>
           <Select value={periodicidade} onChange={(e) => {
             const v = e.target.value as PeriodicidadeBalanco;
             setPeriodicidade(v);
             if (v === "DIARIA") setDia(null);
             else if (dia === null) setDia(v === "SEMANAL" ? 1 : 1);
           }}>
-            <option value="DIARIA">Diária</option>
-            <option value="SEMANAL">Semanal</option>
-            <option value="MENSAL">Mensal</option>
+            <option value="DIARIA">{" "}{traduzir("Diária")}{" "}</option>
+            <option value="SEMANAL">{" "}{traduzir("Semanal")}{" "}</option>
+            <option value="MENSAL">{" "}{traduzir("Mensal")}{" "}</option>
           </Select>
         </Field>
       </div>
@@ -85,7 +86,7 @@ export function ConfigBalanco({
           variant="outline"
           disabled={periodicidade !== "DIARIA" && dia === null}
         >
-          {config ? "Salvar agendamento" : "Criar agendamento"}
+          {config ? traduzir("Salvar agendamento") : traduzir("Criar agendamento")}
         </Button>
       </div>
     </Card>

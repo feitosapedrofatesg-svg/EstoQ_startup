@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { limpezaPorUnidade, unidadesLimpeza } from "../lib/estoqueLimpeza";
 import { estoquePorUnidade } from "../lib/estoquePorUnidade";
@@ -117,7 +118,7 @@ export function NotasFiscais() {
   const analisar = async () => {
     setErro(null);
     if (!arquivos.length || arquivos.length > 10 || arquivos.reduce((s, a) => s + a.size, 0) > 4 * 1024 * 1024) {
-      setErro("Selecione um documento ou até dez imagens, somando no máximo 4 MB."); return;
+      setErro(traduzir("Selecione um documento ou até dez imagens, somando no máximo 4 MB.")); return;
     }
     setOcupado(true);
     try {
@@ -130,7 +131,7 @@ export function NotasFiscais() {
   const confirmar = async () => {
     if (!nota) return;
     if (pendencias.length) {
-      setErro("Ajuste as pendências indicadas abaixo antes de confirmar a entrada.");
+      setErro(traduzir("Ajuste as pendências indicadas abaixo antes de confirmar a entrada."));
       return;
     }
     setErro(null); setOcupado(true);
@@ -143,7 +144,7 @@ export function NotasFiscais() {
           embalagemConfirmada: custosConferidos, leituraConferida: custosConferidos })),
       });
       mostrar(resultado);
-      toast.success("Entrada confirmada", "Produtos, lotes e estoque foram atualizados.");
+      toast.success(traduzir("Entrada confirmada"), traduzir("Produtos, lotes e estoque foram atualizados."));
     } catch (e) { setErro(mensagemErro(e)); }
     finally { setOcupado(false); }
   };
@@ -165,60 +166,60 @@ export function NotasFiscais() {
   }
 
   return <>
-    <PageHeader title="Importar nota fiscal" subtitle="Leia a nota, confira os itens e confirme a entrada no estoque."
-      actions={<LinkButton to="/movimentacoes" variant="outline">Voltar às movimentações</LinkButton>} />
-    {erro && <AlertBanner tone="bad">{erro}</AlertBanner>}
-    <Card title="Documento da compra">
-      <Field label="Nota fiscal em PDF, XML, JPG ou PNG" htmlFor="nota-arquivos">
+    <PageHeader title={traduzir("Importar nota fiscal")} subtitle={traduzir("Leia a nota, confira os itens e confirme a entrada no estoque.")}
+      actions={<LinkButton to="/movimentacoes" variant="outline">{" "}{traduzir("Voltar às movimentações")}{" "}</LinkButton>} />
+    {erro && <AlertBanner tone="bad">{traduzir(erro)}</AlertBanner>}
+    <Card title={traduzir("Documento da compra")}>
+      <Field label={traduzir("Nota fiscal em PDF, XML, JPG ou PNG")} htmlFor="nota-arquivos">
         <Input id="nota-arquivos" type="file" multiple accept=".pdf,.xml,.jpg,.jpeg,.png,application/pdf,application/xml,text/xml,image/jpeg,image/png"
           disabled={ocupado} onChange={e => { selecionarArquivos(Array.from(e.target.files ?? [])); }} />
       </Field>
-      <Field label="Fotografar a nota pelo celular" htmlFor="nota-camera">
+      <Field label={traduzir("Fotografar a nota pelo celular")} htmlFor="nota-camera">
         <Input id="nota-camera" type="file" accept="image/jpeg,image/png" capture="environment" disabled={ocupado}
           onChange={e => { const foto = e.target.files?.[0]; if (foto) selecionarArquivos([...arquivos.filter(a => /\.(jpe?g|png)$/i.test(a.name)), foto]); e.target.value = ""; }} />
       </Field>
-      <p className="muted">Um PDF/XML ou até dez fotos da mesma nota, na ordem das páginas. Até 4 MB no total. O estoque só muda após a confirmação.</p>
+      <p className="muted">{" "}{traduzir("Um PDF/XML ou até dez fotos da mesma nota, na ordem das páginas. Até 4 MB no total. O estoque só muda após a confirmação.")}{" "}</p>
       {previews.length > 0 && <div className="nota-fotos">
         {previews.map(imagem => <figure key={imagem.url}>
-          <a href={imagem.url} target="_blank" rel="noreferrer" aria-label={`Abrir imagem da página ${imagem.indice + 1}`}>
-            <img src={imagem.url} alt={`Página ${imagem.indice + 1} da nota fiscal`} />
+          <a href={imagem.url} target="_blank" rel="noreferrer" aria-label={traduzir("Abrir imagem da página {0}",{0:imagem.indice + 1})}>
+            <img src={imagem.url} alt={traduzir("Página {0} da nota fiscal",{0:imagem.indice + 1})} />
           </a>
-          <figcaption>Página {imagem.indice + 1} · {imagem.nome}</figcaption>
+          <figcaption>{" "}{traduzir("Página")}{" "}{imagem.indice + 1} · {imagem.nome}</figcaption>
           <div className="form-actions">
-            <Button size="sm" variant="outline" disabled={ocupado || imagem.indice === 0} aria-label={`Mover página ${imagem.indice + 1} para antes`} onClick={() => ordenar(imagem.indice, -1)}>Antes</Button>
-            <Button size="sm" variant="outline" disabled={ocupado || imagem.indice === arquivos.length - 1} aria-label={`Mover página ${imagem.indice + 1} para depois`} onClick={() => ordenar(imagem.indice, 1)}>Depois</Button>
-            <Button size="sm" variant="danger" disabled={ocupado} aria-label={`Remover página ${imagem.indice + 1}`} onClick={() => selecionarArquivos(arquivos.filter((_, indice) => indice !== imagem.indice))}>Remover</Button>
+            <Button size="sm" variant="outline" disabled={ocupado || imagem.indice === 0} aria-label={traduzir("Mover página {0} para antes",{0:imagem.indice + 1})} onClick={() => ordenar(imagem.indice, -1)}>{" "}{traduzir("Antes")}{" "}</Button>
+            <Button size="sm" variant="outline" disabled={ocupado || imagem.indice === arquivos.length - 1} aria-label={traduzir("Mover página {0} para depois",{0:imagem.indice + 1})} onClick={() => ordenar(imagem.indice, 1)}>{" "}{traduzir("Depois")}{" "}</Button>
+            <Button size="sm" variant="danger" disabled={ocupado} aria-label={traduzir("Remover página {0}",{0:imagem.indice + 1})} onClick={() => selecionarArquivos(arquivos.filter((_, indice) => indice !== imagem.indice))}>{" "}{traduzir("Remover")}{" "}</Button>
           </div>
         </figure>)}
       </div>}
-      {previews.length > 0 && <p className="muted">Clique na imagem para conferir em outra aba enquanto revisa os itens.</p>}
-      <Button loading={ocupado} disabled={!arquivos.length} onClick={() => void analisar()}>Ler nota fiscal</Button>
+      {previews.length > 0 && <p className="muted">{" "}{traduzir("Clique na imagem para conferir em outra aba enquanto revisa os itens.")}{" "}</p>}
+      <Button loading={ocupado} disabled={!arquivos.length} onClick={() => void analisar()}>{" "}{traduzir("Ler nota fiscal")}{" "}</Button>
     </Card>
     {nota && <>
-      <Card title={`NF-e ${nota.numero} · ${nota.fornecedor}`}>
-        {!nota.confirmada && <p className="muted">Novos restaurantes já têm categorias padrão. Os itens são associados pelo catálogo e pelo nome do produto; os não reconhecidos entram em “Sem classificação”. Você pode alterar as sugestões abaixo.</p>}
-        <p>Emissão: {fmtDate(nota.emissao)} · Total: <strong>{fmtMoney(nota.valorTotal)}</strong></p>
-        <p className="muted" style={{ overflowWrap: "anywhere" }}>Chave: {nota.chave}</p>
+      <Card title={traduzir("NF-e {0} · {1}",{0:nota.numero,1:nota.fornecedor})}>
+        {!nota.confirmada && <p className="muted">{" "}{traduzir("Novos restaurantes já têm categorias padrão. Os itens são associados pelo catálogo e pelo nome do produto; os não reconhecidos entram em “Sem classificação”. Você pode alterar as sugestões abaixo.")}{" "}</p>}
+        <p>{" "}{traduzir("Emissão:")}{" "}{fmtDate(nota.emissao)}{" "}{traduzir("· Total:")}{" "}<strong>{fmtMoney(nota.valorTotal)}</strong></p>
+        <p className="muted" style={{ overflowWrap: "anywhere" }}>{" "}{traduzir("Chave:")}{" "}{nota.chave}</p>
         {nota.avisos.map((aviso, index) => <AlertBanner key={index} tone="warn">{aviso}</AlertBanner>)}
-        {nota.confirmada ? <AlertBanner tone="good">Esta nota já foi importada. Enviá-la novamente não duplica o estoque.</AlertBanner>
-          : <><p>{selecionados.length} de {itens.length} itens selecionados · Entrada: <strong>{fmtMoney(totalSelecionado)}</strong></p>
-          <Field label="Categoria para todos os produtos novos" htmlFor="nota-categoria-geral">
+        {nota.confirmada ? <AlertBanner tone="good">{" "}{traduzir("Esta nota já foi importada. Enviá-la novamente não duplica o estoque.")}{" "}</AlertBanner>
+          : <><p>{selecionados.length}{" "}{traduzir("de")}{" "}{itens.length}{" "}{traduzir("itens selecionados · Entrada:")}{" "}<strong>{fmtMoney(totalSelecionado)}</strong></p>
+          <Field label={traduzir("Categoria para todos os produtos novos")} htmlFor="nota-categoria-geral">
             <Select id="nota-categoria-geral" defaultValue="" onChange={e => {
               const categoriaId = Number(e.target.value) || null;
               setItens(prev => prev.map(i => !i.produtoId ? revisarUnidade(i, { categoriaId }) : i)); setCustosConferidos(false);
-            }}><option value="">Usar classificação automática</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
+            }}><option value="">{" "}{traduzir("Usar classificação automática")}{" "}</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
           </Field></>}
       </Card>
-      <nav className="nota-navegacao" aria-label="Navegação dos itens da nota fiscal">
-        <Button variant="outline" onClick={() => navegarLista(inicioLista.current)}>↑ Voltar ao início</Button>
-        <Button onClick={() => navegarLista(finalLista.current)}>↓ Ir ao final da lista</Button>
+      <nav className="nota-navegacao" aria-label={traduzir("Navegação dos itens da nota fiscal")}>
+        <Button variant="outline" onClick={() => navegarLista(inicioLista.current)}>{" "}{traduzir("↑ Voltar ao início")}{" "}</Button>
+        <Button onClick={() => navegarLista(finalLista.current)}>{" "}{traduzir("↓ Ir ao final da lista")}{" "}</Button>
       </nav>
-      <div ref={inicioLista} className="nota-lista-destino" tabIndex={-1} aria-label="Início da lista de itens" />
+      <div ref={inicioLista} className="nota-lista-destino" tabIndex={-1} aria-label={traduzir("Início da lista de itens")} />
       {itens.map(item => <Card key={`${nota.id}-${item.id}`} className={item.incerto && !nota.confirmada ? "nota-item--ocr" : ""} title={`${item.numero}. ${item.descricao}`}>
-        <p className="muted">Código {item.codigo} · Nota: {fmtNum(item.quantidadeNota)} {item.unidadeNota} · Bruto: {fmtMoney(item.valorBruto)} · Desconto: {fmtMoney(item.desconto)} · Ajuste rateado: {fmtMoney(item.valorRateado)}</p>
-        {!nota.confirmada && <Checkbox checked={item.selecionado} onChange={selecionado => alterar(item.id, { selecionado })} label="Incluir este item no estoque" />}
+        <p className="muted">{" "}{traduzir("Código")}{" "}{item.codigo}{" "}{traduzir("· Nota:")}{" "}{fmtNum(item.quantidadeNota)} {item.unidadeNota}{" "}{traduzir("· Bruto:")}{" "}{fmtMoney(item.valorBruto)}{" "}{traduzir("· Desconto:")}{" "}{fmtMoney(item.desconto)}{" "}{traduzir("· Ajuste rateado:")}{" "}{fmtMoney(item.valorRateado)}</p>
+        {!nota.confirmada && <Checkbox checked={item.selecionado} onChange={selecionado => alterar(item.id, { selecionado })} label={traduzir("Incluir este item no estoque")} />}
         {item.selecionado && <fieldset disabled={ocupado || nota.confirmada} style={{ border: 0, padding: 0, minWidth: 0 }}>
-          <SearchSelect label="Produto do catálogo" options={[{ value: "novo", label: "Criar produto novo" }, ...produtos.map(p => ({ value: String(p.id), label: p.nome, sub: `${p.categoriaNome} · ${p.unidadeMedida}` }))]}
+          <SearchSelect label={traduzir("Produto do catálogo")} options={[{ value: "novo", label: "Criar produto novo" }, ...produtos.map(p => ({ value: String(p.id), label: p.nome, sub: `${p.categoriaNome} · ${p.unidadeMedida}` }))]}
             value={item.produtoId ? String(item.produtoId) : "novo"} onValue={valor => {
               const produto = produtos.find(p => String(p.id) === valor);
               alterar(item.id, { produtoId: produto?.id ?? null, nomeProduto: produto?.nome ?? item.descricao.slice(0, 120),
@@ -227,48 +228,48 @@ export function NotasFiscais() {
                 embalagemConfirmada: false });
             }} />
           {!item.produtoId && <div className="form-grid-2">
-            <Field label="Nome do novo produto" htmlFor={`nota-nome-${item.id}`}><Input id={`nota-nome-${item.id}`} value={item.nomeProduto} maxLength={120} onChange={e => alterar(item.id, { nomeProduto: e.target.value })} /></Field>
-            <Field label="Categoria" htmlFor={`nota-categoria-${item.id}`}><Select id={`nota-categoria-${item.id}`} value={item.categoriaId ?? ""} onChange={e => alterar(item.id, { categoriaId: Number(e.target.value) || null })}>
-              <option value="">Automática · Sem classificação se não reconhecido</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            <Field label={traduzir("Nome do novo produto")} htmlFor={`nota-nome-${item.id}`}><Input id={`nota-nome-${item.id}`} value={item.nomeProduto} maxLength={120} onChange={e => alterar(item.id, { nomeProduto: e.target.value })} /></Field>
+            <Field label={traduzir("Categoria")} htmlFor={`nota-categoria-${item.id}`}><Select id={`nota-categoria-${item.id}`} value={item.categoriaId ?? ""} onChange={e => alterar(item.id, { categoriaId: Number(e.target.value) || null })}>
+              <option value="">{" "}{traduzir("Automática · Sem classificação se não reconhecido")}{" "}</option>{(categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </Select></Field>
           </div>}
           {!nota.confirmada && item.motivoCategoria && <AlertBanner tone={item.revisarCategoria ? "warn" : "info"}>
-            <strong>{item.revisarCategoria ? "Conferir categoria" : "Categoria sugerida"}</strong>
-            {item.origemCategoria && <> · {ORIGENS_CATEGORIA[item.origemCategoria] ?? "Sugestão automática"}</>}
+            <strong>{item.revisarCategoria ? traduzir("Conferir categoria") : traduzir("Categoria sugerida")}</strong>
+            {item.origemCategoria && <> · {ORIGENS_CATEGORIA[item.origemCategoria] ?? traduzir("Sugestão automática")}</>}
             <p>{item.motivoCategoria}</p>
-            {item.produtoId && <p>Categoria do catálogo: <strong>{produtos.find(p => p.id === item.produtoId)?.categoriaNome
-              ?? categorias?.find(c => c.id === item.categoriaId)?.nome ?? "Carregando…"}</strong>.
-              {item.revisarCategoria && <> Para alterar o cadastro, <LinkButton to="/catalogo" variant="outline" size="sm">Abrir catálogo</LinkButton></>}
+            {item.produtoId && <p>{" "}{traduzir("Categoria do catálogo:")}{" "}<strong>{produtos.find(p => p.id === item.produtoId)?.categoriaNome
+              ?? categorias?.find(c => c.id === item.categoriaId)?.nome ?? traduzir("Carregando…")}</strong>.
+              {item.revisarCategoria && <> {" "}{traduzir("Para alterar o cadastro,")}{" "}<LinkButton to="/catalogo" variant="outline" size="sm">{" "}{traduzir("Abrir catálogo")}{" "}</LinkButton></>}
             </p>}
           </AlertBanner>}
           <div className="form-grid-2">
-            <CampoDecimal label="Quantidade na nota" id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota: quantidadeNota ?? NaN })} />
-            <Field label="Unidade no estoque" htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || estoquePorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, fator: null, embalagemConfirmada: false })}>
+            <CampoDecimal label={traduzir("Quantidade na nota")} id={`nota-qtd-${item.id}`} value={item.quantidadeNota} onValue={quantidadeNota => alterar(item.id, { quantidadeNota: quantidadeNota ?? NaN })} />
+            <Field label={traduzir("Unidade no estoque")} htmlFor={`nota-unidade-${item.id}`}><Select id={`nota-unidade-${item.id}`} value={item.unidadeEstoque} disabled={!!item.produtoId || estoquePorUnidade(item.nomeProduto, categorias?.find(c => c.id === item.categoriaId)?.nome)} onChange={e => alterar(item.id, { unidadeEstoque: e.target.value as UnidadeMedida, fator: null, embalagemConfirmada: false })}>
               {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
             </Select></Field>
-            <CampoDecimal label={item.unidadeEstoque === "UN" ? "Unidades por item da nota" : "Conteúdo de cada unidade da nota"} id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
-            <CampoDecimal label="Custo total deste item (R$)" id={`nota-custo-${item.id}`} value={item.valorEntrada} onValue={valorEntrada => alterar(item.id, { valorEntrada: valorEntrada ?? NaN })} />
-            <Field label="Lote do fabricante (opcional)" htmlFor={`nota-lote-${item.id}`}><Input id={`nota-lote-${item.id}`} maxLength={50} value={item.loteFabricante ?? ""} onChange={e => alterar(item.id, { loteFabricante: e.target.value })} /></Field>
-            <Field label="Validade (opcional)" htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
+            <CampoDecimal label={item.unidadeEstoque === "UN" ? traduzir("Unidades por item da nota") : traduzir("Conteúdo de cada unidade da nota")} id={`nota-fator-${item.id}`} value={item.fator} onValue={fator => alterar(item.id, { fator, embalagemConfirmada: false })} />
+            <CampoDecimal label={traduzir("Custo total deste item (R$)")} id={`nota-custo-${item.id}`} value={item.valorEntrada} onValue={valorEntrada => alterar(item.id, { valorEntrada: valorEntrada ?? NaN })} />
+            <Field label={traduzir("Lote do fabricante (opcional)")} htmlFor={`nota-lote-${item.id}`}><Input id={`nota-lote-${item.id}`} maxLength={50} value={item.loteFabricante ?? ""} onChange={e => alterar(item.id, { loteFabricante: e.target.value })} /></Field>
+            <Field label={traduzir("Validade (opcional)")} htmlFor={`nota-validade-${item.id}`}><Input id={`nota-validade-${item.id}`} type="date" value={item.validade ?? ""} onChange={e => alterar(item.id, { validade: e.target.value || null })} /></Field>
           </div>
-          {item.unidadeEstoque === "UN" && <p className="muted">Informe 1 para item avulso ou a quantidade de unidades por pacote/caixa. Ex.: pacote com 6 esponjas = 6 UN. Peso e volume não multiplicam o estoque.</p>}
-          {item.fator === null && <AlertBanner tone="warn">Conteúdo não identificado ou em conflito com o histórico. Informe o conteúdo por item da nota antes de confirmar.</AlertBanner>}
-          <p><strong>{item.fator === null ? "Entrada: conteúdo pendente" : `Entrada: ${fmtNum(item.quantidadeNota * item.fator)} ${item.unidadeEstoque}`}</strong>{item.fator !== null && <> ({fmtNum(item.quantidadeNota)} × {fmtNum(item.fator)})</>}</p>
+          {item.unidadeEstoque === "UN" && <p className="muted">{" "}{traduzir("Informe 1 para item avulso ou a quantidade de unidades por pacote/caixa. Ex.: pacote com 6 esponjas = 6 UN. Peso e volume não multiplicam o estoque.")}{" "}</p>}
+          {item.fator === null && <AlertBanner tone="warn">{" "}{traduzir("Conteúdo não identificado ou em conflito com o histórico. Informe o conteúdo por item da nota antes de confirmar.")}{" "}</AlertBanner>}
+          <p><strong>{item.fator === null ? traduzir("Entrada: conteúdo pendente") : traduzir("Entrada: {0} {1}",{0:fmtNum(item.quantidadeNota * item.fator),1:item.unidadeEstoque})}</strong>{item.fator !== null && <> ({fmtNum(item.quantidadeNota)}{" "}{traduzir("×")}{" "}{fmtNum(item.fator)})</>}</p>
         </fieldset>}
       </Card>)}
-      <div ref={finalLista} className="nota-lista-destino" tabIndex={-1} aria-label="Final da lista de itens" />
-      {!nota.confirmada && <Card title="Confirmar entrada">
-        <p>Custo dos itens selecionados: <strong>{fmtMoney(totalSelecionado)}</strong></p>
-        <p>Conferência da nota inteira: {fmtMoney(totalRevisado)} de {fmtMoney(nota.valorTotal)}</p>
-        {!totalFecha && <AlertBanner tone="warn">Os custos precisam fechar o total da nota, considerando também as linhas desmarcadas.</AlertBanner>}
-        <p className="muted">A conferência abaixo vale para todos os itens, incluindo os dados da imagem, as unidades e o conteúdo das embalagens.</p>
-        <Checkbox checked={custosConferidos} onChange={setCustosConferidos} label="Conferi os itens, os descontos e os custos rateados" />
+      <div ref={finalLista} className="nota-lista-destino" tabIndex={-1} aria-label={traduzir("Final da lista de itens")} />
+      {!nota.confirmada && <Card title={traduzir("Confirmar entrada")}>
+        <p>{" "}{traduzir("Custo dos itens selecionados:")}{" "}<strong>{fmtMoney(totalSelecionado)}</strong></p>
+        <p>{" "}{traduzir("Conferência da nota inteira:")}{" "}{fmtMoney(totalRevisado)}{" "}{traduzir("de")}{" "}{fmtMoney(nota.valorTotal)}</p>
+        {!totalFecha && <AlertBanner tone="warn">{" "}{traduzir("Os custos precisam fechar o total da nota, considerando também as linhas desmarcadas.")}{" "}</AlertBanner>}
+        <p className="muted">{" "}{traduzir("A conferência abaixo vale para todos os itens, incluindo os dados da imagem, as unidades e o conteúdo das embalagens.")}{" "}</p>
+        <Checkbox checked={custosConferidos} onChange={setCustosConferidos} label={traduzir("Conferi os itens, os descontos e os custos rateados")} />
         {custosConferidos && pendencias.length > 0 && <AlertBanner tone="warn">
-          <strong>Pendências para confirmar a entrada:</strong>
+          <strong>{" "}{traduzir("Pendências para confirmar a entrada:")}{" "}</strong>
           <ul>{pendencias.map((pendencia, indice) => <li key={indice}>{pendencia}</li>)}</ul>
         </AlertBanner>}
-        {erro && <AlertBanner tone="bad">{erro}</AlertBanner>}
-        <Button loading={ocupado} disabled={!custosConferidos} onClick={() => void confirmar()}>Confirmar entrada no estoque</Button>
+        {erro && <AlertBanner tone="bad">{traduzir(erro)}</AlertBanner>}
+        <Button loading={ocupado} disabled={!custosConferidos} onClick={() => void confirmar()}>{" "}{traduzir("Confirmar entrada no estoque")}{" "}</Button>
       </Card>}
     </>}
   </>;

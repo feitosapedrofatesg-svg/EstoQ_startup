@@ -1,3 +1,4 @@
+import { traduzir } from "../../lib/i18n";
 import { useId, type ReactNode } from "react";
 
 import { Icon } from "../Icon";
@@ -61,7 +62,7 @@ export function Checkbox({
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>{typeof label === "string" ? traduzir(label) : label}</label>
     </div>
   );
 }
@@ -78,7 +79,7 @@ export function Segmented({
   label: string;
 }) {
   return (
-    <div className="segmented" role="group" aria-label={label}>
+    <div className="segmented" role="group" aria-label={typeof label === "string" ? traduzir(label) : label}>
       {items.map((it) => (
         <button
           key={it.value}
@@ -87,7 +88,7 @@ export function Segmented({
           aria-pressed={value === it.value}
           onClick={() => onChange(it.value)}
         >
-          {it.label}
+          {traduzir(it.label)}
         </button>
       ))}
     </div>

@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 
 export type CarrosselSlide = {
@@ -87,11 +88,11 @@ export function Carrossel({ slides, rotulo, intervalo = 5000 }: Props) {
         {total > 1 && (
           <>
             <button type="button" className="carrossel__seta carrossel__seta--antes"
-                    aria-label="Tela anterior" onClick={() => irPara(ativo - 1)}>
+                    aria-label={traduzir("Tela anterior")} onClick={() => irPara(ativo - 1)}>
               <span aria-hidden="true">‹</span>
             </button>
             <button type="button" className="carrossel__seta carrossel__seta--depois"
-                    aria-label="Próxima tela" onClick={() => irPara(ativo + 1)}>
+                    aria-label={traduzir("Próxima tela")} onClick={() => irPara(ativo + 1)}>
               <span aria-hidden="true">›</span>
             </button>
           </>
@@ -105,7 +106,7 @@ export function Carrossel({ slides, rotulo, intervalo = 5000 }: Props) {
               type="button"
               key={slide.src}
               className="carrossel__ponto"
-              aria-label={`Tela ${indice + 1} de ${total}: ${slide.titulo}`}
+              aria-label={traduzir("Tela {0} de {1}: {2}",{0:indice + 1,1:total,2:slide.titulo})}
               aria-current={indice === ativo ? "true" : undefined}
               onClick={() => irPara(indice)}
             />

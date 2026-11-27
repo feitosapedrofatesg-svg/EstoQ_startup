@@ -1,4 +1,5 @@
-import { useEffect, useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { traduzir, idiomaAtual } from "../../lib/i18n";
+import { useEffect, useId, useState, useRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 
 import { Icon } from "../Icon";
 import { parseDecimal } from "../../lib/format";
@@ -28,7 +29,7 @@ export function Field({
   return (
     <div className={`field ${className}`}>
       <label className="field__label" htmlFor={htmlFor}>
-        {label}
+        {typeof label === "string" ? traduzir(label) : label}
         {required && (
           <span className="field__req" aria-hidden="true">
             *
@@ -38,7 +39,7 @@ export function Field({
       {children}
       {error ? (
         <p className="field__error" role="alert">
-          {error}
+          {traduzir(error)}
         </p>
       ) : hint ? (
         <p className="field__hint">{hint}</p>
@@ -110,12 +111,13 @@ export function NumberField({
 }) {
   const autoId = useId();
   const id = htmlFor ?? autoId;
-  const [text, setText] = useState(value === null ? "" : String(value).replace(".", ","));
-
+  const idioma=idiomaAtual();
+  const formatar=(numero:number)=>new Intl.NumberFormat(idioma,{useGrouping:false,maximumFractionDigits:12}).format(numero);
+  const [text, setText] = useState(value === null ? "" : formatar(value));
+  const editando=useRef(false);const idiomaEdicao=useRef(idioma);
   useEffect(() => {
-    if (value === null) setText("");
-    else setText(String(value).replace(".", ","));
-  }, [value]);
+    if(!editando.current)setText(value === null ? "" : formatar(value));
+  }, [value,idioma]);
 
   const commit = (raw: string) => {
     const trimmed = raw.trim();
@@ -123,24 +125,24 @@ export function NumberField({
       onValue(null);
       return;
     }
-    const n = parseDecimal(trimmed);
+    const n = parseDecimal(trimmed,idiomaEdicao.current);
     if (n === null) return;
     if (min !== undefined && n < min) {
-      setText(String(min).replace(".", ","));
+      setText(formatar(min));
       onValue(min);
       return;
     }
     if (max !== undefined && n > max) {
-      setText(String(max).replace(".", ","));
+      setText(formatar(max));
       onValue(max);
       return;
     }
-    setText(String(n).replace(".", ","));
+    setText(formatar(n));
     onValue(n);
   };
 
   return (
-    <Field label={label} htmlFor={id} hint={hint} error={error} required={required}>
+    <Field label={typeof label === "string" ? traduzir(label) : label} htmlFor={id} hint={hint} error={error} required={required}>
       <div className="input-group">
         <input
           id={id}
@@ -154,10 +156,11 @@ export function NumberField({
           step={step}
           onChange={(e) => {
             setText(e.target.value);
-            const n = parseDecimal(e.target.value);
+            const n = parseDecimal(e.target.value,idiomaEdicao.current);
             if (n !== null) onValue(n);
           }}
-          onBlur={(e) => commit(e.target.value)}
+          onFocus={()=>{editando.current=true;idiomaEdicao.current=idioma;}}
+          onBlur={(e) => {editando.current=false;commit(e.target.value);}}
         />
         {suffix && <span className="input-group__suffix">{suffix}</span>}
       </div>

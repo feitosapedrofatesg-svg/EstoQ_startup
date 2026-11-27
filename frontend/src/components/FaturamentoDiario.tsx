@@ -1,3 +1,4 @@
+import { traduzir } from "../lib/i18n";
 import { mensagemErro } from "../lib/api";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
@@ -11,11 +12,10 @@ import { useToast } from "../store/toast";
 export function AvisoFaturamento({ receitaBase, diasFaturamentoPendentes, receitaPorPeriodo }: {
   receitaBase: number | null; diasFaturamentoPendentes: number; receitaPorPeriodo: boolean;
 }) {
-  if (receitaPorPeriodo) return <p className="muted">O percentual usa o total informado anteriormente para este período. Os valores diários ainda estão incompletos.</p>;
+  if (receitaPorPeriodo) return <p className="muted">{" "}{traduzir("O percentual usa o total informado anteriormente para este período. Os valores diários ainda estão incompletos.")}{" "}</p>;
   if (diasFaturamentoPendentes > 0) return <p className="alertbanner alertbanner--warn" role="status">
-    Percentual pendente: faltam {diasFaturamentoPendentes} dia(s) de faturamento. Informe R$ 0 nos dias sem vendas.
-  </p>;
-  if (receitaBase === 0) return <p className="muted">Faturamento total igual a zero: não é possível calcular o percentual do CMV.</p>;
+    {" "}{traduzir("Percentual pendente: faltam")}{" "}{diasFaturamentoPendentes}{" "}{traduzir("dia(s) de faturamento. Informe R$ 0 nos dias sem vendas.")}{" "}</p>;
+  if (receitaBase === 0) return <p className="muted">{" "}{traduzir("Faturamento total igual a zero: não é possível calcular o percentual do CMV.")}{" "}</p>;
   return null;
 }
 
@@ -68,43 +68,43 @@ export function FaturamentoDiario({ inicio, fim, historico = false }: { inicio: 
       // Mantém o valor confirmado mesmo se a consulta dos totais falhar depois.
       setData(anterior => anterior ? { ...anterior, dias: anterior.dias.map(d => d.data === resposta.data ? resposta : d) } : anterior);
       await refresh(); setAlterado(false);
-      toast.success("Faturamento do dia salvo");
+      toast.success(traduzir("Faturamento do dia salvo"));
     } catch (e) { setFalha(mensagemErro(e)); }
     finally { setSalvando(false); }
   };
 
-  return <section aria-label="Faturamento diário" className="faturamento-diario">
-    <h3>Faturamento por dia</h3>
-    <p className="muted">Informe o total de vendas de cada dia. R$ 0 significa dia sem vendas; vazio significa não informado.</p>
-    {error && <p className="alertbanner alertbanner--bad" role="alert">Não foi possível carregar o faturamento. {error}</p>}
-    {loading && <p className="muted">Carregando faturamento…</p>}
+  return <section aria-label={traduzir("Faturamento diário")} className="faturamento-diario">
+    <h3>{" "}{traduzir("Faturamento por dia")}{" "}</h3>
+    <p className="muted">{" "}{traduzir("Informe o total de vendas de cada dia. R$ 0 significa dia sem vendas; vazio significa não informado.")}{" "}</p>
+    {error && <p className="alertbanner alertbanner--bad" role="alert">{" "}{traduzir("Não foi possível carregar o faturamento.")}{" "}{traduzir(error)}</p>}
+    {loading && <p className="muted">{" "}{traduzir("Carregando faturamento…")}{" "}</p>}
     <form ref={formulario} className="form-grid" onSubmit={evento => void salvar(evento)}>
-      <Field label="Dia do faturamento" htmlFor="faturamento-dia">
+      <Field label={traduzir("Dia do faturamento")} htmlFor="faturamento-dia">
         <Input id="faturamento-dia" type="date" min={inicio} max={fim} value={dia}
           disabled={salvando} onChange={e => selecionar(e.target.value)} />
       </Field>
-      <Field label="Faturamento do dia (R$)" htmlFor="faturamento-valor" error={falha}>
-        <Input id="faturamento-valor" inputMode="decimal" value={valor} placeholder="Não informado"
+      <Field label={traduzir("Faturamento do dia (R$)")} htmlFor="faturamento-valor" error={falha}>
+        <Input id="faturamento-valor" inputMode="decimal" value={valor} placeholder={traduzir("Não informado")}
           disabled={loading || salvando || !!error} invalid={!!falha}
           onChange={e => { setValor(e.target.value); setAlterado(true); setFalha(null); }} />
       </Field>
-      <Button type="submit" variant="good" loading={salvando} disabled={loading || !!error || !alterado}>Salvar faturamento</Button>
+      <Button type="submit" variant="good" loading={salvando} disabled={loading || !!error || !alterado}>{" "}{traduzir("Salvar faturamento")}{" "}</Button>
       <Button type="button" variant="ghost" disabled={salvando} onClick={() => {
         setAlterado(false); setFalha(null); void refresh();
-      }}>Recarregar faturamento</Button>
+      }}>{" "}{traduzir("Recarregar faturamento")}{" "}</Button>
     </form>
-    {data?.dias && <p className="muted">{data.diasInformados} de {data.dias.length} dias informados. Total diário informado: {fmtMoney(data.totalInformado)}.</p>}
+    {data?.dias && <p className="muted">{data.diasInformados}{" "}{traduzir("de")}{" "}{data.dias.length}{" "}{traduzir("dias informados. Total diário informado:")}{" "}{fmtMoney(data.totalInformado)}.</p>}
     {historico && data?.dias && <>
       <Button variant="outline" size="sm" icon="chevron-down" className="faturamento-diario__toggle"
         aria-expanded={mostrarDias} onClick={() => setMostrarDias(!mostrarDias)}>
-        {mostrarDias ? "Ocultar dias do período" : "Ver dias do período"}
+        {mostrarDias ? traduzir("Ocultar dias do período") : traduzir("Ver dias do período")}
       </Button>
       {mostrarDias && <ListaComRolagem quantidade={data.dias.length}>
-        <DataTable caption="Faturamento por data" headers={["Data", "Faturamento", ""]}>
+        <DataTable caption={traduzir("Faturamento por data")} headers={[traduzir("Data"), traduzir("Faturamento"), ""]}>
           {data.dias.map(d => <tr key={d.data}><td>{fmtDate(d.data)}</td>
-            <td>{d.valor == null ? "Não informado" : fmtMoney(d.valor)}</td>
+            <td>{d.valor == null ? traduzir("Não informado") : fmtMoney(d.valor)}</td>
             <td><Button size="sm" variant="ghost" onClick={() => editar(d.data)} disabled={salvando}
-              aria-label={`Editar faturamento de ${fmtDate(d.data)}`}>Editar</Button></td></tr>)}
+              aria-label={traduzir("Editar faturamento de {0}",{0:fmtDate(d.data)})}>{" "}{traduzir("Editar")}{" "}</Button></td></tr>)}
         </DataTable>
       </ListaComRolagem>}
     </>}

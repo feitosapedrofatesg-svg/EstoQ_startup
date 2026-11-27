@@ -52,11 +52,12 @@ public interface IMovimentacaoEstoqueRepository extends IGenericRepository<Movim
                         + "and a.dataHora >= :inicio and a.dataHora < :fim")
         List<AjusteModel> ajustesPositivosEntre(LocalDateTime inicio, LocalDateTime fim);
 
-        @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto" })
-        @Query("select m from MovimentacaoEstoqueModel m "
+        @EntityGraph(attributePaths = { "produto", "lote", "usuario", "produtoAberto", "itemBalanco" })
+        @Query("select m from MovimentacaoEstoqueModel m left join m.itemBalanco i "
                         + "where (:produtoId is null or m.produto.id=:produtoId) "
                         + "and (:loteId is null or m.lote.id=:loteId) "
-                        + "and (:usuarioId is null or m.usuario.id=:usuarioId) "
+                        + "and (:usuarioId is null or m.usuario.id=:usuarioId "
+                        + "or (m.tipo=com.estoq.business.movimentacoesEstoque.TipoMovimentacao.AJUSTE and i.usuarioContagemId=:usuarioId)) "
                         + "and (:tipo is null or m.tipo=:tipo) "
                         + "and m.dataHora>=:inicio and m.dataHora<:fim "
                         + "order by m.dataHora,m.id")

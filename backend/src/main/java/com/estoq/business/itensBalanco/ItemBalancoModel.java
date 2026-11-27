@@ -2,6 +2,7 @@ package com.estoq.business.itensBalanco;
 
 import com.estoq.business.balancos.BalancoModel;
 import com.estoq.business.produtos.ProdutoModel;
+import com.estoq.business.usuarios.UsuarioModel;
 import com.estoq.core.domains.TenantEntity;
 
 import jakarta.persistence.Column;
@@ -20,6 +21,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -52,15 +55,26 @@ public class ItemBalancoModel extends TenantEntity {
     @Column(nullable = false)
     private boolean ajusteAplicado;
 
+    @Column(name = "usuario_contagem_id")
+    private Long usuarioContagemId;
+
+    @Column(name = "usuario_contagem_nome", length = 120)
+    private String usuarioContagemNome;
+
+    private LocalDateTime contagemEm;
+
     @Transient
     public BigDecimal getDiferenca() {
         return quantidadeFisica == null ? BigDecimal.ZERO : quantidadeFisica.subtract(quantidadeSistema);
     }
 
-    public void definirContagem(BigDecimal quantidade) {
+    public void definirContagem(BigDecimal quantidade, UsuarioModel responsavel) {
         if (quantidade == null || quantidade.signum() < 0) {
             throw new IllegalArgumentException("quantidadeFisica");
         }
         quantidadeFisica = quantidade;
+        usuarioContagemId = responsavel.getId();
+        usuarioContagemNome = responsavel.getNome();
+        contagemEm = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

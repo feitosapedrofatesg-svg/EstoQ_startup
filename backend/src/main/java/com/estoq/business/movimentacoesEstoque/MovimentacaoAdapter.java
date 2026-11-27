@@ -13,6 +13,7 @@ public class MovimentacaoAdapter {
 
     public MovimentacaoDTO toDto(MovimentacaoEstoqueModel m) {
         var l = m.getLote();
+        var item = m.getItemBalanco();
         var perda = m instanceof DesperdicioModel || DesperdicioClassificacao.perdaBalanco(m);
         return new MovimentacaoDTO(m.getId(), m.getTipo(), m.getDataHora(), m.getProduto().getId(), m.getProduto().getNome(),
                 l == null ? null : l.getId(), l == null ? null : l.getCodigo(), l == null ? null : l.getVersion(),
@@ -26,6 +27,9 @@ public class MovimentacaoAdapter {
                 perda ? DesperdicioClassificacao.motivo(m).name() : null,
                 perda ? DesperdicioClassificacao.descricao(m) : null,
                 m.getObservacao(), m.getProduto().getUnidadeMedida(), l == null ? null : l.getLoteFabricante(),
-                m instanceof AjusteModel a && l != null ? a.getValorAjuste() : null);
+                m instanceof AjusteModel a && l != null ? a.getValorAjuste() : null,
+                item == null ? null : item.getUsuarioContagemId(),
+                item == null ? null : item.getUsuarioContagemNome(),
+                item == null ? null : item.getContagemEm());
     }
 }

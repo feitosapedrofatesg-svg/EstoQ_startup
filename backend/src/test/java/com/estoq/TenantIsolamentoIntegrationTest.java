@@ -179,6 +179,80 @@ class TenantIsolamentoIntegrationTest {
     }
 
     @Test
+    void balancoCompartilhadoIdentificaQuemContouCadaItemSeparadoDeQuemAplicou() throws Exception {
+        String senha = "Teste@12345";
+        registrar("Compartilhado", "pedro@compartilhado.teste", senha);
+        var pedro = login("pedro@compartilhado.teste", senha);
+        long pedroId = json.readTree(mvc.perform(get("/api/auth/me").session(pedro))
+                .andReturn().getResponse().getContentAsString()).get("id").asLong();
+        long lucasId = postarJson(pedro, "/api/usuarios", Map.of("nome", "Lucas",
+                "email", "lucas@compartilhado.teste", "senha", senha, "perfil", "ADMIN"), 201).get("id").asLong();
+        var lucas = login("lucas@compartilhado.teste", senha);
+        long categoria = criarCategoria(pedro, "Ingredientes");
+        for (String nome : List.of("Farinha", "Arroz", "Feijao")) {
+            long produto = postarJson(pedro, "/api/produtos", Map.of("nome", nome,
+                    "unidadeMedida", "KG", "categoriaId", categoria), 201).get("id").asLong();
+            postarJson(pedro, "/api/entradas", Map.of("produtoId", produto, "quantidade", 5,
+                    "valorTotalPago", 50, "unidadeCompra", "KG"), 201);
+        }
+        var balanco = postarJson(pedro, "/api/balancos", Map.of(), 201);
+        String rota = "/api/balancos/" + balanco.get("id").asLong();
+        balanco = postarJson(pedro, rota + "/iniciar", Map.of("version", balanco.get("version").asLong()), 200);
+        for (int n = 0; n < 2; n++) {
+            var item = balanco.get("itens").get(n);
+            if (n == 1) {
+                // Lucas reconta um item inicialmente preenchido por Pedro.
+                var anterior = mvc.perform(put(rota + "/itens/" + item.get("id").asLong() + "/contagem")
+                        .session(pedro).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("quantidadeFisica", 7, "version", item.get("version").asLong()))))
+                        .andExpect(status().isOk()).andReturn();
+                item = json.readTree(anterior.getResponse().getContentAsString());
+            }
+            var contado = mvc.perform(put(rota + "/itens/" + item.get("id").asLong() + "/contagem")
+                    .session(n == 0 ? pedro : lucas).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content(json.writeValueAsString(Map.of("quantidadeFisica", n == 0 ? 2 : 8,
+                            "version", item.get("version").asLong()))))
+                    .andExpect(status().isOk()).andReturn();
+            assertThat(json.readTree(contado.getResponse().getContentAsString()).path("usuarioContagemId").asLong())
+                    .isEqualTo(n == 0 ? pedroId : lucasId);
+            // A sessão antiga não pode sobrescrever nem quantidade nem autoria.
+            mvc.perform(put(rota + "/itens/" + item.get("id").asLong() + "/contagem")
+                    .session(pedro).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content(json.writeValueAsString(Map.of("quantidadeFisica", 1, "version", item.get("version").asLong()))))
+                    .andExpect(status().isConflict());
+        }
+        // Aceitar os pendentes não transfere para Pedro a contagem já salva por Lucas.
+        balanco = postarJson(pedro, rota + "/contagens/sistema", Map.of("version", balanco.get("version").asLong()), 200);
+        assertThat(balanco.get("itens").get(1).path("usuarioContagemNome").asText()).isEqualTo("Lucas");
+        assertThat(balanco.get("itens").get(2).path("usuarioContagemId").asLong()).isEqualTo(pedroId);
+        assertThat(banco.queryForObject("select count(*) from auditoria where tipo='CONTAGEM_BALANCO'", Long.class)).isEqualTo(4);
+        assertThat(banco.queryForObject("select count(*) from auditoria where tipo='CONTAGEM_BALANCO' and usuario_id=?", Long.class, lucasId)).isEqualTo(1);
+        var versoes = new java.util.ArrayList<Map<String, Long>>();
+        for (var item : balanco.get("itens")) versoes.add(Map.of("id", item.get("id").asLong(), "version", item.get("version").asLong()));
+        balanco = postarJson(pedro, rota + "/confirmar", Map.of("version", balanco.get("version").asLong(), "itens", versoes), 200);
+        balanco = postarJson(pedro, rota + "/gerar-ajustes", Map.of("version", balanco.get("version").asLong()), 200);
+        String hoje = java.time.LocalDate.now(com.estoq.core.helpers.HorarioOperacao.FUSO).toString();
+        String consulta = "/api/movimentacoes?tipo=AJUSTE&dataInicio=" + hoje + "&dataFim=" + hoje;
+        var movimentos = json.readTree(mvc.perform(get(consulta).session(pedro)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        assertThat(movimentos.size()).isEqualTo(2);
+        for (var movimento : movimentos) {
+            assertThat(movimento.path("usuarioId").asLong()).isEqualTo(pedroId);
+            long contador = movimento.get("quantidade").asInt() < 0 ? pedroId : lucasId;
+            assertThat(movimento.path("usuarioContagemId").asLong()).isEqualTo(contador);
+            assertThat(movimento.path("contagemEm").isTextual()).isTrue();
+        }
+        var deLucas = json.readTree(mvc.perform(get(consulta + "&usuarioId=" + lucasId).session(pedro))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(deLucas.size()).isEqualTo(1);
+        assertThat(deLucas.get(0).path("usuarioContagemNome").asText()).isEqualTo("Lucas");
+        // Reaplicar por outro usuário preserva autores, quantidades e datas.
+        postarJson(lucas, rota + "/gerar-ajustes", Map.of("version", balanco.get("version").asLong()), 200);
+        assertThat(json.readTree(mvc.perform(get(consulta).session(lucas)).andReturn().getResponse().getContentAsString()))
+                .isEqualTo(movimentos);
+    }
+
+    @Test
     void filtroDeMovimentacoesPorUsuarioPreservaHistoricoEIsolaRestaurantes() throws Exception {
         registrar("Filtro A", "filtro-a@teste.com", "Teste@12345");
         registrar("Filtro B", "filtro-b@teste.com", "Teste@12345");

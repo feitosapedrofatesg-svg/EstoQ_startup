@@ -3,6 +3,7 @@ package com.estoq.business.balancos;
 import com.estoq.business.sincronizacao.DadosAlteradosService;
 
 import com.estoq.business.ajustes.AjusteService;
+import com.estoq.business.auditoria.AuditService;
 import com.estoq.business.alertas.AlertaService;
 import com.estoq.business.auth.UsuarioAtual;
 import com.estoq.business.categorias.ICategoriaRepository;
@@ -38,6 +39,7 @@ public class BalancoService {
     private final UsuarioAtual usuarioAtual;
     private final AjusteService ajustes;
     private final AlertaService alertas;
+    private final AuditService auditoria;
 
     public List<BalancoDTO> listar() {
         return repository.findAllByAtivoTrueOrderByDataHoraDesc().stream().map(adapter::toDto).toList();
@@ -119,7 +121,10 @@ public class BalancoService {
                     "Informe a quantidade física contada (não negativa).");
         }
         conferirVersao(dto.version(), item.getVersion());
-        item.definirContagem(dto.quantidadeFisica());
+        var responsavel = usuarioAtual.obter();
+        item.definirContagem(dto.quantidadeFisica(), responsavel);
+        auditoria.registrar("CONTAGEM_BALANCO", "ITEM_BALANCO", item.getId().toString(),
+                "Balanço #" + id + ": " + dto.quantidadeFisica() + " de " + item.getProduto().getNome(), responsavel);
         itensBalanco.flush();
         sincronizacao.registrar(balanco);
         return adapter.toItemDto(item);
@@ -144,9 +149,12 @@ public class BalancoService {
             throw new ConflictException("Não há itens para preencher neste balanço.");
         }
         boolean preencheu = false;
+        var responsavel = usuarioAtual.obter();
         for (var item : balanco.getItens()) {
             if (item.getQuantidadeFisica() == null) {
-                item.definirContagem(item.getQuantidadeSistema());
+                item.definirContagem(item.getQuantidadeSistema(), responsavel);
+                auditoria.registrar("CONTAGEM_BALANCO", "ITEM_BALANCO", item.getId().toString(),
+                        "Balanço #" + id + ": saldo do sistema aceito para " + item.getProduto().getNome(), responsavel);
                 preencheu = true;
             }
         }

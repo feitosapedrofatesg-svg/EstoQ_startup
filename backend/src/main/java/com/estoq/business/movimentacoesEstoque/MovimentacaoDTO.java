@@ -10,5 +10,6 @@ public record MovimentacaoDTO(Long id, TipoMovimentacao tipo, LocalDateTime data
         BigDecimal quantidadePosterior, BigDecimal precoUnitario, BigDecimal custoConsumo,
         BigDecimal valorPrejuizo, BigDecimal valorTotalPago, BigDecimal diferencaApurada,
         String motivo, String descricaoMotivo, String observacao, UnidadeMedida unidadeMedida,
-        String loteFabricante, BigDecimal valorAjuste) {
+        String loteFabricante, BigDecimal valorAjuste,
+        Long usuarioContagemId, String usuarioContagemNome, LocalDateTime contagemEm) {
 }

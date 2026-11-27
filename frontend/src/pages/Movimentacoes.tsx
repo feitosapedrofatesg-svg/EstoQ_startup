@@ -257,7 +257,12 @@ export function Movimentacoes() {
                   <td className="muted-cell">
                     {m.motivo ? m.motivo.replaceAll("_", " ") : "—"}
                   </td>
-                  <td className="muted-cell">{m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}</td>
+                  <td className="muted-cell">
+                    {m.tipo === "AJUSTE" ? <>
+                      <span>Contagem por: {m.usuarioContagemNome || "não registrada"}</span>
+                      <span className="cell-sub">{m.usuarioContagemId ? "Aplicado por" : "Usuário registrado"}: {m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}</span>
+                    </> : m.usuarioNome || usuarios?.find(u => u.id === m.usuarioId)?.nome || "Não identificado"}
+                  </td>
                 </tr>
               ))}
             </DataTable>

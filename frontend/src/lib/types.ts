@@ -146,6 +146,9 @@ export interface EstoqueDTO {
 }
 
 export interface MovimentacaoDTO {
+  usuarioContagemId?: number | null;
+  usuarioContagemNome?: string | null;
+  contagemEm?: string | null;
   loteFabricante?: string | null;
   unidadeMedida?: UnidadeMedida;
   id: number;
@@ -201,6 +204,9 @@ export interface ProdutoAbertoDTO {
 }
 
 export interface ItemBalancoDTO {
+  usuarioContagemId?: number | null;
+  usuarioContagemNome?: string | null;
+  contagemEm?: string | null;
   id: number;
   version: number;
   produtoId: number;

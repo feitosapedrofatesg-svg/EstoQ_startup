@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 
 import { Button } from "../UI";
-import { fmtNum, parseDecimal } from "../../lib/format";
+import { fmtDateTime, fmtNum, parseDecimal } from "../../lib/format";
 import type { BalancoDTO, ItemBalancoDTO } from "../../lib/types";
 
 
@@ -90,6 +90,9 @@ export function ItensContagem({ balanco, onItem, onDirty, busy }: {
                     />
                     <span className="contagem__unit">{i.unidadeMedida.toLowerCase()}</span>
                   </div>
+                  {i.usuarioContagemNome && <span className="cell-sub">
+                    Contagem por: {i.usuarioContagemNome}{i.contagemEm ? ` · ${fmtDateTime(i.contagemEm)}` : ""}
+                  </span>}
                   {conflito && <div role="alert">
                     Esta contagem mudou em outra sessão.
                     <Button size="sm" variant="ghost" onClick={() => setVals(prev => ({ ...prev, [i.id]: inicial(i) }))}>

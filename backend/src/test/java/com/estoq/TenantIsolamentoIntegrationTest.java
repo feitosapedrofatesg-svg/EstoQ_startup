@@ -246,6 +246,10 @@ class TenantIsolamentoIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertThat(deLucas.size()).isEqualTo(1);
         assertThat(deLucas.get(0).path("usuarioContagemNome").asText()).isEqualTo("Lucas");
+        var dePedro = json.readTree(mvc.perform(get(consulta + "&usuarioId=" + pedroId).session(pedro))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(dePedro.size()).isEqualTo(1);
+        assertThat(dePedro.get(0).path("usuarioContagemId").asLong()).isEqualTo(pedroId);
         // Reaplicar por outro usuário preserva autores, quantidades e datas.
         postarJson(lucas, rota + "/gerar-ajustes", Map.of("version", balanco.get("version").asLong()), 200);
         assertThat(json.readTree(mvc.perform(get(consulta).session(lucas)).andReturn().getResponse().getContentAsString()))
